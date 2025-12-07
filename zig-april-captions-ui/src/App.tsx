@@ -21,6 +21,9 @@ function App() {
     summary,
     generateTranscriptSummary,
     clearSummary,
+    questions,
+    generateSuggestedQuestions,
+    clearQuestions,
     startCaptions,
     stopCaptions,
     clearCaptions,
@@ -52,8 +55,11 @@ function App() {
 
           <SummaryDisplay
             summary={summary}
-            onGenerate={generateTranscriptSummary}
-            onClear={clearSummary}
+            questions={questions}
+            onGenerateSummary={generateTranscriptSummary}
+            onClearSummary={clearSummary}
+            onGenerateQuestions={generateSuggestedQuestions}
+            onClearQuestions={clearQuestions}
             hasApiKey={!!settings.ai?.api_key}
             hasTranscript={captionsCount > 0}
             fontSize={settings.font_size}

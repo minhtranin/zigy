@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
-import { CaptionEvent, Settings, SummaryState } from '../types';
-import { generateSummary } from '../services/geminiService';
+import { CaptionEvent, Settings, SummaryState, QuestionsState } from '../types';
+import { generateSummary, generateQuestions } from '../services/geminiService';
 
 // Global state outside React
 let globalHistory: string[] = [];  // All finalized sentences
@@ -17,6 +17,13 @@ export function useCaptions() {
   // Summary state
   const [summary, setSummary] = useState<SummaryState>({
     content: null,
+    isLoading: false,
+    error: null,
+    lastGeneratedAt: null,
+  });
+  // Questions state
+  const [questions, setQuestions] = useState<QuestionsState>({
+    questions: [],
     isLoading: false,
     error: null,
     lastGeneratedAt: null,
@@ -221,9 +228,15 @@ export function useCaptions() {
       lastText = '';
       setHistory([]);
       setCurrentText('');
-      // Also clear summary
+      // Also clear summary and questions
       setSummary({
         content: null,
+        isLoading: false,
+        error: null,
+        lastGeneratedAt: null,
+      });
+      setQuestions({
+        questions: [],
         isLoading: false,
         error: null,
         lastGeneratedAt: null,
@@ -296,6 +309,51 @@ export function useCaptions() {
     });
   }, []);
 
+  // Generate suggested questions
+  const generateSuggestedQuestions = useCallback(async () => {
+    if (!settings.ai?.api_key) {
+      setQuestions(prev => ({ ...prev, error: 'please configure your gemini api key in settings' }));
+      return;
+    }
+
+    const historyText = globalHistory.join(' ');
+    if (!historyText.trim()) {
+      setQuestions(prev => ({ ...prev, error: 'no transcript to analyze' }));
+      return;
+    }
+
+    setQuestions(prev => ({ ...prev, isLoading: true, error: null }));
+
+    try {
+      const suggestedQuestions = await generateQuestions(
+        historyText,
+        settings.ai.api_key,
+        settings.ai.model || 'gemini-2.5-flash'
+      );
+      setQuestions({
+        questions: suggestedQuestions,
+        isLoading: false,
+        error: null,
+        lastGeneratedAt: Date.now(),
+      });
+    } catch (e) {
+      setQuestions(prev => ({
+        ...prev,
+        isLoading: false,
+        error: e instanceof Error ? e.message : 'failed to generate questions',
+      }));
+    }
+  }, [settings.ai]);
+
+  const clearQuestions = useCallback(() => {
+    setQuestions({
+      questions: [],
+      isLoading: false,
+      error: null,
+      lastGeneratedAt: null,
+    });
+  }, []);
+
   // Full history text for display
   const historyText = history.join(' ');
   const wordCount = historyText.trim() ? historyText.trim().split(/\s+/).length : 0;
@@ -317,6 +375,10 @@ export function useCaptions() {
     summary,
     generateTranscriptSummary,
     clearSummary,
+    // Questions
+    questions,
+    generateSuggestedQuestions,
+    clearQuestions,
     // Actions
     startCaptions,
     stopCaptions,

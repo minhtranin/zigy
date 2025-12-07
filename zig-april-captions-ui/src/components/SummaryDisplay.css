@@ -1,12 +1,26 @@
+.ai-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.questions-display,
 .summary-display {
   padding: 10px 12px;
   background: var(--bg-secondary);
   border-radius: 6px;
   border: 1px solid var(--border-color);
+}
+
+.questions-display {
+  border-left: 3px solid #f59e0b;
+}
+
+.summary-display {
   border-left: 3px solid var(--accent-color);
 }
 
-.summary-header {
+.section-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -19,9 +33,29 @@
   text-transform: uppercase;
 }
 
-.summary-actions {
+.section-actions {
   display: flex;
   gap: 6px;
+}
+
+.btn-suggest {
+  padding: 4px 10px;
+  background: #f59e0b;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.btn-suggest:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-suggest:hover:not(:disabled) {
+  opacity: 0.9;
 }
 
 .btn-generate {
@@ -44,7 +78,7 @@
   opacity: 0.9;
 }
 
-.btn-clear-summary {
+.btn-clear-section {
   padding: 4px 10px;
   background: transparent;
   color: var(--text-secondary);
@@ -55,23 +89,59 @@
   transition: all 0.2s;
 }
 
-.btn-clear-summary:hover {
+.btn-clear-section:hover {
   background: var(--border-color);
 }
 
+/* Questions List */
+.questions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.question-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+  line-height: 1.4;
+}
+
+.question-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  background: #f59e0b;
+  color: white;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.question-text {
+  color: var(--text-primary);
+  flex: 1;
+}
+
+/* Summary Content */
 .summary-content {
   color: var(--text-primary);
   line-height: 1.5;
   white-space: pre-wrap;
 }
 
-.summary-placeholder {
+.section-placeholder {
   color: var(--text-muted);
   font-style: italic;
   font-size: 12px;
 }
 
-.summary-error {
+.section-error {
   color: #ef4444;
   font-size: 11px;
   padding: 6px 10px;
@@ -80,7 +150,7 @@
   margin-bottom: 8px;
 }
 
-.summary-timestamp {
+.section-timestamp {
   font-size: 10px;
   color: var(--text-muted);
   margin-top: 8px;

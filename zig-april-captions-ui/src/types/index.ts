@@ -33,6 +33,14 @@ export interface SummaryState {
   lastGeneratedAt: number | null;
 }
 
+// Questions state
+export interface QuestionsState {
+  questions: string[];
+  isLoading: boolean;
+  error: string | null;
+  lastGeneratedAt: number | null;
+}
+
 export interface CaptionEvent {
   type: 'ready' | 'listening' | 'caption' | 'warning' | 'error' | 'stopped';
   captionType?: 'partial' | 'final';
