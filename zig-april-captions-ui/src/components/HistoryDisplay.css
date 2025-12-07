@@ -1,0 +1,32 @@
+.history-display {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 16px;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  min-height: 150px;
+}
+
+.history-header {
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-color);
+  position: sticky;
+  top: 0;
+  background: var(--bg-secondary);
+}
+
+.history-text {
+  color: var(--text-primary);
+  line-height: 1.6;
+  word-wrap: break-word;
+}
+
+.history-placeholder {
+  color: var(--text-muted);
+  font-style: italic;
+}

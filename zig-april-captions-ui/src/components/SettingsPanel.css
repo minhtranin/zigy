@@ -1,0 +1,112 @@
+.settings-panel {
+  padding: 16px;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.settings-row label {
+  min-width: 100px;
+  color: var(--text-secondary);
+  font-size: 0.9em;
+}
+
+.settings-model {
+  flex: 1;
+  display: flex;
+  gap: 8px;
+}
+
+.model-path {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 0.85em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.settings-toggle {
+  display: flex;
+  gap: 4px;
+}
+
+.settings-toggle button {
+  padding: 8px 16px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.settings-toggle button:first-child {
+  border-radius: 4px 0 0 4px;
+}
+
+.settings-toggle button:last-child {
+  border-radius: 0 4px 4px 0;
+}
+
+.settings-toggle button.active {
+  background: var(--accent-color);
+  color: white;
+  border-color: var(--accent-color);
+}
+
+.settings-toggle button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.settings-row input[type="range"] {
+  flex: 1;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--border-color);
+  border-radius: 2px;
+  outline: none;
+}
+
+.settings-row input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  background: var(--accent-color);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.export-btn {
+  padding: 10px 20px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.export-btn:hover:not(:disabled) {
+  background: var(--accent-color);
+  color: white;
+  border-color: var(--accent-color);
+}
+
+.export-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
