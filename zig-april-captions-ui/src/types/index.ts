@@ -5,11 +5,32 @@ export interface Caption {
   timestamp: number;
 }
 
+// AI Settings for Gemini integration
+export interface AISettings {
+  api_key: string;
+  model: GeminiModel;
+}
+
+export type GeminiModel =
+  | 'gemini-2.5-flash'
+  | 'gemini-2.0-flash'
+  | 'gemini-2.5-pro'
+  | 'gemini-1.5-pro';
+
 export interface Settings {
   model_path: string;
   audio_source: 'mic' | 'monitor';
   font_size: number;
   theme: 'light' | 'dark';
+  ai?: AISettings;
+}
+
+// Summary state
+export interface SummaryState {
+  content: string | null;
+  isLoading: boolean;
+  error: string | null;
+  lastGeneratedAt: number | null;
 }
 
 export interface CaptionEvent {
@@ -20,4 +41,13 @@ export interface CaptionEvent {
   message?: string;
   version?: string;
   source?: string;
+}
+
+// Gemini API response types
+export interface GeminiResponse {
+  candidates: Array<{
+    content: {
+      parts: Array<{ text: string }>;
+    };
+  }>;
 }

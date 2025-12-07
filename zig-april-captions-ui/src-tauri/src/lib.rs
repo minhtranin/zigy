@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
-use std::io::{BufRead, BufReader, Write};
+use std::io::{BufRead, BufReader};
 use std::process::{Child, Command, Stdio};
 use std::sync::{Arc, Mutex};
-use tauri::{AppHandle, Emitter, Manager};
+use tauri::{AppHandle, Emitter};
 
 // Global state to manage the child process and transcript history
 struct AppState {
@@ -11,12 +11,26 @@ struct AppState {
     transcript_lines: Mutex<Vec<String>>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct AISettings {
+    #[serde(default)]
+    pub api_key: String,
+    #[serde(default = "default_model")]
+    pub model: String,
+}
+
+fn default_model() -> String {
+    "gemini-2.5-flash".to_string()
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Settings {
     pub model_path: String,
     pub audio_source: String, // "mic" or "monitor"
     pub font_size: u32,
     pub theme: String, // "light" or "dark"
+    #[serde(default)]
+    pub ai: Option<AISettings>,
 }
 
 impl Default for Settings {
@@ -26,6 +40,7 @@ impl Default for Settings {
             audio_source: "mic".to_string(),
             font_size: 24,
             theme: "dark".to_string(),
+            ai: None,
         }
     }
 }
@@ -193,7 +208,7 @@ async fn stop_captions(state: tauri::State<'_, Arc<AppState>>) -> Result<(), Str
 #[tauri::command]
 async fn is_running(state: tauri::State<'_, Arc<AppState>>) -> Result<bool, String> {
     let process_guard = state.process.lock().map_err(|e| e.to_string())?;
-    if let Some(child) = process_guard.as_ref() {
+    if let Some(_child) = process_guard.as_ref() {
         // Check if process is still running
         // Note: We can't easily check without consuming the child, so we assume it's running
         // The actual status is tracked via events
@@ -312,6 +327,8 @@ pub fn run() {
         transcript_lines: Mutex::new(Vec::new()),
     });
 
+    let state_clone = state.clone();
+
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
@@ -331,6 +348,18 @@ pub fn run() {
             add_transcript_line,
             clear_transcript,
         ])
+        .on_window_event(move |_window, event| {
+            if let tauri::WindowEvent::Destroyed = event {
+                // Kill the zig process when the window is closed
+                if let Ok(mut process_guard) = state_clone.process.lock() {
+                    if let Some(mut child) = process_guard.take() {
+                        println!("Cleaning up zig-april-captions process on exit...");
+                        let _ = child.kill();
+                        let _ = child.wait();
+                    }
+                }
+            }
+        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

@@ -1,7 +1,9 @@
 import { useEffect } from 'react';
 import { useCaptions } from './hooks/useCaptions';
+import { TabContainer } from './components/TabContainer';
 import { TranscriptionDisplay } from './components/TranscriptionDisplay';
 import { HistoryDisplay } from './components/HistoryDisplay';
+import { SummaryDisplay } from './components/SummaryDisplay';
 import { SettingsPanel } from './components/SettingsPanel';
 import { ControlBar } from './components/ControlBar';
 import './App.css';
@@ -16,6 +18,9 @@ function App() {
     error,
     status,
     settings,
+    summary,
+    generateTranscriptSummary,
+    clearSummary,
     startCaptions,
     stopCaptions,
     clearCaptions,
@@ -27,6 +32,60 @@ function App() {
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', settings.theme);
   }, [settings.theme]);
+
+  const tabs = [
+    {
+      id: 'captions',
+      label: 'Captions',
+      content: (
+        <>
+          <TranscriptionDisplay
+            text={currentText}
+            fontSize={settings.font_size}
+          />
+
+          <HistoryDisplay
+            text={historyText}
+            wordCount={captionsCount}
+            fontSize={settings.font_size}
+          />
+
+          <SummaryDisplay
+            summary={summary}
+            onGenerate={generateTranscriptSummary}
+            onClear={clearSummary}
+            hasApiKey={!!settings.ai?.api_key}
+            hasTranscript={captionsCount > 0}
+            fontSize={settings.font_size}
+          />
+
+          <ControlBar
+            isRunning={isRunning}
+            isLoading={isLoading}
+            status={status}
+            error={error}
+            onStart={startCaptions}
+            onStop={stopCaptions}
+            onClear={clearCaptions}
+            modelPath={settings.model_path}
+          />
+        </>
+      ),
+    },
+    {
+      id: 'settings',
+      label: 'Settings',
+      content: (
+        <SettingsPanel
+          settings={settings}
+          onSettingsChange={saveSettings}
+          onExport={exportCaptions}
+          captionsCount={captionsCount}
+          disabled={isRunning}
+        />
+      ),
+    },
+  ];
 
   return (
     <div className="app">
@@ -46,41 +105,11 @@ function App() {
       </header>
 
       <main className="app-main">
-        <TranscriptionDisplay
-          text={currentText}
-          fontSize={settings.font_size}
-        />
-
-        <HistoryDisplay
-          text={historyText}
-          wordCount={captionsCount}
-          fontSize={settings.font_size}
-        />
-
-        <ControlBar
-          isRunning={isRunning}
-          isLoading={isLoading}
-          status={status}
-          error={error}
-          onStart={startCaptions}
-          onStop={stopCaptions}
-          onClear={clearCaptions}
-          modelPath={settings.model_path}
-        />
-
-        <SettingsPanel
-          settings={settings}
-          onSettingsChange={saveSettings}
-          onExport={exportCaptions}
-          captionsCount={captionsCount}
-          disabled={isRunning}
-        />
+        <TabContainer tabs={tabs} defaultTab="captions" />
       </main>
 
       <footer className="app-footer">
-        <span>Powered by April ASR</span>
-        <span>•</span>
-        <span>Built with Tauri + React</span>
+        <span>© 2025 MinhCongTran</span>
       </footer>
     </div>
   );

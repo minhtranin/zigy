@@ -1,24 +1,27 @@
 .transcription-display {
-  padding: 16px;
+  padding: 10px 12px;
   background: var(--bg-secondary);
-  border-radius: 8px;
-  min-height: 60px;
+  border-radius: 6px;
+  min-height: 50px;
+  border: 1px solid var(--border-color);
 }
 
 .transcription-header {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--text-muted);
   letter-spacing: 0.5px;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
+  text-transform: uppercase;
 }
 
 .transcription-text {
   color: var(--text-primary);
-  line-height: 1.5;
+  line-height: 1.4;
   word-wrap: break-word;
 }
 
 .transcription-placeholder {
   color: var(--text-muted);
   font-style: italic;
+  font-size: 12px;
 }

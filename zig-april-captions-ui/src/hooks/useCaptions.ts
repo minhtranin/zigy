@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
-import { CaptionEvent, Settings } from '../types';
+import { CaptionEvent, Settings, SummaryState } from '../types';
+import { generateSummary } from '../services/geminiService';
 
 // Global state outside React
 let globalHistory: string[] = [];  // All finalized sentences
@@ -13,6 +14,13 @@ export function useCaptions() {
   const [currentText, setCurrentText] = useState<string>('');
   // History - all finalized text accumulated
   const [history, setHistory] = useState<string[]>([]);
+  // Summary state
+  const [summary, setSummary] = useState<SummaryState>({
+    content: null,
+    isLoading: false,
+    error: null,
+    lastGeneratedAt: null,
+  });
 
   const [isRunning, setIsRunning] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -213,6 +221,13 @@ export function useCaptions() {
       lastText = '';
       setHistory([]);
       setCurrentText('');
+      // Also clear summary
+      setSummary({
+        content: null,
+        isLoading: false,
+        error: null,
+        lastGeneratedAt: null,
+      });
     } catch (e) {
       console.error('Failed to clear transcript:', e);
     }
@@ -236,6 +251,51 @@ export function useCaptions() {
     }
   }, []);
 
+  // Generate AI summary
+  const generateTranscriptSummary = useCallback(async () => {
+    if (!settings.ai?.api_key) {
+      setSummary(prev => ({ ...prev, error: 'please configure your gemini api key in settings' }));
+      return;
+    }
+
+    const historyText = globalHistory.join(' ');
+    if (!historyText.trim()) {
+      setSummary(prev => ({ ...prev, error: 'no transcript to summarize' }));
+      return;
+    }
+
+    setSummary(prev => ({ ...prev, isLoading: true, error: null }));
+
+    try {
+      const content = await generateSummary(
+        historyText,
+        settings.ai.api_key,
+        settings.ai.model || 'gemini-2.5-flash'
+      );
+      setSummary({
+        content,
+        isLoading: false,
+        error: null,
+        lastGeneratedAt: Date.now(),
+      });
+    } catch (e) {
+      setSummary(prev => ({
+        ...prev,
+        isLoading: false,
+        error: e instanceof Error ? e.message : 'failed to generate summary',
+      }));
+    }
+  }, [settings.ai]);
+
+  const clearSummary = useCallback(() => {
+    setSummary({
+      content: null,
+      isLoading: false,
+      error: null,
+      lastGeneratedAt: null,
+    });
+  }, []);
+
   // Full history text for display
   const historyText = history.join(' ');
   const wordCount = historyText.trim() ? historyText.trim().split(/\s+/).length : 0;
@@ -253,6 +313,11 @@ export function useCaptions() {
     error,
     status,
     settings,
+    // Summary
+    summary,
+    generateTranscriptSummary,
+    clearSummary,
+    // Actions
     startCaptions,
     stopCaptions,
     clearCaptions,

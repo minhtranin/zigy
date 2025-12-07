@@ -1,54 +1,56 @@
 .settings-panel {
-  padding: 16px;
+  padding: 12px;
   background: var(--bg-secondary);
-  border-radius: 8px;
+  border-radius: 6px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
+  border: 1px solid var(--border-color);
 }
 
 .settings-row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .settings-row label {
-  min-width: 100px;
+  min-width: 80px;
   color: var(--text-secondary);
-  font-size: 0.9em;
+  font-size: 12px;
 }
 
 .settings-model {
   flex: 1;
   display: flex;
-  gap: 8px;
+  gap: 6px;
 }
 
 .model-path {
   flex: 1;
-  padding: 8px 12px;
+  padding: 6px 10px;
   border: 1px solid var(--border-color);
   border-radius: 4px;
   background: var(--bg-primary);
   color: var(--text-primary);
-  font-size: 0.85em;
+  font-size: 12px;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .settings-toggle {
   display: flex;
-  gap: 4px;
+  gap: 2px;
 }
 
 .settings-toggle button {
-  padding: 8px 16px;
+  padding: 6px 12px;
   border: 1px solid var(--border-color);
   background: var(--bg-primary);
   color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.2s;
+  font-size: 12px;
 }
 
 .settings-toggle button:first-child {
@@ -83,21 +85,22 @@
 .settings-row input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   background: var(--accent-color);
   border-radius: 50%;
   cursor: pointer;
 }
 
 .export-btn {
-  padding: 10px 20px;
+  padding: 6px 14px;
   background: var(--bg-primary);
   border: 1px solid var(--border-color);
   color: var(--text-primary);
   border-radius: 4px;
   cursor: pointer;
   transition: all 0.2s;
+  font-size: 12px;
 }
 
 .export-btn:hover:not(:disabled) {
@@ -107,6 +110,100 @@
 }
 
 .export-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Settings Sections */
+.settings-section {
+  padding-top: 10px;
+  margin-top: 4px;
+  border-top: 1px solid var(--border-color);
+}
+
+.settings-section:first-child {
+  padding-top: 0;
+  margin-top: 0;
+  border-top: none;
+}
+
+.settings-section-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent-color);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.settings-api-key {
+  flex: 1;
+  display: flex;
+}
+
+.api-key-input {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 12px;
+}
+
+.api-key-input::placeholder {
+  color: var(--text-muted);
+}
+
+.model-select {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 12px;
+  cursor: pointer;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 6px center;
+  background-size: 14px;
+  padding-right: 28px;
+}
+
+.model-select:focus {
+  outline: none;
+  border-color: var(--accent-color);
+}
+
+.model-select option {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  padding: 6px;
+}
+
+/* Browse button */
+.settings-model button {
+  padding: 6px 12px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 12px;
+}
+
+.settings-model button:hover:not(:disabled) {
+  background: var(--accent-color);
+  color: white;
+  border-color: var(--accent-color);
+}
+
+.settings-model button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
