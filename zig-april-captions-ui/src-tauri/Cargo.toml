@@ -26,6 +26,7 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tokio = { version = "1", features = ["full"] }
 dirs = "5"
+uuid = { version = "1", features = ["v4"] }
 
 # Patch dlopen2_derive to fix Rust compatibility issue
 [patch.crates-io]

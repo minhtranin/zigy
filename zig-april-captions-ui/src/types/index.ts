@@ -41,6 +41,13 @@ export interface QuestionsState {
   lastGeneratedAt: number | null;
 }
 
+// Knowledge base entry
+export interface KnowledgeEntry {
+  id: string;
+  content: string;
+  createdAt: number;
+}
+
 export interface CaptionEvent {
   type: 'ready' | 'listening' | 'caption' | 'warning' | 'error' | 'stopped';
   captionType?: 'partial' | 'final';

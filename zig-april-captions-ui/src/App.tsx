@@ -3,7 +3,7 @@ import { useCaptions } from './hooks/useCaptions';
 import { TabContainer } from './components/TabContainer';
 import { TranscriptionDisplay } from './components/TranscriptionDisplay';
 import { HistoryDisplay } from './components/HistoryDisplay';
-import { SummaryDisplay } from './components/SummaryDisplay';
+import { AIPanel } from './components/AIPanel';
 import { SettingsPanel } from './components/SettingsPanel';
 import { ControlBar } from './components/ControlBar';
 import './App.css';
@@ -29,6 +29,7 @@ function App() {
     clearCaptions,
     exportCaptions,
     saveSettings,
+    updateHistory,
   } = useCaptions();
 
   // Apply theme
@@ -51,9 +52,10 @@ function App() {
             text={historyText}
             wordCount={captionsCount}
             fontSize={settings.font_size}
+            onUpdateHistory={updateHistory}
           />
 
-          <SummaryDisplay
+          <AIPanel
             summary={summary}
             questions={questions}
             onGenerateSummary={generateTranscriptSummary}

@@ -10,6 +10,9 @@
 }
 
 .history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   font-size: 10px;
   color: var(--text-muted);
   letter-spacing: 0.5px;
@@ -22,6 +25,24 @@
   text-transform: uppercase;
 }
 
+.btn-history-edit {
+  padding: 2px 8px;
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-transform: none;
+}
+
+.btn-history-edit:hover {
+  background: var(--accent-color);
+  color: white;
+  border-color: var(--accent-color);
+}
+
 .history-text {
   color: var(--text-primary);
   line-height: 1.5;
@@ -32,4 +53,64 @@
   color: var(--text-muted);
   font-style: italic;
   font-size: 12px;
+}
+
+.history-edit-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.history-edit-input {
+  width: 100%;
+  min-height: 100px;
+  padding: 8px 10px;
+  border: 1px solid var(--accent-color);
+  border-radius: 4px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  resize: vertical;
+  font-family: inherit;
+  line-height: 1.5;
+}
+
+.history-edit-input:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.history-edit-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.btn-history-action {
+  padding: 4px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-history-action.btn-save {
+  background: #10b981;
+  color: white;
+  border-color: #10b981;
+}
+
+.btn-history-action.btn-save:hover {
+  background: #059669;
+  border-color: #059669;
+}
+
+.btn-history-action.btn-cancel {
+  background: transparent;
+  color: var(--text-muted);
+}
+
+.btn-history-action.btn-cancel:hover {
+  background: var(--border-color);
 }

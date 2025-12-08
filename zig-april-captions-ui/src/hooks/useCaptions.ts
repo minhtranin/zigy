@@ -354,6 +354,26 @@ export function useCaptions() {
     });
   }, []);
 
+  // Update history manually (for editing)
+  const updateHistory = useCallback(async (newText: string) => {
+    try {
+      // Split the text back into lines (by sentences or periods)
+      const lines = newText
+        .split(/[.!?]+/)
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0);
+
+      // Update backend
+      await invoke('update_transcript', { lines });
+
+      // Update local state
+      globalHistory = lines;
+      setHistory(lines);
+    } catch (e) {
+      console.error('Failed to update transcript:', e);
+    }
+  }, []);
+
   // Full history text for display
   const historyText = history.join(' ');
   const wordCount = historyText.trim() ? historyText.trim().split(/\s+/).length : 0;
@@ -386,5 +406,6 @@ export function useCaptions() {
     exportCaptions,
     saveSettings,
     setError,
+    updateHistory,
   };
 }

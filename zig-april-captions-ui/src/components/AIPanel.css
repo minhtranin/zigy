@@ -1,0 +1,365 @@
+.ai-panel {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-secondary);
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  overflow: hidden;
+}
+
+.ai-panel-header {
+  padding: 6px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-tertiary);
+}
+
+.ai-tabs {
+  display: flex;
+  gap: 2px;
+}
+
+.ai-tab {
+  padding: 5px 12px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ai-tab:hover {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.ai-tab.active {
+  background: var(--accent-color);
+  color: white;
+}
+
+.ai-panel-content {
+  flex: 1;
+  overflow: auto;
+}
+
+.ai-tab-content {
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ai-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.btn-ai {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.btn-ai:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-ai:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.btn-questions {
+  background: #f59e0b;
+  color: white;
+}
+
+.btn-summary {
+  background: var(--accent-color);
+  color: white;
+}
+
+.btn-ai-clear {
+  padding: 6px 12px;
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-ai-clear:hover {
+  background: var(--border-color);
+}
+
+/* Questions List */
+.questions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.question-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+  line-height: 1.4;
+}
+
+.question-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  background: #f59e0b;
+  color: white;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.question-text {
+  color: var(--text-primary);
+  flex: 1;
+}
+
+/* Summary Content */
+.summary-content {
+  color: var(--text-primary);
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.ai-placeholder {
+  color: var(--text-muted);
+  font-style: italic;
+  font-size: 12px;
+  padding: 8px 0;
+}
+
+.ai-error {
+  color: #ef4444;
+  font-size: 11px;
+  padding: 6px 10px;
+  background: rgba(239, 68, 68, 0.1);
+  border-radius: 4px;
+}
+
+.ai-timestamp {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-align: right;
+  margin-top: 4px;
+}
+
+/* Examples Tab */
+.examples-content {
+  gap: 12px;
+}
+
+.examples-intro {
+  color: var(--text-muted);
+  font-style: italic;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.example-category {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.category-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent-color);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.example-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.example-item {
+  padding: 6px 10px;
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+  color: var(--text-primary);
+  line-height: 1.4;
+  border-left: 2px solid var(--accent-color);
+  cursor: default;
+  transition: all 0.2s;
+}
+
+.example-item:hover {
+  background: var(--border-color);
+}
+
+/* Knowledge Tab */
+.knowledge-content {
+  gap: 12px;
+}
+
+.knowledge-intro {
+  color: var(--text-muted);
+  font-style: italic;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.knowledge-input-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.knowledge-input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  resize: vertical;
+  min-height: 60px;
+  font-family: inherit;
+}
+
+.knowledge-input:focus {
+  outline: none;
+  border-color: var(--accent-color);
+}
+
+.knowledge-input::placeholder {
+  color: var(--text-muted);
+}
+
+.btn-knowledge {
+  background: #10b981;
+  color: white;
+  align-self: flex-end;
+}
+
+.knowledge-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.knowledge-list-header {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.knowledge-item {
+  padding: 8px 10px;
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+  border-left: 2px solid #10b981;
+}
+
+.knowledge-item .knowledge-content {
+  color: var(--text-primary);
+  line-height: 1.4;
+  white-space: pre-wrap;
+  margin-bottom: 6px;
+}
+
+.knowledge-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.knowledge-date {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.knowledge-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.btn-knowledge-action {
+  padding: 2px 8px;
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-knowledge-action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-knowledge-action.btn-edit:hover {
+  background: var(--accent-color);
+  color: white;
+  border-color: var(--accent-color);
+}
+
+.btn-knowledge-action.btn-delete:hover {
+  background: #ef4444;
+  color: white;
+  border-color: #ef4444;
+}
+
+.btn-knowledge-action.btn-save {
+  background: #10b981;
+  color: white;
+  border-color: #10b981;
+}
+
+.btn-knowledge-action.btn-save:hover:not(:disabled) {
+  background: #059669;
+  border-color: #059669;
+}
+
+.btn-knowledge-action.btn-cancel:hover {
+  background: var(--border-color);
+}
+
+.knowledge-edit-input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--accent-color);
+  border-radius: 4px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  resize: vertical;
+  min-height: 60px;
+  font-family: inherit;
+  margin-bottom: 8px;
+}
+
+.knowledge-edit-input:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}

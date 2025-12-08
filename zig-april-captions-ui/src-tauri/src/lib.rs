@@ -79,6 +79,21 @@ fn get_settings_path() -> std::path::PathBuf {
     config_dir.join("settings.json")
 }
 
+fn get_knowledge_path() -> std::path::PathBuf {
+    let config_dir = dirs::config_dir()
+        .unwrap_or_else(|| std::path::PathBuf::from("."))
+        .join("zipy");
+    std::fs::create_dir_all(&config_dir).ok();
+    config_dir.join("knowledge.json")
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct KnowledgeEntry {
+    pub id: String,
+    pub content: String,
+    pub created_at: i64,
+}
+
 fn get_zig_binary_path() -> String {
     // Try to find the zig-april-captions binary
     // First check if it's in PATH or relative to the app
@@ -305,6 +320,98 @@ async fn clear_transcript(state: tauri::State<'_, Arc<AppState>>) -> Result<(), 
     Ok(())
 }
 
+#[tauri::command]
+async fn get_knowledge() -> Result<Vec<KnowledgeEntry>, String> {
+    let path = get_knowledge_path();
+    if path.exists() {
+        let content = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
+        let entries: Vec<KnowledgeEntry> = serde_json::from_str(&content).unwrap_or_default();
+        Ok(entries)
+    } else {
+        Ok(vec![])
+    }
+}
+
+#[tauri::command]
+async fn save_knowledge(entries: Vec<KnowledgeEntry>) -> Result<(), String> {
+    let path = get_knowledge_path();
+    let json = serde_json::to_string_pretty(&entries).map_err(|e| e.to_string())?;
+    std::fs::write(&path, json).map_err(|e| format!("Failed to save knowledge: {}", e))?;
+    Ok(())
+}
+
+#[tauri::command]
+async fn add_knowledge_entry(content: String) -> Result<KnowledgeEntry, String> {
+    let path = get_knowledge_path();
+    let mut entries: Vec<KnowledgeEntry> = if path.exists() {
+        let file_content = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
+        serde_json::from_str(&file_content).unwrap_or_default()
+    } else {
+        vec![]
+    };
+
+    let entry = KnowledgeEntry {
+        id: uuid::Uuid::new_v4().to_string(),
+        content,
+        created_at: std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_millis() as i64,
+    };
+
+    entries.push(entry.clone());
+
+    let json = serde_json::to_string_pretty(&entries).map_err(|e| e.to_string())?;
+    std::fs::write(&path, json).map_err(|e| format!("Failed to save knowledge: {}", e))?;
+
+    Ok(entry)
+}
+
+#[tauri::command]
+async fn delete_knowledge_entry(id: String) -> Result<(), String> {
+    let path = get_knowledge_path();
+    if path.exists() {
+        let content = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
+        let mut entries: Vec<KnowledgeEntry> = serde_json::from_str(&content).unwrap_or_default();
+        entries.retain(|e| e.id != id);
+        let json = serde_json::to_string_pretty(&entries).map_err(|e| e.to_string())?;
+        std::fs::write(&path, json).map_err(|e| format!("Failed to save knowledge: {}", e))?;
+    }
+    Ok(())
+}
+
+#[tauri::command]
+async fn update_knowledge_entry(id: String, content: String) -> Result<KnowledgeEntry, String> {
+    let path = get_knowledge_path();
+    if !path.exists() {
+        return Err("Knowledge file not found".to_string());
+    }
+
+    let file_content = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
+    let mut entries: Vec<KnowledgeEntry> = serde_json::from_str(&file_content).unwrap_or_default();
+
+    let entry = entries.iter_mut().find(|e| e.id == id);
+    match entry {
+        Some(e) => {
+            e.content = content;
+            let updated = e.clone();
+
+            let json = serde_json::to_string_pretty(&entries).map_err(|e| e.to_string())?;
+            std::fs::write(&path, json).map_err(|e| format!("Failed to save knowledge: {}", e))?;
+
+            Ok(updated)
+        }
+        None => Err("Knowledge entry not found".to_string()),
+    }
+}
+
+#[tauri::command]
+async fn update_transcript(state: tauri::State<'_, Arc<AppState>>, lines: Vec<String>) -> Result<(), String> {
+    let mut transcript = state.transcript_lines.lock().map_err(|e| e.to_string())?;
+    *transcript = lines;
+    Ok(())
+}
+
 fn load_settings() -> Settings {
     let path = get_settings_path();
     if path.exists() {
@@ -347,6 +454,12 @@ pub fn run() {
             get_transcript,
             add_transcript_line,
             clear_transcript,
+            update_transcript,
+            get_knowledge,
+            save_knowledge,
+            add_knowledge_entry,
+            update_knowledge_entry,
+            delete_knowledge_entry,
         ])
         .on_window_event(move |_window, event| {
             if let tauri::WindowEvent::Destroyed = event {
