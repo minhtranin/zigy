@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { invoke } from '@tauri-apps/api/core';
-import { SummaryState, QuestionsState, KnowledgeEntry } from '../types';
+import { SummaryState, QuestionsState, KnowledgeEntry, GeminiModel } from '../types';
+import { generateAskResponse } from '../services/geminiService';
 import './AIPanel.css';
 
 interface Tab {
@@ -18,9 +19,13 @@ interface Props {
   hasApiKey: boolean;
   hasTranscript: boolean;
   fontSize: number;
+  transcriptText: string;
+  apiKey: string;
+  model: GeminiModel;
 }
 
 const tabs: Tab[] = [
+  { id: 'ask', label: 'Speak' },
   { id: 'questions', label: 'Questions' },
   { id: 'summary', label: 'Summary' },
   { id: 'examples', label: 'Examples' },
@@ -101,8 +106,11 @@ export function AIPanel({
   hasApiKey,
   hasTranscript,
   fontSize,
+  transcriptText,
+  apiKey,
+  model,
 }: Props) {
-  const [activeTab, setActiveTab] = useState('questions');
+  const [activeTab, setActiveTab] = useState('ask');
   const canGenerate = hasApiKey && hasTranscript;
 
   // Knowledge state
@@ -111,6 +119,14 @@ export function AIPanel({
   const [isSaving, setIsSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingContent, setEditingContent] = useState('');
+
+  // Speak state
+  const [askInput, setAskInput] = useState('');
+  const [askResponse, setAskResponse] = useState('');
+  const [isAsking, setIsAsking] = useState(false);
+  const [askError, setAskError] = useState<string | null>(null);
+  const [speakHistory, setSpeakHistory] = useState<Array<{ title: string; script: string; timestamp: number }>>([]);
+  const [selectedHistoryIndex, setSelectedHistoryIndex] = useState<number | null>(null);
 
   // Load knowledge on mount
   useEffect(() => {
@@ -183,6 +199,65 @@ export function AIPanel({
     }
   };
 
+  // Ask AI handler
+  const handleAsk = async () => {
+    if (!askInput.trim()) return;
+
+    setIsAsking(true);
+    setAskError(null);
+    setSelectedHistoryIndex(null);
+
+    try {
+      // Combine all knowledge entries as context
+      const knowledgeContext = knowledgeEntries
+        .map((e) => e.content)
+        .join('\n\n');
+
+      const response = await generateAskResponse(
+        askInput.trim(),
+        transcriptText,
+        knowledgeContext,
+        apiKey,
+        model
+      );
+
+      setAskResponse(response);
+
+      // Add to history
+      setSpeakHistory(prev => [
+        { title: askInput.trim(), script: response, timestamp: Date.now() },
+        ...prev,
+      ].slice(0, 20)); // Keep last 20 items
+    } catch (e) {
+      setAskError(e instanceof Error ? e.message : 'Failed to generate response');
+    } finally {
+      setIsAsking(false);
+    }
+  };
+
+  const handleClearAsk = () => {
+    setAskInput('');
+    setAskResponse('');
+    setAskError(null);
+    setSelectedHistoryIndex(null);
+  };
+
+  const handleSelectHistory = (index: number) => {
+    const item = speakHistory[index];
+    setSelectedHistoryIndex(index);
+    setAskInput(item.title);
+    setAskResponse(item.script);
+  };
+
+  const handleDeleteHistory = (index: number) => {
+    setSpeakHistory(prev => prev.filter((_, i) => i !== index));
+    if (selectedHistoryIndex === index) {
+      setSelectedHistoryIndex(null);
+      setAskInput('');
+      setAskResponse('');
+    }
+  };
+
   return (
     <div className="ai-panel">
       <div className="ai-panel-header">
@@ -200,6 +275,87 @@ export function AIPanel({
       </div>
 
       <div className="ai-panel-content">
+        {activeTab === 'ask' && (
+          <div className="ai-tab-content ask-content">
+            <div className="ask-input-section">
+              <textarea
+                className="ask-input"
+                placeholder="What do you want to talk about? (e.g., 'discuss the incident yesterday')"
+                value={askInput}
+                onChange={(e) => setAskInput(e.target.value)}
+                rows={2}
+                style={{ fontSize: `${fontSize}px` }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleAsk();
+                  }
+                }}
+              />
+              <div className="ask-actions">
+                <button
+                  className="btn-ai btn-ask"
+                  onClick={handleAsk}
+                  disabled={!hasApiKey || !askInput.trim() || isAsking}
+                >
+                  {isAsking ? 'Thinking...' : 'Generate'}
+                </button>
+                {(askResponse || askInput) && (
+                  <button className="btn-ai-clear" onClick={handleClearAsk}>
+                    Clear
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {askError && <div className="ai-error">{askError}</div>}
+
+            {askResponse ? (
+              <div className="ask-response">
+                <div className="ask-response-header">Speaking Script:</div>
+                <div className="ask-response-content" style={{ fontSize: `${fontSize}px` }}>
+                  {askResponse}
+                </div>
+              </div>
+            ) : (
+              <div className="ai-placeholder" style={{ fontSize: `${fontSize}px` }}>
+                {!hasApiKey
+                  ? 'Configure Gemini API key in Settings tab'
+                  : 'Enter what you want to talk about and get a speaking script'}
+              </div>
+            )}
+
+            {speakHistory.length > 0 && (
+              <div className="speak-history">
+                <div className="speak-history-header">History ({speakHistory.length})</div>
+                <div className="speak-history-list">
+                  {speakHistory.map((item, index) => (
+                    <div
+                      key={item.timestamp}
+                      className={`speak-history-item ${selectedHistoryIndex === index ? 'active' : ''}`}
+                      onClick={() => handleSelectHistory(index)}
+                    >
+                      <span className="speak-history-title" title={item.title}>
+                        {item.title.length > 35 ? item.title.slice(0, 35) + '...' : item.title}
+                      </span>
+                      <button
+                        className="speak-history-delete"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteHistory(index);
+                        }}
+                        title="Delete"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {activeTab === 'questions' && (
           <div className="ai-tab-content">
             <div className="ai-actions">
@@ -373,7 +529,7 @@ export function AIPanel({
                         </div>
                         <div className="knowledge-footer">
                           <span className="knowledge-date">
-                            {new Date(entry.createdAt).toLocaleDateString()}
+                            {new Date(entry.created_at).toLocaleDateString()}
                           </span>
                           <div className="knowledge-actions">
                             <button

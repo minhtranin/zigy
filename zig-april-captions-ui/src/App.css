@@ -81,6 +81,31 @@ body {
   min-height: 0;
 }
 
+/* Two-column layout for Captions tab */
+.captions-layout {
+  display: flex;
+  gap: 12px;
+  height: 100%;
+  min-height: 0;
+}
+
+.captions-left {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  min-height: 0;
+}
+
+.captions-right {
+  width: 520px;
+  min-width: 420px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
 .app-footer {
   display: flex;
   justify-content: center;

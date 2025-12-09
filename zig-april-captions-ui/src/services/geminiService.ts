@@ -16,6 +16,20 @@ Example format:
 2. How does this approach compare to the alternative we discussed last week?
 3. What resources would be needed to support this initiative?`;
 
+const ASK_SYSTEM_PROMPT = `You are a helpful speaking coach assistant. Based on the user's question, their saved knowledge/context, and the current meeting transcript, generate a natural speaking script that they can use.
+
+Requirements:
+- Write in a conversational, natural speaking tone (not formal or robotic)
+- Keep it concise and easy to say out loud
+- Make it sound like something a person would actually say in a meeting
+- Use the knowledge context to personalize the response when relevant
+- Reference the meeting transcript context when applicable
+- Don't use bullet points or formal structure - write as natural speech
+- Keep it brief (2-4 sentences typically)
+
+Example output style:
+"So about the incident yesterday, I think we handled it well overall but there's definitely room for improvement. The main thing I noticed was our response time could be faster, and I'd suggest we set up an automated alert system for next time."`;
+
 const SUMMARY_SYSTEM_PROMPT = `You are a helpful assistant that summarizes transcription text.
 Given a transcript of spoken content, provide a clear and concise summary.
 Focus on:
@@ -146,6 +160,71 @@ export async function generateQuestions(
   }
 
   return questions;
+}
+
+export async function generateAskResponse(
+  userQuestion: string,
+  transcriptText: string,
+  knowledgeContext: string,
+  apiKey: string,
+  model: GeminiModel = 'gemini-2.5-flash'
+): Promise<string> {
+  if (!apiKey) {
+    throw new Error('API key is required');
+  }
+
+  if (!userQuestion.trim()) {
+    throw new Error('Please enter a question');
+  }
+
+  const url = `${GEMINI_API_BASE}/${model}:generateContent?key=${apiKey}`;
+
+  let contextParts = '';
+  if (knowledgeContext.trim()) {
+    contextParts += `\n\nUser's Knowledge/Context:\n${knowledgeContext}`;
+  }
+  if (transcriptText.trim()) {
+    contextParts += `\n\nCurrent Meeting Transcript:\n${transcriptText}`;
+  }
+
+  const prompt = `${ASK_SYSTEM_PROMPT}${contextParts}\n\nUser wants to say something about: "${userQuestion}"\n\nGenerate a natural speaking script:`;
+
+  const requestBody = {
+    contents: [
+      {
+        parts: [{ text: prompt }]
+      }
+    ],
+    generationConfig: {
+      temperature: 0.8,
+      maxOutputTokens: 512,
+      topP: 0.9,
+    }
+  };
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(requestBody),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(
+      errorData.error?.message || `API request failed: ${response.status}`
+    );
+  }
+
+  const data: GeminiResponse = await response.json();
+
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!text) {
+    throw new Error('No response generated');
+  }
+
+  return text;
 }
 
 export async function validateApiKey(apiKey: string): Promise<boolean> {

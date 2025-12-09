@@ -42,42 +42,49 @@ function App() {
       id: 'captions',
       label: 'Captions',
       content: (
-        <>
-          <TranscriptionDisplay
-            text={currentText}
-            fontSize={settings.font_size}
-          />
+        <div className="captions-layout">
+          <div className="captions-left">
+            <TranscriptionDisplay
+              text={currentText}
+              fontSize={settings.font_size}
+            />
 
-          <HistoryDisplay
-            text={historyText}
-            wordCount={captionsCount}
-            fontSize={settings.font_size}
-            onUpdateHistory={updateHistory}
-          />
+            <HistoryDisplay
+              text={historyText}
+              wordCount={captionsCount}
+              fontSize={settings.font_size}
+              onUpdateHistory={updateHistory}
+            />
 
-          <AIPanel
-            summary={summary}
-            questions={questions}
-            onGenerateSummary={generateTranscriptSummary}
-            onClearSummary={clearSummary}
-            onGenerateQuestions={generateSuggestedQuestions}
-            onClearQuestions={clearQuestions}
-            hasApiKey={!!settings.ai?.api_key}
-            hasTranscript={captionsCount > 0}
-            fontSize={settings.font_size}
-          />
+            <ControlBar
+              isRunning={isRunning}
+              isLoading={isLoading}
+              status={status}
+              error={error}
+              onStart={startCaptions}
+              onStop={stopCaptions}
+              onClear={clearCaptions}
+              modelPath={settings.model_path}
+            />
+          </div>
 
-          <ControlBar
-            isRunning={isRunning}
-            isLoading={isLoading}
-            status={status}
-            error={error}
-            onStart={startCaptions}
-            onStop={stopCaptions}
-            onClear={clearCaptions}
-            modelPath={settings.model_path}
-          />
-        </>
+          <div className="captions-right">
+            <AIPanel
+              summary={summary}
+              questions={questions}
+              onGenerateSummary={generateTranscriptSummary}
+              onClearSummary={clearSummary}
+              onGenerateQuestions={generateSuggestedQuestions}
+              onClearQuestions={clearQuestions}
+              hasApiKey={!!settings.ai?.api_key}
+              hasTranscript={captionsCount > 0}
+              fontSize={settings.font_size}
+              transcriptText={historyText}
+              apiKey={settings.ai?.api_key || ''}
+              model={settings.ai?.model || 'gemini-2.5-flash'}
+            />
+          </div>
+        </div>
       ),
     },
     {

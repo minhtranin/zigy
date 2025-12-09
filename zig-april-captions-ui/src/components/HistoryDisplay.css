@@ -49,6 +49,15 @@
   word-wrap: break-word;
 }
 
+.history-line {
+  padding: 2px 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.history-line:last-child {
+  border-bottom: none;
+}
+
 .history-placeholder {
   color: var(--text-muted);
   font-style: italic;

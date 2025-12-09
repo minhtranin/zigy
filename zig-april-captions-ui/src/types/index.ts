@@ -45,7 +45,7 @@ export interface QuestionsState {
 export interface KnowledgeEntry {
   id: string;
   content: string;
-  createdAt: number;
+  created_at: number;
 }
 
 export interface CaptionEvent {

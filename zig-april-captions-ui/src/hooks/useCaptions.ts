@@ -357,9 +357,9 @@ export function useCaptions() {
   // Update history manually (for editing)
   const updateHistory = useCallback(async (newText: string) => {
     try {
-      // Split the text back into lines (by sentences or periods)
+      // Split the text back into lines (by newlines)
       const lines = newText
-        .split(/[.!?]+/)
+        .split('\n')
         .map((line) => line.trim())
         .filter((line) => line.length > 0);
 
@@ -374,8 +374,8 @@ export function useCaptions() {
     }
   }, []);
 
-  // Full history text for display
-  const historyText = history.join(' ');
+  // Full history text for display (each entry on new line)
+  const historyText = history.join('\n');
   const wordCount = historyText.trim() ? historyText.trim().split(/\s+/).length : 0;
 
   return {

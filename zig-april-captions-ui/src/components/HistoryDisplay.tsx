@@ -10,65 +10,98 @@ interface Props {
 
 export function HistoryDisplay({ text, wordCount, fontSize, onUpdateHistory }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [isEditing, setIsEditing] = useState(false);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editText, setEditText] = useState('');
+
+  const lines = text ? text.toLowerCase().split('\n') : [];
 
   // Auto-scroll to bottom when new text is added (only when not editing)
   useEffect(() => {
-    if (containerRef.current && !isEditing) {
+    if (containerRef.current && editingIndex === null) {
       containerRef.current.scrollTop = containerRef.current.scrollHeight;
     }
-  }, [text, isEditing]);
+  }, [text, editingIndex]);
 
-  const handleStartEdit = () => {
-    setEditText(text.toLowerCase());
-    setIsEditing(true);
+  const handleStartEdit = (index: number) => {
+    setEditText(lines[index]);
+    setEditingIndex(index);
   };
 
   const handleCancelEdit = () => {
-    setIsEditing(false);
+    setEditingIndex(null);
     setEditText('');
   };
 
   const handleSaveEdit = () => {
-    if (onUpdateHistory) {
-      onUpdateHistory(editText);
+    if (onUpdateHistory && editingIndex !== null) {
+      const newLines = [...lines];
+      newLines[editingIndex] = editText.trim();
+      onUpdateHistory(newLines.join('\n'));
     }
-    setIsEditing(false);
+    setEditingIndex(null);
     setEditText('');
+  };
+
+  const handleDeleteLine = (index: number) => {
+    if (onUpdateHistory) {
+      const newLines = lines.filter((_, i) => i !== index);
+      onUpdateHistory(newLines.join('\n'));
+    }
   };
 
   return (
     <div className="history-display" ref={containerRef}>
       <div className="history-header">
         <span>history {wordCount > 0 && `(${wordCount} words)`}</span>
-        {text && !isEditing && onUpdateHistory && (
-          <button className="btn-history-edit" onClick={handleStartEdit} title="Edit history">
-            Edit
-          </button>
-        )}
       </div>
-      {isEditing ? (
-        <div className="history-edit-container">
-          <textarea
-            className="history-edit-input"
-            value={editText}
-            onChange={(e) => setEditText(e.target.value)}
-            style={{ fontSize: `${fontSize}px` }}
-            autoFocus
-          />
-          <div className="history-edit-actions">
-            <button className="btn-history-action btn-save" onClick={handleSaveEdit}>
-              Save
-            </button>
-            <button className="btn-history-action btn-cancel" onClick={handleCancelEdit}>
-              Cancel
-            </button>
-          </div>
-        </div>
-      ) : text ? (
+      {lines.length > 0 ? (
         <div className="history-text" style={{ fontSize: `${fontSize}px` }}>
-          {text.toLowerCase()}
+          {lines.map((line, i) => (
+            <div key={i} className="history-line">
+              {editingIndex === i ? (
+                <div className="history-line-edit">
+                  <input
+                    type="text"
+                    className="history-line-input"
+                    value={editText}
+                    onChange={(e) => setEditText(e.target.value)}
+                    style={{ fontSize: `${fontSize}px` }}
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleSaveEdit();
+                      if (e.key === 'Escape') handleCancelEdit();
+                    }}
+                  />
+                  <div className="history-line-actions">
+                    <button className="btn-line-action btn-save" onClick={handleSaveEdit}>✓</button>
+                    <button className="btn-line-action btn-cancel" onClick={handleCancelEdit}>✕</button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <span className="history-line-text">{line}</span>
+                  {onUpdateHistory && (
+                    <div className="history-line-actions">
+                      <button
+                        className="btn-line-action btn-edit"
+                        onClick={() => handleStartEdit(i)}
+                        title="Edit"
+                      >
+                        ✎ edit
+                      </button>
+                      <button
+                        className="btn-line-action btn-delete"
+                        onClick={() => handleDeleteLine(i)}
+                        title="Delete"
+                      >
+                        ✕ delete
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          ))}
         </div>
       ) : (
         <div className="history-placeholder" style={{ fontSize: `${fontSize}px` }}>
