@@ -4,7 +4,15 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Tauri + React + Typescript</title>
+    <title>Zipy - Captions</title>
+
+    <!-- Prevent FOUC (Flash of Unstyled Content) for dark mode -->
+    <!-- Default to dark mode on initial load, React will update based on saved settings -->
+    <!-- Following Tailwind CSS v4 best practices: https://tailwindcss.com/docs/dark-mode -->
+    <script>
+      // Default to dark mode to match the app's default theme
+      document.documentElement.classList.add('dark');
+    </script>
   </head>
 
   <body>

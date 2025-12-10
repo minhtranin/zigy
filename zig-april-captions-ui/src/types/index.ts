@@ -21,7 +21,7 @@ export interface Settings {
   model_path: string;
   audio_source: 'mic' | 'monitor';
   font_size: number;
-  theme: 'light' | 'dark';
+  theme: 'light' | 'dark' | 'system';
   ai?: AISettings;
 }
 

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { SummaryState, QuestionsState, KnowledgeEntry, GeminiModel } from '../types';
 import { generateAskResponse } from '../services/geminiService';
-import './AIPanel.css';
+import { X } from 'lucide-react';
 
 interface Tab {
   id: string;
@@ -37,63 +37,33 @@ const examplePhrases = [
   // Greetings
   { category: 'Greetings', text: "Hi everyone, how's it going?" },
   { category: 'Greetings', text: "Hey team, good to see you all!" },
-  { category: 'Greetings', text: "Hello! Hope everyone is doing well today." },
   { category: 'Greetings', text: "Good morning/afternoon everyone!" },
-  { category: 'Greetings', text: "Thanks for joining, great to have everyone here." },
-  { category: 'Greetings', text: "Hey! Nice to see some familiar faces." },
-  { category: 'Greetings', text: "Hi all, thanks for making time for this." },
-  { category: 'Greetings', text: "Hello everyone, hope you're having a great day!" },
-  // Warm-up / Small Talk
-  { category: 'Small Talk', text: "How was your weekend?" },
-  { category: 'Small Talk', text: "How's everything going on your end?" },
-  { category: 'Small Talk', text: "Did you have a good week so far?" },
-  { category: 'Small Talk', text: "How's the weather where you are?" },
-  { category: 'Small Talk', text: "Any exciting plans for the weekend?" },
-  { category: 'Small Talk', text: "Been up to anything fun lately?" },
-  { category: 'Small Talk', text: "How's the family doing?" },
-  { category: 'Small Talk', text: "Watched any good shows or movies recently?" },
-  { category: 'Small Talk', text: "How are you holding up this week?" },
-  { category: 'Small Talk', text: "Getting enough coffee today?" },
+  { category: 'Greetings', text: "Thanks for joining today!" },
+
+  // Small Talk
+  { category: 'Small Talk', text: "How was everyone's weekend?" },
+  { category: 'Small Talk', text: "Anyone have exciting plans coming up?" },
+  { category: 'Small Talk', text: "How's the week treating everyone so far?" },
+
   // Check-in
-  { category: 'Check-in', text: "How are things going with your current projects?" },
-  { category: 'Check-in', text: "Is there anything you need help with?" },
-  { category: 'Check-in', text: "Any blockers or challenges we should discuss?" },
-  { category: 'Check-in', text: "How's the workload looking for everyone?" },
-  { category: 'Check-in', text: "Anything new or exciting to share?" },
-  { category: 'Check-in', text: "How's everyone feeling about the deadline?" },
-  { category: 'Check-in', text: "Any updates since our last meeting?" },
-  { category: 'Check-in', text: "Is everyone on track with their tasks?" },
-  { category: 'Check-in', text: "Anything I can do to support you?" },
-  { category: 'Check-in', text: "How did that thing we discussed last time go?" },
-  // Starting the Meeting
-  { category: 'Starting', text: "Shall we get started?" },
-  { category: 'Starting', text: "Let's dive into the agenda." },
-  { category: 'Starting', text: "Ready to kick things off?" },
-  { category: 'Starting', text: "I think we're all here, let's begin." },
-  { category: 'Starting', text: "Thanks for your time today, let's get started." },
-  { category: 'Starting', text: "Alright, let's jump right in." },
-  { category: 'Starting', text: "Let me share my screen and we can begin." },
-  { category: 'Starting', text: "Should we wait for anyone else or start now?" },
+  { category: 'Check-in', text: "Before we start, is everyone here?" },
+  { category: 'Check-in', text: "Can everyone see the screen okay?" },
+  { category: 'Check-in', text: "Any technical issues before we begin?" },
+
+  // Starting
+  { category: 'Starting', text: "Let's get started, shall we?" },
+  { category: 'Starting', text: "Thanks for being here, let's dive in." },
+  { category: 'Starting', text: "We have a lot to cover today, so let's begin." },
+
   // During Meeting
+  { category: 'During Meeting', text: "Does anyone have questions so far?" },
+  { category: 'During Meeting', text: "Let me share my screen for this part." },
   { category: 'During Meeting', text: "That's a great point, thanks for bringing that up." },
-  { category: 'During Meeting', text: "Could you elaborate on that a bit more?" },
-  { category: 'During Meeting', text: "I agree with what you're saying." },
-  { category: 'During Meeting', text: "That makes sense to me." },
-  { category: 'During Meeting', text: "Just to clarify, are you saying...?" },
-  { category: 'During Meeting', text: "Can we circle back to that point later?" },
-  { category: 'During Meeting', text: "I have a quick question about that." },
-  { category: 'During Meeting', text: "What does everyone else think?" },
-  { category: 'During Meeting', text: "Let me make sure I understand correctly..." },
-  { category: 'During Meeting', text: "That's an interesting perspective." },
-  // Ending Meeting
-  { category: 'Ending', text: "Thanks everyone for your time today!" },
-  { category: 'Ending', text: "Great discussion, let's follow up on this." },
-  { category: 'Ending', text: "Any final questions before we wrap up?" },
-  { category: 'Ending', text: "I'll send out the meeting notes shortly." },
-  { category: 'Ending', text: "Let's reconnect next week to check progress." },
-  { category: 'Ending', text: "Thanks for the productive meeting!" },
-  { category: 'Ending', text: "Have a great rest of your day, everyone!" },
-  { category: 'Ending', text: "Talk to you all soon, take care!" },
+
+  // Ending
+  { category: 'Ending', text: "I think that covers everything for today." },
+  { category: 'Ending', text: "Thanks everyone for your time and input!" },
+  { category: 'Ending', text: "Let's wrap up here. Have a great rest of your day!" },
 ];
 
 export function AIPanel({
@@ -144,14 +114,11 @@ export function AIPanel({
 
   const handleAddKnowledge = async () => {
     if (!newKnowledge.trim()) return;
-
     setIsSaving(true);
     try {
-      const entry = await invoke<KnowledgeEntry>('add_knowledge_entry', {
-        content: newKnowledge.trim(),
-      });
-      setKnowledgeEntries([...knowledgeEntries, entry]);
+      await invoke('add_knowledge', { content: newKnowledge.trim() });
       setNewKnowledge('');
+      await loadKnowledge();
     } catch (e) {
       console.error('Failed to add knowledge:', e);
     } finally {
@@ -161,8 +128,8 @@ export function AIPanel({
 
   const handleDeleteKnowledge = async (id: string) => {
     try {
-      await invoke('delete_knowledge_entry', { id });
-      setKnowledgeEntries(knowledgeEntries.filter((e) => e.id !== id));
+      await invoke('delete_knowledge', { id });
+      await loadKnowledge();
     } catch (e) {
       console.error('Failed to delete knowledge:', e);
     }
@@ -179,19 +146,13 @@ export function AIPanel({
   };
 
   const handleSaveEdit = async () => {
-    if (!editingId || !editingContent.trim()) return;
-
+    if (!editingContent.trim() || editingId === null) return;
     setIsSaving(true);
     try {
-      const updated = await invoke<KnowledgeEntry>('update_knowledge_entry', {
-        id: editingId,
-        content: editingContent.trim(),
-      });
-      setKnowledgeEntries(
-        knowledgeEntries.map((e) => (e.id === editingId ? updated : e))
-      );
+      await invoke('update_knowledge', { id: editingId, content: editingContent.trim() });
       setEditingId(null);
       setEditingContent('');
+      await loadKnowledge();
     } catch (e) {
       console.error('Failed to update knowledge:', e);
     } finally {
@@ -208,26 +169,10 @@ export function AIPanel({
     setSelectedHistoryIndex(null);
 
     try {
-      // Combine all knowledge entries as context
-      const knowledgeContext = knowledgeEntries
-        .map((e) => e.content)
-        .join('\n\n');
-
-      const response = await generateAskResponse(
-        askInput.trim(),
-        transcriptText,
-        knowledgeContext,
-        apiKey,
-        model
-      );
-
+      const knowledgeContext = knowledgeEntries.map((e) => e.content).join('\n\n');
+      const response = await generateAskResponse(askInput.trim(), transcriptText, knowledgeContext, apiKey, model);
       setAskResponse(response);
-
-      // Add to history
-      setSpeakHistory(prev => [
-        { title: askInput.trim(), script: response, timestamp: Date.now() },
-        ...prev,
-      ].slice(0, 20)); // Keep last 20 items
+      setSpeakHistory(prev => [{ title: askInput.trim(), script: response, timestamp: Date.now() }, ...prev].slice(0, 20));
     } catch (e) {
       setAskError(e instanceof Error ? e.message : 'Failed to generate response');
     } finally {
@@ -259,13 +204,17 @@ export function AIPanel({
   };
 
   return (
-    <div className="ai-panel">
-      <div className="ai-panel-header">
-        <div className="ai-tabs">
+    <div className="flex flex-col flex-1 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden min-h-0">
+      <div className="p-1.5 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
+        <div className="flex gap-0.5">
           {tabs.map((tab) => (
             <button
               key={tab.id}
-              className={`ai-tab ${activeTab === tab.id ? 'active' : ''}`}
+              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors duration-200 ${
+                activeTab === tab.id
+                  ? 'bg-indigo-600 text-white'
+                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+              }`}
               onClick={() => setActiveTab(tab.id)}
             >
               {tab.label}
@@ -274,12 +223,12 @@ export function AIPanel({
         </div>
       </div>
 
-      <div className="ai-panel-content">
+      <div className="flex-1 overflow-y-auto min-h-0">
         {activeTab === 'ask' && (
-          <div className="ai-tab-content ask-content">
-            <div className="ask-input-section">
+          <div className="p-3 flex flex-col gap-3 h-full">
+            <div className="flex flex-col gap-2">
               <textarea
-                className="ask-input"
+                className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 resize-y min-h-[50px] focus:outline-none focus:ring-2 focus:ring-purple-500 placeholder-gray-400 dark:placeholder-gray-500"
                 placeholder="What do you want to talk about? (e.g., 'discuss the incident yesterday')"
                 value={askInput}
                 onChange={(e) => setAskInput(e.target.value)}
@@ -292,33 +241,39 @@ export function AIPanel({
                   }
                 }}
               />
-              <div className="ask-actions">
+              <div className="flex gap-2">
                 <button
-                  className="btn-ai btn-ask"
+                  className="px-4 py-2 text-xs font-semibold text-white bg-purple-600 rounded-md hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
                   onClick={handleAsk}
                   disabled={!hasApiKey || !askInput.trim() || isAsking}
                 >
                   {isAsking ? 'Thinking...' : 'Generate'}
                 </button>
                 {(askResponse || askInput) && (
-                  <button className="btn-ai-clear" onClick={handleClearAsk}>
+                  <button className="px-4 py-2 text-xs font-semibold text-gray-700 dark:text-gray-300 bg-transparent border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700" onClick={handleClearAsk}>
                     Clear
                   </button>
                 )}
               </div>
             </div>
 
-            {askError && <div className="ai-error">{askError}</div>}
+            {askError && (
+              <div className="p-2 text-xs text-red-700 bg-red-100 dark:bg-red-900/20 dark:text-red-400 rounded-md">
+                {askError}
+              </div>
+            )}
 
             {askResponse ? (
-              <div className="ask-response">
-                <div className="ask-response-header">Speaking Script:</div>
-                <div className="ask-response-content" style={{ fontSize: `${fontSize}px` }}>
+              <div className="flex flex-col gap-1.5 p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg border-l-4 border-purple-500">
+                <div className="text-xs font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wider">
+                  Speaking Script:
+                </div>
+                <div className="text-gray-800 dark:text-gray-200 leading-relaxed whitespace-pre-wrap" style={{ fontSize: `${fontSize}px` }}>
                   {askResponse}
                 </div>
               </div>
             ) : (
-              <div className="ai-placeholder" style={{ fontSize: `${fontSize}px` }}>
+              <div className="p-2 text-sm text-gray-500 dark:text-gray-400 italic" style={{ fontSize: `${fontSize}px` }}>
                 {!hasApiKey
                   ? 'Configure Gemini API key in Settings tab'
                   : 'Enter what you want to talk about and get a speaking script'}
@@ -326,27 +281,33 @@ export function AIPanel({
             )}
 
             {speakHistory.length > 0 && (
-              <div className="speak-history">
-                <div className="speak-history-header">History ({speakHistory.length})</div>
-                <div className="speak-history-list">
+              <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                  History ({speakHistory.length})
+                </div>
+                <div className="flex flex-col gap-1 max-h-40 overflow-y-auto">
                   {speakHistory.map((item, index) => (
                     <div
                       key={item.timestamp}
-                      className={`speak-history-item ${selectedHistoryIndex === index ? 'active' : ''}`}
+                      className={`group flex items-center justify-between p-2 rounded-md cursor-pointer transition-colors ${
+                        selectedHistoryIndex === index
+                          ? 'bg-gray-200 dark:bg-gray-700 border-purple-500'
+                          : 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700'
+                      }`}
                       onClick={() => handleSelectHistory(index)}
                     >
-                      <span className="speak-history-title" title={item.title}>
-                        {item.title.length > 35 ? item.title.slice(0, 35) + '...' : item.title}
+                      <span className="text-xs text-gray-700 dark:text-gray-300 flex-1 overflow-hidden text-ellipsis whitespace-nowrap" title={item.title}>
+                        {item.title}
                       </span>
                       <button
-                        className="speak-history-delete"
+                        className="p-1 text-gray-500 dark:text-gray-400 rounded-full hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/50 dark:hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleDeleteHistory(index);
                         }}
                         title="Delete"
                       >
-                        ×
+                        <X size={14} />
                       </button>
                     </div>
                   ))}
@@ -357,35 +318,41 @@ export function AIPanel({
         )}
 
         {activeTab === 'questions' && (
-          <div className="ai-tab-content">
-            <div className="ai-actions">
+          <div className="p-3 flex flex-col gap-3 h-full">
+            <div className="flex gap-2">
               <button
-                className="btn-ai btn-questions"
+                className="px-4 py-2 text-xs font-semibold text-white bg-amber-500 rounded-md hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed"
                 onClick={onGenerateQuestions}
                 disabled={!canGenerate || questions.isLoading}
               >
                 {questions.isLoading ? 'Thinking...' : 'Suggest Questions'}
               </button>
               {questions.questions.length > 0 && (
-                <button className="btn-ai-clear" onClick={onClearQuestions}>
+                <button className="px-4 py-2 text-xs font-semibold text-gray-700 dark:text-gray-300 bg-transparent border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700" onClick={onClearQuestions}>
                   Clear
                 </button>
               )}
             </div>
 
-            {questions.error && <div className="ai-error">{questions.error}</div>}
+            {questions.error && (
+              <div className="p-2 text-xs text-red-700 bg-red-100 dark:bg-red-900/20 dark:text-red-400 rounded-md">
+                {questions.error}
+              </div>
+            )}
 
             {questions.questions.length > 0 ? (
-              <div className="questions-list">
+              <div className="flex flex-col gap-2">
                 {questions.questions.map((q, i) => (
-                  <div key={i} className="question-item" style={{ fontSize: `${fontSize}px` }}>
-                    <span className="question-number">{i + 1}</span>
-                    <span className="question-text">{q}</span>
+                  <div key={i} className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg" style={{ fontSize: `${fontSize}px` }}>
+                    <div className="flex-shrink-0 flex items-center justify-center w-6 h-6 bg-amber-500 text-white rounded-full text-xs font-bold">
+                      {i + 1}
+                    </div>
+                    <div className="text-gray-800 dark:text-gray-200">{q}</div>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="ai-placeholder" style={{ fontSize: `${fontSize}px` }}>
+              <div className="p-2 text-sm text-gray-500 dark:text-gray-400 italic" style={{ fontSize: `${fontSize}px` }}>
                 {!hasApiKey
                   ? 'Configure Gemini API key in Settings tab'
                   : !hasTranscript
@@ -397,30 +364,34 @@ export function AIPanel({
         )}
 
         {activeTab === 'summary' && (
-          <div className="ai-tab-content">
-            <div className="ai-actions">
+          <div className="p-3 flex flex-col gap-3 h-full">
+            <div className="flex gap-2">
               <button
-                className="btn-ai btn-summary"
+                className="px-4 py-2 text-xs font-semibold text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 onClick={onGenerateSummary}
                 disabled={!canGenerate || summary.isLoading}
               >
                 {summary.isLoading ? 'Generating...' : 'Generate Summary'}
               </button>
               {summary.content && (
-                <button className="btn-ai-clear" onClick={onClearSummary}>
+                <button className="px-4 py-2 text-xs font-semibold text-gray-700 dark:text-gray-300 bg-transparent border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700" onClick={onClearSummary}>
                   Clear
                 </button>
               )}
             </div>
 
-            {summary.error && <div className="ai-error">{summary.error}</div>}
+            {summary.error && (
+              <div className="p-2 text-xs text-red-700 bg-red-100 dark:bg-red-900/20 dark:text-red-400 rounded-md">
+                {summary.error}
+              </div>
+            )}
 
             {summary.content ? (
-              <div className="summary-content" style={{ fontSize: `${fontSize}px` }}>
+              <div className="text-gray-800 dark:text-gray-200 leading-relaxed whitespace-pre-wrap" style={{ fontSize: `${fontSize}px` }}>
                 {summary.content}
               </div>
             ) : (
-              <div className="ai-placeholder" style={{ fontSize: `${fontSize}px` }}>
+              <div className="p-2 text-sm text-gray-500 dark:text-gray-400 italic" style={{ fontSize: `${fontSize}px` }}>
                 {!hasApiKey
                   ? 'Configure Gemini API key in Settings tab'
                   : !hasTranscript
@@ -430,7 +401,7 @@ export function AIPanel({
             )}
 
             {summary.lastGeneratedAt && (
-              <div className="ai-timestamp">
+              <div className="text-xs text-gray-400 dark:text-gray-500 text-right mt-2">
                 Generated at {new Date(summary.lastGeneratedAt).toLocaleTimeString()}
               </div>
             )}
@@ -438,21 +409,23 @@ export function AIPanel({
         )}
 
         {activeTab === 'examples' && (
-          <div className="ai-tab-content examples-content">
-            <div className="examples-intro" style={{ fontSize: `${fontSize}px` }}>
+          <div className="p-3 flex flex-col gap-4 h-full">
+            <div className="text-sm text-gray-500 dark:text-gray-400 italic pb-2 border-b border-gray-200 dark:border-gray-700" style={{ fontSize: `${fontSize}px` }}>
               Quick phrases for meeting greetings and warm-ups
             </div>
 
             {['Greetings', 'Small Talk', 'Check-in', 'Starting', 'During Meeting', 'Ending'].map((category) => (
-              <div key={category} className="example-category">
-                <div className="category-title">{category}</div>
-                <div className="example-list">
+              <div key={category} className="flex flex-col gap-2">
+                <div className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
+                  {category}
+                </div>
+                <div className="flex flex-col gap-1">
                   {examplePhrases
                     .filter((p) => p.category === category)
                     .map((phrase, i) => (
                       <div
                         key={i}
-                        className="example-item"
+                        className="p-2 bg-gray-50 dark:bg-gray-900/50 rounded-md text-gray-800 dark:text-gray-200 border-l-2 border-indigo-500 hover:bg-gray-100 dark:hover:bg-gray-800"
                         style={{ fontSize: `${fontSize}px` }}
                       >
                         {phrase.text}
@@ -465,14 +438,14 @@ export function AIPanel({
         )}
 
         {activeTab === 'knowledge' && (
-          <div className="ai-tab-content knowledge-content">
-            <div className="knowledge-intro" style={{ fontSize: `${fontSize}px` }}>
+          <div className="p-3 flex flex-col gap-4 h-full">
+            <div className="text-sm text-gray-500 dark:text-gray-400 italic pb-2 border-b border-gray-200 dark:border-gray-700" style={{ fontSize: `${fontSize}px` }}>
               Add your own knowledge for AI to reference in future responses
             </div>
 
-            <div className="knowledge-input-section">
+            <div className="flex flex-col gap-2">
               <textarea
-                className="knowledge-input"
+                className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 resize-y min-h-[60px] focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-gray-400 dark:placeholder-gray-500"
                 placeholder="Enter your knowledge here... (e.g., project details, team info, terminology)"
                 value={newKnowledge}
                 onChange={(e) => setNewKnowledge(e.target.value)}
@@ -480,7 +453,7 @@ export function AIPanel({
                 style={{ fontSize: `${fontSize}px` }}
               />
               <button
-                className="btn-ai btn-knowledge"
+                className="self-end px-4 py-2 text-xs font-semibold text-white bg-green-600 rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 onClick={handleAddKnowledge}
                 disabled={!newKnowledge.trim() || isSaving}
               >
@@ -489,32 +462,32 @@ export function AIPanel({
             </div>
 
             {knowledgeEntries.length > 0 ? (
-              <div className="knowledge-list">
-                <div className="knowledge-list-header">
+              <div className="flex flex-col gap-2">
+                <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Saved Knowledge ({knowledgeEntries.length})
                 </div>
                 {knowledgeEntries.map((entry) => (
-                  <div key={entry.id} className="knowledge-item">
+                  <div key={entry.id} className="p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg border-l-2 border-green-500">
                     {editingId === entry.id ? (
                       <>
                         <textarea
-                          className="knowledge-edit-input"
+                          className="w-full p-2 mb-2 border border-indigo-500 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 resize-y min-h-[60px] focus:outline-none focus:ring-2 focus:ring-indigo-500"
                           value={editingContent}
                           onChange={(e) => setEditingContent(e.target.value)}
                           rows={3}
                           style={{ fontSize: `${fontSize}px` }}
                           autoFocus
                         />
-                        <div className="knowledge-footer">
+                        <div className="flex justify-end gap-2">
                           <button
-                            className="btn-knowledge-action btn-save"
+                            className="px-3 py-1 text-xs font-semibold text-white bg-green-600 rounded-md hover:bg-green-700 disabled:opacity-50"
                             onClick={handleSaveEdit}
                             disabled={isSaving || !editingContent.trim()}
                           >
                             {isSaving ? 'Saving...' : 'Save'}
                           </button>
                           <button
-                            className="btn-knowledge-action btn-cancel"
+                            className="px-3 py-1 text-xs font-semibold text-gray-700 dark:text-gray-300 bg-transparent border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700"
                             onClick={handleCancelEdit}
                             disabled={isSaving}
                           >
@@ -524,27 +497,27 @@ export function AIPanel({
                       </>
                     ) : (
                       <>
-                        <div className="knowledge-content" style={{ fontSize: `${fontSize}px` }}>
+                        <div className="text-gray-800 dark:text-gray-200 leading-relaxed whitespace-pre-wrap mb-2" style={{ fontSize: `${fontSize}px` }}>
                           {entry.content}
                         </div>
-                        <div className="knowledge-footer">
-                          <span className="knowledge-date">
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs text-gray-400 dark:text-gray-500">
                             {new Date(entry.created_at).toLocaleDateString()}
                           </span>
-                          <div className="knowledge-actions">
+                          <div className="flex gap-2">
                             <button
-                              className="btn-knowledge-action btn-edit"
+                              className="px-3 py-1 text-xs font-semibold text-indigo-600 dark:text-indigo-400 rounded-md border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
                               onClick={() => handleStartEdit(entry)}
                               title="Edit"
                             >
                               Edit
                             </button>
                             <button
-                              className="btn-knowledge-action btn-delete"
+                              className="px-3 py-1 text-xs font-semibold text-red-600 dark:text-red-400 rounded-md border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
                               onClick={() => handleDeleteKnowledge(entry.id)}
                               title="Delete"
                             >
-                              x
+                              Delete
                             </button>
                           </div>
                         </div>
@@ -554,7 +527,7 @@ export function AIPanel({
                 ))}
               </div>
             ) : (
-              <div className="ai-placeholder" style={{ fontSize: `${fontSize}px` }}>
+              <div className="p-2 text-sm text-gray-500 dark:text-gray-400 italic" style={{ fontSize: `${fontSize}px` }}>
                 No knowledge saved yet. Add information above to help AI provide better responses.
               </div>
             )}
