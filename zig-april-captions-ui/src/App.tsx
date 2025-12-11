@@ -10,6 +10,7 @@ import './App.css'; // Keep for global styles like scrollbar
 
 function App() {
   const [activeTab, setActiveTab] = useState('captions');
+  const [reloadIdeasTrigger, setReloadIdeasTrigger] = useState(0);
   const {
     currentText,
     historyText,
@@ -103,6 +104,9 @@ function App() {
           wordCount={captionsCount}
           fontSize={settings.font_size}
           onUpdateHistory={updateHistory}
+          apiKey={settings.ai?.api_key}
+          model={settings.ai?.model}
+          onIdeaAdded={() => setReloadIdeasTrigger(prev => prev + 1)}
         />
       </div>
 
@@ -186,6 +190,7 @@ function App() {
             transcriptText={historyText}
             apiKey={settings.ai?.api_key || ''}
             model={settings.ai?.model || 'gemini-2.5-flash'}
+            reloadIdeasTrigger={reloadIdeasTrigger}
           />
         </div>
       )}

@@ -50,6 +50,26 @@ Context will be provided from:
 - Current meeting transcript (what's been said so far)
 - User's knowledge base (personal context, terminology, project details)`;
 
+const ANSWER_SYSTEM_PROMPT = `You are a helpful speaking coach assistant. Someone asked a question during the meeting, and you need to help the user provide a good spoken answer.
+
+Your task:
+1. Understand the question being asked
+2. Use the meeting transcript context to understand what's been discussed
+3. Reference the user's nominated knowledge base to personalize the answer
+4. Generate a natural, confident speaking script for the answer
+
+Requirements:
+- Write in a conversational, natural speaking tone (not formal or robotic)
+- Keep it concise and easy to say out loud (2-4 sentences typically)
+- Make it sound like something a person would actually say in a meeting
+- Sound confident and knowledgeable
+- Use personal pronouns (I, we, my, our) to make it natural
+- Don't use bullet points or formal structure - write as natural speech
+- If unsure, provide a thoughtful response based on available context
+
+Example output style:
+"That's a great question! Based on what we discussed earlier, I think the best approach would be to start with a pilot program. We can test it with a small group first and then scale up based on the results we see."`;
+
 const SUMMARY_SYSTEM_PROMPT = `You are a helpful assistant that summarizes transcription text.
 Given a transcript of spoken content, provide a clear and concise summary.
 Focus on:
@@ -217,6 +237,80 @@ export async function generateAskResponse(
     ],
     generationConfig: {
       temperature: 0.8,
+      maxOutputTokens: 512,
+      topP: 0.9,
+    }
+  };
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(requestBody),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(
+      errorData.error?.message || `API request failed: ${response.status}`
+    );
+  }
+
+  const data: GeminiResponse = await response.json();
+
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!text) {
+    throw new Error('No response generated');
+  }
+
+  return text;
+}
+
+export async function generateAnswerResponse(
+  question: string,
+  transcriptText: string,
+  knowledgeContext: string,
+  apiKey: string,
+  model: GeminiModel = 'gemini-2.5-flash'
+): Promise<string> {
+  if (!apiKey) {
+    throw new Error('API key is required');
+  }
+
+  if (!question.trim()) {
+    throw new Error('Question is required');
+  }
+
+  const url = `${GEMINI_API_BASE}/${model}:generateContent?key=${apiKey}`;
+
+  let contextParts = '';
+  if (knowledgeContext.trim()) {
+    contextParts += `\n\nUser's Nominated Knowledge/Context:\n${knowledgeContext}`;
+  }
+  if (transcriptText.trim()) {
+    contextParts += `\n\nCurrent Meeting Transcript:\n${transcriptText}`;
+  }
+
+  const prompt = `${ANSWER_SYSTEM_PROMPT}${contextParts}
+
+Question asked:
+${question}
+
+Generate a natural speaking script to answer this question. Use the meeting transcript and knowledge context to provide a relevant, confident answer.`;
+
+  const requestBody = {
+    contents: [
+      {
+        parts: [
+          {
+            text: prompt
+          }
+        ]
+      }
+    ],
+    generationConfig: {
+      temperature: 0.7,
       maxOutputTokens: 512,
       topP: 0.9,
     }

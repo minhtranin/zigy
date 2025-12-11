@@ -22,6 +22,7 @@ interface Props {
   transcriptText: string;
   apiKey: string;
   model: GeminiModel;
+  reloadIdeasTrigger?: number;
 }
 
 const tabs: Tab[] = [
@@ -79,6 +80,7 @@ export function AIPanel({
   transcriptText,
   apiKey,
   model,
+  reloadIdeasTrigger,
 }: Props) {
   const [activeTab, setActiveTab] = useState('ask');
   const canGenerate = hasApiKey && hasTranscript;
@@ -116,6 +118,18 @@ export function AIPanel({
     loadIdeas();
   }, []);
 
+  // Reload ideas when trigger changes and expand the newest one
+  useEffect(() => {
+    if (reloadIdeasTrigger !== undefined && reloadIdeasTrigger > 0) {
+      loadIdeas().then((entries) => {
+        if (entries.length > 0) {
+          // Ideas are sorted by timestamp, newest first
+          setExpandedIdeaId(entries[0].id);
+        }
+      });
+    }
+  }, [reloadIdeasTrigger]);
+
   const loadKnowledge = async () => {
     try {
       const entries = await invoke<KnowledgeEntry[]>('get_knowledge');
@@ -129,8 +143,10 @@ export function AIPanel({
     try {
       const entries = await invoke<IdeaEntry[]>('get_ideas');
       setIdeaHistory(entries);
+      return entries;
     } catch (e) {
       console.error('Failed to load ideas:', e);
+      return [];
     }
   };
 
@@ -662,11 +678,11 @@ export function AIPanel({
             {/* Input Form */}
             <div className="flex flex-col gap-2">
               <textarea
-                className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 resize-y min-h-[80px] focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-gray-400 dark:placeholder-gray-500"
+                className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 resize-y min-h-[50px] focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-gray-400 dark:placeholder-gray-500"
                 placeholder="Type your raw idea (don't worry about grammar)... AI will auto-generate a title for you!"
                 value={ideaRawContent}
                 onChange={(e) => setIdeaRawContent(e.target.value)}
-                rows={4}
+                rows={2}
                 style={{ fontSize: `${fontSize}px` }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
@@ -720,8 +736,8 @@ export function AIPanel({
 
             {/* History */}
             {ideaHistory.length > 0 && (
-              <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
-                <div className="flex flex-col gap-2 max-h-48 overflow-y-auto">
+              <div className="flex-1 pt-3 border-t border-gray-200 dark:border-gray-700 min-h-0 flex flex-col">
+                <div className="flex flex-col gap-2 overflow-y-auto flex-1">
                   {ideaHistory.map((idea) => (
                     <div key={idea.id} className="p-2 bg-gray-100 dark:bg-gray-800 rounded-md">
                       <div className="flex items-center justify-between mb-1">

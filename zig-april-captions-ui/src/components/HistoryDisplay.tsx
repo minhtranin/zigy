@@ -8,20 +8,50 @@ import {
   Check,
   X,
 } from 'lucide-react';
+import { invoke } from '@tauri-apps/api/core';
+import { generateAnswerResponse } from '../services/geminiService';
+import type { GeminiModel, KnowledgeEntry } from '../types';
 
 interface Props {
   text: string;
   wordCount: number;
   fontSize: number;
   onUpdateHistory?: (newText: string) => void;
+  apiKey?: string;
+  model?: GeminiModel;
+  onIdeaAdded?: () => void;
 }
 
-export function HistoryDisplay({ text, wordCount, fontSize, onUpdateHistory }: Props) {
+export function HistoryDisplay({
+  text,
+  wordCount,
+  fontSize,
+  onUpdateHistory,
+  apiKey,
+  model = 'gemini-2.5-flash',
+  onIdeaAdded
+}: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editText, setEditText] = useState('');
+  const [answeringIndex, setAnsweringIndex] = useState<number | null>(null);
+  const [answerError, setAnswerError] = useState<string | null>(null);
+  const [localKnowledge, setLocalKnowledge] = useState<KnowledgeEntry[]>([]);
 
   const lines = text ? text.toLowerCase().split('\n').filter(line => line.trim() !== '') : [];
+
+  // Load knowledge entries on mount
+  useEffect(() => {
+    const loadKnowledge = async () => {
+      try {
+        const entries = await invoke<KnowledgeEntry[]>('get_knowledge');
+        setLocalKnowledge(entries);
+      } catch (e) {
+        console.error('Failed to load knowledge:', e);
+      }
+    };
+    loadKnowledge();
+  }, []);
 
   useEffect(() => {
     if (containerRef.current && editingIndex === null) {
@@ -53,6 +83,50 @@ export function HistoryDisplay({ text, wordCount, fontSize, onUpdateHistory }: P
     if (onUpdateHistory) {
       const newLines = lines.filter((_, i) => i !== index);
       onUpdateHistory(newLines.join('\n'));
+    }
+  };
+
+  const handleAnswerClick = async (index: number) => {
+    if (!apiKey) {
+      setAnswerError('API key is required');
+      return;
+    }
+
+    setAnsweringIndex(index);
+    setAnswerError(null);
+
+    try {
+      const question = lines[index];
+      const knowledgeContext = localKnowledge
+        .filter(e => e.nominated)
+        .map(e => e.content)
+        .join('\n\n');
+
+      const answer = await generateAnswerResponse(
+        question,
+        text, // full transcript
+        knowledgeContext,
+        apiKey,
+        model
+      );
+
+      // Save as an idea for speaking
+      const title = question.length > 50
+        ? question.substring(0, 47) + '...'
+        : question;
+
+      const newIdea = await invoke('add_idea', {
+        title: `Answer: ${title}`,
+        rawContent: question,
+        correctedScript: answer
+      });
+
+      // Notify parent to reload ideas and expand the new one
+      onIdeaAdded?.();
+    } catch (e) {
+      setAnswerError(e instanceof Error ? e.message : 'Failed to generate answer');
+    } finally {
+      setAnsweringIndex(null);
     }
   };
 
@@ -106,9 +180,16 @@ export function HistoryDisplay({ text, wordCount, fontSize, onUpdateHistory }: P
                             <HelpCircle size={18} />
                              <span className="text-sm">Ask</span>
                           </button>
-                          <button className="flex items-center gap-1 text-gray-600 hover:text-green-500" title="Answer">
+                          <button
+                            className="flex items-center gap-1 text-gray-600 hover:text-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Answer"
+                            onClick={() => handleAnswerClick(i)}
+                            disabled={!apiKey || answeringIndex !== null}
+                          >
                             <MessageSquare size={18} />
-                             <span className="text-sm">Answer</span>
+                            <span className="text-sm">
+                              {answeringIndex === i ? 'Generating...' : 'Answer'}
+                            </span>
                           </button>
                           <button className="flex items-center gap-1 text-gray-600 hover:text-teal-500" title="Talk">
                             <Mic size={18} />
