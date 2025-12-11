@@ -9,9 +9,17 @@ interface Tab {
   label: string;
 }
 
+interface QuestionBatch {
+  questions: string[];
+  timestamp: number;
+  source: 'generated' | 'ask';
+  lineContext?: string;
+}
+
 interface Props {
   summary: SummaryState;
   questions: QuestionsState;
+  questionBatches: QuestionBatch[];
   onGenerateSummary: () => void;
   onClearSummary: () => void;
   onGenerateQuestions: () => void;
@@ -70,6 +78,7 @@ const examplePhrases = [
 export function AIPanel({
   summary,
   questions,
+  questionBatches,
   onGenerateSummary,
   onClearSummary,
   onGenerateQuestions,
@@ -437,7 +446,7 @@ export function AIPanel({
               >
                 {questions.isLoading ? 'Thinking...' : 'Suggest Questions'}
               </button>
-              {questions.questions.length > 0 && (
+              {questionBatches.length > 0 && (
                 <button className="px-4 py-2 text-xs font-semibold text-gray-700 dark:text-gray-300 bg-transparent border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700" onClick={onClearQuestions}>
                   Clear
                 </button>
@@ -450,24 +459,64 @@ export function AIPanel({
               </div>
             )}
 
-            {questions.questions.length > 0 ? (
-              <div className="flex flex-col gap-2">
-                {questions.questions.map((q, i) => (
-                  <div key={i} className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg" style={{ fontSize: `${fontSize}px` }}>
-                    <div className="flex-shrink-0 flex items-center justify-center w-6 h-6 bg-amber-500 text-white rounded-full text-xs font-bold">
-                      {i + 1}
+            {questionBatches.length > 0 ? (
+              <div className="flex flex-col gap-4">
+                {questionBatches.map((batch, batchIndex) => {
+                  const timeStr = new Date(batch.timestamp).toLocaleTimeString('en-US', {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  });
+
+                  return (
+                    <div key={batchIndex} className="flex flex-col gap-2">
+                      {/* Batch header */}
+                      <div className="flex items-center gap-2 pb-1 border-b border-gray-200 dark:border-gray-700">
+                        <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
+                          {batch.source === 'generated' ? '✨ AI Suggested' : '🔍 Asked About'}
+                        </span>
+                        <span className="text-xs text-gray-400 dark:text-gray-500">{timeStr}</span>
+                      </div>
+
+                      {/* Line context for "ask" batches */}
+                      {batch.lineContext && (
+                        <div className="text-xs italic text-gray-600 dark:text-gray-400 px-2 py-1 bg-gray-50 dark:bg-gray-800 rounded">
+                          About: "{batch.lineContext}"
+                        </div>
+                      )}
+
+                      {/* Questions in this batch */}
+                      <div className="flex flex-col gap-2">
+                        {batch.questions.map((q, i) => (
+                          <div
+                            key={i}
+                            className={`flex items-start gap-2 p-2 rounded-lg ${
+                              batch.source === 'generated'
+                                ? 'bg-amber-50 dark:bg-amber-900/10'
+                                : 'bg-purple-50 dark:bg-purple-900/10 border-l-4 border-purple-500'
+                            }`}
+                          >
+                            <div className={`flex-shrink-0 flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold ${
+                              batch.source === 'generated'
+                                ? 'bg-amber-500 text-white'
+                                : 'bg-purple-500 text-white'
+                            }`}>
+                              {i + 1}
+                            </div>
+                            <div className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed">{q}</div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                    <div className="text-gray-800 dark:text-gray-200">{q}</div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
-              <div className="p-2 text-sm text-gray-500 dark:text-gray-400 italic" style={{ fontSize: `${fontSize}px` }}>
+              <div className="p-2 text-sm text-gray-500 dark:text-gray-400 italic">
                 {!hasApiKey
                   ? 'Configure Gemini API key in Settings tab'
                   : !hasTranscript
                   ? 'Start a transcription first'
-                  : 'Click "Suggest Questions" to get smart questions for the meeting'}
+                  : 'Click "Suggest Questions" to get smart questions for the meeting, or click "Ask" on any transcript line'}
               </div>
             )}
           </div>

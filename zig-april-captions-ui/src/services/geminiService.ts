@@ -50,6 +50,28 @@ Context will be provided from:
 - Current meeting transcript (what's been said so far)
 - User's knowledge base (personal context, terminology, project details)`;
 
+const ASK_CLARIFYING_QUESTIONS_PROMPT = `You are a helpful meeting assistant. A specific statement or topic was mentioned in the meeting, and the user wants to ask clarifying questions about it to keep the conversation going and show engagement.
+
+Your task:
+1. Analyze the specific line/statement provided
+2. Consider the meeting context to understand what's been discussed
+3. Generate 1-3 natural, conversational questions that would help clarify or expand on that specific point
+4. Questions should sound natural and appropriate for a meeting setting
+5. Avoid awkward silence by keeping the discussion flowing
+
+Requirements:
+- Generate 1-3 questions (not more, not less than 1)
+- Questions should be directly related to the specific line provided
+- Sound conversational and natural (not overly formal)
+- Help clarify, understand better, or expand on the topic
+- Keep questions concise and easy to ask
+- Format: Return ONLY the questions, one per line, numbered 1-3
+
+Example format:
+1. Could you elaborate more on that approach?
+2. How would that work in practice?
+3. What's the timeline you have in mind?`;
+
 const ANSWER_SYSTEM_PROMPT = `You are a helpful speaking coach assistant. Someone asked a question during the meeting, and you need to help the user provide a good spoken answer.
 
 Your task:
@@ -422,6 +444,83 @@ SCRIPT: [your corrected speaking script here]`;
   const script = scriptMatch ? scriptMatch[1].trim() : text;
 
   return { title, script };
+}
+
+export async function generateClarifyingQuestions(
+  specificLine: string,
+  transcriptText: string,
+  apiKey: string,
+  model: GeminiModel = 'gemini-2.5-flash'
+): Promise<string[]> {
+  if (!apiKey) {
+    throw new Error('API key is required');
+  }
+
+  if (!specificLine.trim()) {
+    throw new Error('Line to clarify is required');
+  }
+
+  const url = `${GEMINI_API_BASE}/${model}:generateContent?key=${apiKey}`;
+
+  let contextParts = '';
+  if (transcriptText.trim()) {
+    contextParts += `\n\nCurrent Meeting Transcript:\n${transcriptText}`;
+  }
+
+  const prompt = `${ASK_CLARIFYING_QUESTIONS_PROMPT}${contextParts}
+
+Specific line/statement to ask about:
+"${specificLine}"
+
+Generate 1-3 natural clarifying questions about this specific statement:`;
+
+  const requestBody = {
+    contents: [
+      {
+        parts: [{ text: prompt }]
+      }
+    ],
+    generationConfig: {
+      temperature: 0.7,
+      maxOutputTokens: 512,
+      topP: 0.9,
+    }
+  };
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(requestBody),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(
+      errorData.error?.message || `API request failed: ${response.status}`
+    );
+  }
+
+  const data: GeminiResponse = await response.json();
+
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!text) {
+    throw new Error('No questions generated');
+  }
+
+  // Parse the numbered questions
+  const questions = text
+    .split('\n')
+    .map(line => line.trim())
+    .filter(line => /^\d+\./.test(line))
+    .map(line => line.replace(/^\d+\.\s*/, ''));
+
+  if (questions.length === 0) {
+    throw new Error('Failed to parse questions');
+  }
+
+  return questions;
 }
 
 export async function validateApiKey(apiKey: string): Promise<boolean> {

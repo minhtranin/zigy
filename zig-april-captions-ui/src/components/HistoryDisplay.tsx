@@ -9,7 +9,7 @@ import {
   X,
 } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
-import { generateAnswerResponse } from '../services/geminiService';
+import { generateAnswerResponse, generateClarifyingQuestions } from '../services/geminiService';
 import type { GeminiModel, KnowledgeEntry } from '../types';
 
 interface Props {
@@ -20,6 +20,7 @@ interface Props {
   apiKey?: string;
   model?: GeminiModel;
   onIdeaAdded?: () => void;
+  onQuestionsGenerated?: (questions: string[], lineContext?: string) => void;
 }
 
 export function HistoryDisplay({
@@ -29,13 +30,16 @@ export function HistoryDisplay({
   onUpdateHistory,
   apiKey,
   model = 'gemini-2.5-flash',
-  onIdeaAdded
+  onIdeaAdded,
+  onQuestionsGenerated
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editText, setEditText] = useState('');
   const [answeringIndex, setAnsweringIndex] = useState<number | null>(null);
   const [answerError, setAnswerError] = useState<string | null>(null);
+  const [askingIndex, setAskingIndex] = useState<number | null>(null);
+  const [askError, setAskError] = useState<string | null>(null);
   const [localKnowledge, setLocalKnowledge] = useState<KnowledgeEntry[]>([]);
 
   const lines = text ? text.toLowerCase().split('\n').filter(line => line.trim() !== '') : [];
@@ -130,6 +134,34 @@ export function HistoryDisplay({
     }
   };
 
+  const handleAskClick = async (index: number) => {
+    if (!apiKey) {
+      setAskError('API key is required');
+      return;
+    }
+
+    setAskingIndex(index);
+    setAskError(null);
+
+    try {
+      const specificLine = lines[index];
+
+      const questions = await generateClarifyingQuestions(
+        specificLine,
+        text, // full transcript
+        apiKey,
+        model
+      );
+
+      // Notify parent to add questions to Questions tab with line context
+      onQuestionsGenerated?.(questions, specificLine);
+    } catch (e) {
+      setAskError(e instanceof Error ? e.message : 'Failed to generate questions');
+    } finally {
+      setAskingIndex(null);
+    }
+  };
+
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 flex flex-col h-full border border-gray-200 dark:border-gray-700">
       <div className="flex-shrink-0 pb-2 mb-2 border-b border-gray-200 dark:border-gray-700">
@@ -176,9 +208,16 @@ export function HistoryDisplay({
                             <Trash2 size={18} />
                              <span className="text-sm">Delete</span>
                           </button>
-                          <button className="flex items-center gap-1 text-gray-600 hover:text-purple-500" title="Ask">
+                          <button
+                            className="flex items-center gap-1 text-gray-600 hover:text-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Ask"
+                            onClick={() => handleAskClick(i)}
+                            disabled={!apiKey || askingIndex !== null}
+                          >
                             <HelpCircle size={18} />
-                             <span className="text-sm">Ask</span>
+                            <span className="text-sm">
+                              {askingIndex === i ? 'Generating...' : 'Ask'}
+                            </span>
                           </button>
                           <button
                             className="flex items-center gap-1 text-gray-600 hover:text-green-500 disabled:opacity-50 disabled:cursor-not-allowed"

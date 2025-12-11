@@ -8,9 +8,17 @@ import { ControlBar } from './components/ControlBar';
 import type { Settings } from './types';
 import './App.css'; // Keep for global styles like scrollbar
 
+interface QuestionBatch {
+  questions: string[];
+  timestamp: number;
+  source: 'generated' | 'ask';
+  lineContext?: string;
+}
+
 function App() {
   const [activeTab, setActiveTab] = useState('captions');
   const [reloadIdeasTrigger, setReloadIdeasTrigger] = useState(0);
+  const [questionBatches, setQuestionBatches] = useState<QuestionBatch[]>([]);
   const {
     currentText,
     historyText,
@@ -33,6 +41,32 @@ function App() {
     saveSettings,
     updateHistory,
   } = useCaptions();
+
+  const handleQuestionsGenerated = (newQuestions: string[], lineContext?: string) => {
+    setQuestionBatches(prev => [...prev, {
+      questions: newQuestions,
+      timestamp: Date.now(),
+      source: 'ask',
+      lineContext
+    }]);
+  };
+
+  // Watch for new generated questions and add to batches
+  useEffect(() => {
+    if (questions.lastGeneratedAt && questions.questions.length > 0) {
+      // Check if this batch already exists
+      const alreadyExists = questionBatches.some(
+        batch => batch.timestamp === questions.lastGeneratedAt && batch.source === 'generated'
+      );
+      if (!alreadyExists) {
+        setQuestionBatches(prev => [...prev, {
+          questions: questions.questions,
+          timestamp: questions.lastGeneratedAt!,
+          source: 'generated'
+        }]);
+      }
+    }
+  }, [questions.lastGeneratedAt, questions.questions]);
 
   // Get effective theme considering system preference
   const getEffectiveTheme = (theme: 'light' | 'dark' | 'system'): 'light' | 'dark' => {
@@ -107,6 +141,7 @@ function App() {
           apiKey={settings.ai?.api_key}
           model={settings.ai?.model}
           onIdeaAdded={() => setReloadIdeasTrigger(prev => prev + 1)}
+          onQuestionsGenerated={handleQuestionsGenerated}
         />
       </div>
 
@@ -180,10 +215,14 @@ function App() {
           <AIPanel
             summary={summary}
             questions={questions}
+            questionBatches={questionBatches}
             onGenerateSummary={generateTranscriptSummary}
             onClearSummary={clearSummary}
             onGenerateQuestions={generateSuggestedQuestions}
-            onClearQuestions={clearQuestions}
+            onClearQuestions={() => {
+              clearQuestions();
+              setQuestionBatches([]);
+            }}
             hasApiKey={!!settings.ai?.api_key}
             hasTranscript={captionsCount > 0}
             fontSize={settings.font_size}
