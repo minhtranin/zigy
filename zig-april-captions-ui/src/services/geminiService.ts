@@ -72,6 +72,26 @@ Example format:
 2. How would that work in practice?
 3. What's the timeline you have in mind?`;
 
+const TALK_ABOUT_LINE_PROMPT = `You are a helpful speaking coach assistant. The user wants to contribute to the meeting discussion by talking about a specific point that was mentioned.
+
+Your task:
+1. Understand the specific line/statement from the transcript
+2. Use the meeting transcript context to understand the overall discussion
+3. Reference the user's nominated knowledge to personalize the response
+4. Generate a natural speaking script that relates to this line and contributes meaningfully to the discussion
+
+Requirements:
+- Write in a conversational, natural speaking tone (not formal or robotic)
+- Keep it concise and easy to say out loud (2-4 sentences typically)
+- Make it sound like something a person would actually say in a meeting
+- The script should relate to the specific line mentioned but add value to the discussion
+- Show engagement and contribute meaningfully without being overly critical
+- Don't use bullet points or formal structure - write as natural speech
+- Sound confident and conversational
+
+Example output style:
+"I think that's a really interesting point about the timeline. From my experience, we might want to consider adding a buffer week since similar projects usually run into unexpected issues during the testing phase."`;
+
 const ANSWER_SYSTEM_PROMPT = `You are a helpful speaking coach assistant. Someone asked a question during the meeting, and you need to help the user provide a good spoken answer.
 
 Your task:
@@ -444,6 +464,81 @@ SCRIPT: [your corrected speaking script here]`;
   const script = scriptMatch ? scriptMatch[1].trim() : text;
 
   return { title, script };
+}
+
+export async function generateTalkScript(
+  specificLine: string,
+  transcriptText: string,
+  knowledgeContext: string,
+  apiKey: string,
+  model: GeminiModel = 'gemini-2.5-flash'
+): Promise<{ title: string; script: string }> {
+  if (!apiKey) {
+    throw new Error('API key is required');
+  }
+
+  if (!specificLine.trim()) {
+    throw new Error('Line to talk about is required');
+  }
+
+  const url = `${GEMINI_API_BASE}/${model}:generateContent?key=${apiKey}`;
+
+  let contextParts = '';
+  if (knowledgeContext.trim()) {
+    contextParts += `\n\nUser's Nominated Knowledge/Context:\n${knowledgeContext}`;
+  }
+  if (transcriptText.trim()) {
+    contextParts += `\n\nCurrent Meeting Transcript:\n${transcriptText}`;
+  }
+
+  const prompt = `${TALK_ABOUT_LINE_PROMPT}${contextParts}
+
+Specific line/statement the user wants to talk about:
+"${specificLine}"
+
+Generate a natural speaking script that relates to this line and contributes to the meeting discussion:`;
+
+  const requestBody = {
+    contents: [
+      {
+        parts: [{ text: prompt }]
+      }
+    ],
+    generationConfig: {
+      temperature: 0.8,
+      maxOutputTokens: 512,
+      topP: 0.9,
+    }
+  };
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(requestBody),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(
+      errorData.error?.message || `API request failed: ${response.status}`
+    );
+  }
+
+  const data: GeminiResponse = await response.json();
+
+  const script = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!script) {
+    throw new Error('No script generated');
+  }
+
+  // Generate a title from the line
+  const title = specificLine.length > 50
+    ? specificLine.substring(0, 47) + '...'
+    : specificLine;
+
+  return { title: `Talk: ${title}`, script };
 }
 
 export async function generateClarifyingQuestions(

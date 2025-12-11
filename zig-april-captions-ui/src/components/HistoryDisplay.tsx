@@ -9,7 +9,7 @@ import {
   X,
 } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
-import { generateAnswerResponse, generateClarifyingQuestions } from '../services/geminiService';
+import { generateAnswerResponse, generateClarifyingQuestions, generateTalkScript } from '../services/geminiService';
 import type { GeminiModel, KnowledgeEntry } from '../types';
 
 interface Props {
@@ -40,6 +40,8 @@ export function HistoryDisplay({
   const [answerError, setAnswerError] = useState<string | null>(null);
   const [askingIndex, setAskingIndex] = useState<number | null>(null);
   const [askError, setAskError] = useState<string | null>(null);
+  const [talkingIndex, setTalkingIndex] = useState<number | null>(null);
+  const [talkError, setTalkError] = useState<string | null>(null);
   const [localKnowledge, setLocalKnowledge] = useState<KnowledgeEntry[]>([]);
 
   const lines = text ? text.toLowerCase().split('\n').filter(line => line.trim() !== '') : [];
@@ -162,6 +164,46 @@ export function HistoryDisplay({
     }
   };
 
+  const handleTalkClick = async (index: number) => {
+    if (!apiKey) {
+      setTalkError('API key is required');
+      return;
+    }
+
+    setTalkingIndex(index);
+    setTalkError(null);
+
+    try {
+      const specificLine = lines[index];
+      const knowledgeContext = localKnowledge
+        .filter(e => e.nominated)
+        .map(e => e.content)
+        .join('\n\n');
+
+      const { title, script } = await generateTalkScript(
+        specificLine,
+        text, // full transcript
+        knowledgeContext,
+        apiKey,
+        model
+      );
+
+      // Save as an idea for speaking
+      await invoke('add_idea', {
+        title,
+        rawContent: specificLine,
+        correctedScript: script
+      });
+
+      // Notify parent to reload ideas and expand the new one
+      onIdeaAdded?.();
+    } catch (e) {
+      setTalkError(e instanceof Error ? e.message : 'Failed to generate talk script');
+    } finally {
+      setTalkingIndex(null);
+    }
+  };
+
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 flex flex-col h-full border border-gray-200 dark:border-gray-700">
       <div className="flex-shrink-0 pb-2 mb-2 border-b border-gray-200 dark:border-gray-700">
@@ -230,9 +272,16 @@ export function HistoryDisplay({
                               {answeringIndex === i ? 'Generating...' : 'Answer'}
                             </span>
                           </button>
-                          <button className="flex items-center gap-1 text-gray-600 hover:text-teal-500" title="Talk">
+                          <button
+                            className="flex items-center gap-1 text-gray-600 hover:text-teal-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Talk"
+                            onClick={() => handleTalkClick(i)}
+                            disabled={!apiKey || talkingIndex !== null}
+                          >
                             <Mic size={18} />
-                             <span className="text-sm">Talk</span>
+                            <span className="text-sm">
+                              {talkingIndex === i ? 'Generating...' : 'Talk'}
+                            </span>
                           </button>
                         </div>
                       )}
