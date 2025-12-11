@@ -8,6 +8,8 @@ interface Props {
   onExport: (filePath: string) => Promise<boolean>;
   captionsCount: number;
   disabled?: boolean;
+  onThemeToggle: () => void;
+  effectiveTheme: 'light' | 'dark';
 }
 
 const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
@@ -32,6 +34,8 @@ export function SettingsPanel({
   onExport,
   captionsCount,
   disabled,
+  onThemeToggle,
+  effectiveTheme,
 }: Props) {
   const [isExporting, setIsExporting] = useState(false);
 
@@ -161,6 +165,18 @@ export function SettingsPanel({
       </Section>
 
       <Section title="Display">
+        <SettingRow label="Theme:">
+          <div className="flex gap-2 items-center">
+            <button
+              onClick={onThemeToggle}
+              className="px-4 py-2 text-sm font-semibold bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 flex items-center gap-2"
+            >
+              <span>{effectiveTheme === 'dark' ? '☀️' : '🌙'}</span>
+              <span>Switch to {effectiveTheme === 'dark' ? 'Light' : 'Dark'} Mode</span>
+            </button>
+          </div>
+        </SettingRow>
+
         <SettingRow label={`Font Size: ${settings.font_size}px`}>
           <input
             type="range"

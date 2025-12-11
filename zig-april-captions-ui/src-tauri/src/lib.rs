@@ -87,10 +87,27 @@ fn get_knowledge_path() -> std::path::PathBuf {
     config_dir.join("knowledge.json")
 }
 
+fn get_ideas_path() -> std::path::PathBuf {
+    let config_dir = dirs::config_dir()
+        .unwrap_or_else(|| std::path::PathBuf::from("."))
+        .join("zipy");
+    std::fs::create_dir_all(&config_dir).ok();
+    config_dir.join("ideas.json")
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct KnowledgeEntry {
     pub id: String,
     pub content: String,
+    pub created_at: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct IdeaEntry {
+    pub id: String,
+    pub title: String,
+    pub raw_content: String,
+    pub corrected_script: String,
     pub created_at: i64,
 }
 
@@ -405,6 +422,97 @@ async fn update_knowledge_entry(id: String, content: String) -> Result<Knowledge
     }
 }
 
+// Idea CRUD commands
+#[tauri::command]
+async fn get_ideas() -> Result<Vec<IdeaEntry>, String> {
+    let path = get_ideas_path();
+    if path.exists() {
+        let content = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
+        let entries: Vec<IdeaEntry> = serde_json::from_str(&content).unwrap_or_default();
+        Ok(entries)
+    } else {
+        Ok(vec![])
+    }
+}
+
+#[tauri::command]
+async fn add_idea(
+    title: String,
+    raw_content: String,
+    corrected_script: String
+) -> Result<IdeaEntry, String> {
+    let path = get_ideas_path();
+    let mut entries: Vec<IdeaEntry> = if path.exists() {
+        let file_content = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
+        serde_json::from_str(&file_content).unwrap_or_default()
+    } else {
+        vec![]
+    };
+
+    let entry = IdeaEntry {
+        id: uuid::Uuid::new_v4().to_string(),
+        title,
+        raw_content,
+        corrected_script,
+        created_at: std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_millis() as i64,
+    };
+
+    entries.insert(0, entry.clone()); // Insert at beginning for newest first
+
+    let json = serde_json::to_string_pretty(&entries).map_err(|e| e.to_string())?;
+    std::fs::write(&path, json).map_err(|e| format!("Failed to save idea: {}", e))?;
+
+    Ok(entry)
+}
+
+#[tauri::command]
+async fn update_idea(
+    id: String,
+    title: String,
+    raw_content: String,
+    corrected_script: String
+) -> Result<IdeaEntry, String> {
+    let path = get_ideas_path();
+    if !path.exists() {
+        return Err("Ideas file not found".to_string());
+    }
+
+    let file_content = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
+    let mut entries: Vec<IdeaEntry> = serde_json::from_str(&file_content).unwrap_or_default();
+
+    let entry = entries.iter_mut().find(|e| e.id == id);
+    match entry {
+        Some(e) => {
+            e.title = title;
+            e.raw_content = raw_content;
+            e.corrected_script = corrected_script;
+            let updated = e.clone();
+
+            let json = serde_json::to_string_pretty(&entries).map_err(|e| e.to_string())?;
+            std::fs::write(&path, json).map_err(|e| format!("Failed to save idea: {}", e))?;
+
+            Ok(updated)
+        }
+        None => Err("Idea entry not found".to_string()),
+    }
+}
+
+#[tauri::command]
+async fn delete_idea(id: String) -> Result<(), String> {
+    let path = get_ideas_path();
+    if path.exists() {
+        let content = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
+        let mut entries: Vec<IdeaEntry> = serde_json::from_str(&content).unwrap_or_default();
+        entries.retain(|e| e.id != id);
+        let json = serde_json::to_string_pretty(&entries).map_err(|e| e.to_string())?;
+        std::fs::write(&path, json).map_err(|e| format!("Failed to save ideas: {}", e))?;
+    }
+    Ok(())
+}
+
 #[tauri::command]
 async fn update_transcript(state: tauri::State<'_, Arc<AppState>>, lines: Vec<String>) -> Result<(), String> {
     let mut transcript = state.transcript_lines.lock().map_err(|e| e.to_string())?;
@@ -460,6 +568,10 @@ pub fn run() {
             add_knowledge_entry,
             update_knowledge_entry,
             delete_knowledge_entry,
+            get_ideas,
+            add_idea,
+            update_idea,
+            delete_idea,
         ])
         .on_window_event(move |_window, event| {
             if let tauri::WindowEvent::Destroyed = event {

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { invoke } from '@tauri-apps/api/core';
-import { SummaryState, QuestionsState, KnowledgeEntry, GeminiModel } from '../types';
-import { generateAskResponse } from '../services/geminiService';
+import { SummaryState, QuestionsState, KnowledgeEntry, IdeaEntry, GeminiModel } from '../types';
+import { generateAskResponse, generateIdeaScript } from '../services/geminiService';
 import { X } from 'lucide-react';
 
 interface Tab {
@@ -98,9 +98,21 @@ export function AIPanel({
   const [speakHistory, setSpeakHistory] = useState<Array<{ title: string; script: string; timestamp: number }>>([]);
   const [selectedHistoryIndex, setSelectedHistoryIndex] = useState<number | null>(null);
 
-  // Load knowledge on mount
+  // Idea section state
+  const [ideaRawContent, setIdeaRawContent] = useState('');
+  const [ideaCorrectedTitle, setIdeaCorrectedTitle] = useState('');
+  const [ideaCorrectedScript, setIdeaCorrectedScript] = useState('');
+  const [isGeneratingIdea, setIsGeneratingIdea] = useState(false);
+  const [ideaError, setIdeaError] = useState<string | null>(null);
+
+  // Idea history state
+  const [ideaHistory, setIdeaHistory] = useState<IdeaEntry[]>([]);
+  const [expandedIdeaId, setExpandedIdeaId] = useState<string | null>(null);
+
+  // Load knowledge and ideas on mount
   useEffect(() => {
     loadKnowledge();
+    loadIdeas();
   }, []);
 
   const loadKnowledge = async () => {
@@ -109,6 +121,15 @@ export function AIPanel({
       setKnowledgeEntries(entries);
     } catch (e) {
       console.error('Failed to load knowledge:', e);
+    }
+  };
+
+  const loadIdeas = async () => {
+    try {
+      const entries = await invoke<IdeaEntry[]>('get_ideas');
+      setIdeaHistory(entries);
+    } catch (e) {
+      console.error('Failed to load ideas:', e);
     }
   };
 
@@ -160,6 +181,60 @@ export function AIPanel({
     }
   };
 
+  // Idea handlers
+  const handleGenerateIdea = async () => {
+    if (!ideaRawContent.trim()) return;
+
+    setIsGeneratingIdea(true);
+    setIdeaError(null);
+
+    try {
+      const knowledgeContext = knowledgeEntries.map(e => e.content).join('\n\n');
+      const { title, script } = await generateIdeaScript(
+        ideaRawContent.trim(),
+        transcriptText,
+        knowledgeContext,
+        apiKey,
+        model
+      );
+
+      setIdeaCorrectedTitle(title);
+      setIdeaCorrectedScript(script);
+
+      // Save to backend
+      await invoke('add_idea', {
+        title: title,
+        rawContent: ideaRawContent.trim(),
+        correctedScript: script
+      });
+
+      // Clear form and reload
+      setIdeaRawContent('');
+      await loadIdeas();
+    } catch (e) {
+      setIdeaError(e instanceof Error ? e.message : 'Failed to generate script');
+    } finally {
+      setIsGeneratingIdea(false);
+    }
+  };
+
+  const handleClearIdea = () => {
+    setIdeaRawContent('');
+    setIdeaCorrectedTitle('');
+    setIdeaCorrectedScript('');
+    setIdeaError(null);
+  };
+
+  const handleDeleteIdea = async (id: string) => {
+    try {
+      await invoke('delete_idea', { id });
+      await loadIdeas();
+      if (expandedIdeaId === id) setExpandedIdeaId(null);
+    } catch (e) {
+      console.error('Failed to delete idea:', e);
+    }
+  };
+
   // Ask AI handler
   const handleAsk = async () => {
     if (!askInput.trim()) return;
@@ -204,26 +279,28 @@ export function AIPanel({
   };
 
   return (
-    <div className="flex flex-col flex-1 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden min-h-0">
-      <div className="p-1.5 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
-        <div className="flex gap-0.5">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors duration-200 ${
-                activeTab === tab.id
-                  ? 'bg-indigo-600 text-white'
-                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-              }`}
-              onClick={() => setActiveTab(tab.id)}
-            >
-              {tab.label}
-            </button>
-          ))}
+    <div className="flex flex-col flex-1 gap-2 min-h-0">
+      {/* Top Section: Tabs */}
+      <div className="flex-1 flex flex-col bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden min-h-0">
+        <div className="p-1.5 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
+          <div className="flex gap-0.5">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors duration-200 ${
+                  activeTab === tab.id
+                    ? 'bg-indigo-600 text-white'
+                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                }`}
+                onClick={() => setActiveTab(tab.id)}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
 
-      <div className="flex-1 overflow-y-auto min-h-0">
+        <div className="flex-1 overflow-y-auto min-h-0">
         {activeTab === 'ask' && (
           <div className="p-3 flex flex-col gap-3 h-full">
             <div className="flex flex-col gap-2">
@@ -533,6 +610,110 @@ export function AIPanel({
             )}
           </div>
         )}
+        </div>
+      </div>
+
+      {/* Bottom Section: Ideas */}
+      <div className={`flex-1 flex flex-col border-2 border-indigo-300 dark:border-indigo-600 rounded-lg bg-gradient-to-br from-indigo-50/50 to-purple-50/50 dark:from-indigo-950/30 dark:to-purple-950/30 shadow-md overflow-hidden min-h-0`}>
+        <div className="flex-1 p-3 flex flex-col gap-3 overflow-y-auto min-h-0">
+            {/* Input Form */}
+            <div className="flex flex-col gap-2">
+              <textarea
+                className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 resize-y min-h-[80px] focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-gray-400 dark:placeholder-gray-500"
+                placeholder="Type your raw idea (don't worry about grammar)... AI will auto-generate a title for you!"
+                value={ideaRawContent}
+                onChange={(e) => setIdeaRawContent(e.target.value)}
+                rows={4}
+                style={{ fontSize: `${fontSize}px` }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                    e.preventDefault();
+                    handleGenerateIdea();
+                  }
+                }}
+              />
+              <div className="flex gap-2">
+                <button
+                  className="px-4 py-2 text-xs font-semibold text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={handleGenerateIdea}
+                  disabled={!hasApiKey || !ideaRawContent.trim() || isGeneratingIdea}
+                >
+                  {isGeneratingIdea ? 'Generating...' : 'Generate'}
+                </button>
+                {(ideaRawContent || ideaCorrectedScript) && (
+                  <button
+                    className="px-4 py-2 text-xs font-semibold text-gray-700 dark:text-gray-300 bg-transparent border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700"
+                    onClick={handleClearIdea}
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Error Display */}
+            {ideaError && (
+              <div className="p-2 text-xs text-red-700 bg-red-100 dark:bg-red-900/20 dark:text-red-400 rounded-md">
+                {ideaError}
+              </div>
+            )}
+
+            {/* Current Result */}
+            {ideaCorrectedScript && (
+              <div className="flex flex-col gap-2 p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg border-l-4 border-indigo-500">
+                <div className="flex items-center justify-between mb-1">
+                  <div className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase">
+                    {ideaCorrectedTitle}
+                  </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                    ✨ AI Generated
+                  </div>
+                </div>
+                <div className="text-gray-800 dark:text-gray-200 leading-relaxed" style={{ fontSize: `${fontSize}px` }}>
+                  {ideaCorrectedScript}
+                </div>
+              </div>
+            )}
+
+            {/* History */}
+            {ideaHistory.length > 0 && (
+              <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
+                <div className="flex flex-col gap-2 max-h-48 overflow-y-auto">
+                  {ideaHistory.map((idea) => (
+                    <div key={idea.id} className="p-2 bg-gray-100 dark:bg-gray-800 rounded-md">
+                      <div className="flex items-center justify-between mb-1">
+                        <button
+                          className="flex-1 text-left text-sm font-semibold text-gray-800 dark:text-gray-200 hover:text-indigo-600 dark:hover:text-indigo-400"
+                          onClick={() => setExpandedIdeaId(expandedIdeaId === idea.id ? null : idea.id)}
+                        >
+                          {idea.title}
+                        </button>
+                        <button
+                          className="p-1 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/50 rounded"
+                          onClick={() => handleDeleteIdea(idea.id)}
+                          title="Delete"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                      {expandedIdeaId === idea.id && (
+                        <div className="flex flex-col gap-2 mt-2 text-xs">
+                          <div className="p-2 bg-gray-200 dark:bg-gray-700 rounded">
+                            <div className="font-semibold text-gray-600 dark:text-gray-400 mb-1">Raw:</div>
+                            <div className="text-gray-700 dark:text-gray-300" style={{ fontSize: `${fontSize}px` }}>{idea.raw_content}</div>
+                          </div>
+                          <div className="p-2 bg-indigo-50 dark:bg-indigo-900/20 rounded border-l-2 border-indigo-500">
+                            <div className="font-semibold text-indigo-600 dark:text-indigo-400 mb-1">Script:</div>
+                            <div className="text-gray-800 dark:text-gray-200" style={{ fontSize: `${fontSize}px` }}>{idea.corrected_script}</div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
       </div>
     </div>
   );

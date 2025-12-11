@@ -12,7 +12,6 @@ interface Props {
 export function ControlBar({
   isRunning,
   isLoading,
-  status,
   error,
   onStart,
   onStop,
@@ -26,14 +25,14 @@ export function ControlBar({
       <div className="flex gap-2">
         {!isRunning ? (
           <button
-            className="flex-1 px-4 py-2 text-sm font-semibold text-white bg-green-600 rounded-md hover:bg-green-700 disabled:bg-gray-500 disabled:cursor-not-allowed transition-colors"
+            className="flex-1 px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-200 dark:bg-gray-700 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 disabled:bg-gray-300 dark:disabled:bg-gray-800 disabled:cursor-not-allowed transition-colors"
             onClick={onStart}
             disabled={!canStart}
           >
             {isLoading ? 'Starting...' : 'Start Listening'}
           </button>
         ) : (
-          <button className="flex-1 px-4 py-2 text-sm font-semibold text-white bg-red-600 rounded-md hover:bg-red-700 transition-colors" onClick={onStop}>
+          <button className="flex-1 px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-200 dark:bg-gray-700 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors" onClick={onStop}>
             Stop
           </button>
         )}
@@ -44,11 +43,6 @@ export function ControlBar({
         >
           Clear History
         </button>
-      </div>
-
-      <div className="flex items-center gap-2">
-        <span className={`w-2.5 h-2.5 rounded-full ${isRunning ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`} />
-        <span className="text-xs text-gray-500 dark:text-gray-400">{status}</span>
       </div>
 
       {error && (

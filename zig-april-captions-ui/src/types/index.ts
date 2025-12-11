@@ -48,6 +48,15 @@ export interface KnowledgeEntry {
   created_at: number;
 }
 
+// Idea entry for grammar correction and script generation
+export interface IdeaEntry {
+  id: string;
+  title: string;
+  raw_content: string;        // User's raw input with mistakes
+  corrected_script: string;   // Gemini corrected script
+  created_at: number;         // Unix timestamp in milliseconds
+}
+
 export interface CaptionEvent {
   type: 'ready' | 'listening' | 'caption' | 'warning' | 'error' | 'stopped';
   captionType?: 'partial' | 'final';

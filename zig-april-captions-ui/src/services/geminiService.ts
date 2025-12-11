@@ -30,6 +30,26 @@ Requirements:
 Example output style:
 "So about the incident yesterday, I think we handled it well overall but there's definitely room for improvement. The main thing I noticed was our response time could be faster, and I'd suggest we set up an automated alert system for next time."`;
 
+const IDEA_CORRECTION_SYSTEM_PROMPT = `You are a helpful speaking coach and editor. The user has an idea they want to express but their input may contain grammar mistakes, incomplete sentences, or unclear phrasing.
+
+Your task:
+1. Understand the user's intent from their raw input
+2. Correct any grammar mistakes and improve clarity
+3. Generate a natural, fluent speaking script they can use
+4. Use the conversation transcript context to make the response relevant
+5. Reference knowledge base entries when applicable to personalize the script
+
+Requirements:
+- Write in a conversational, natural speaking tone (not formal or robotic)
+- Keep it concise and easy to say out loud (3-5 sentences typically)
+- Make it sound like something a person would actually say in a meeting
+- Fix grammar while preserving the user's original meaning and intent
+- Don't use bullet points or formal structure - write as natural speech
+
+Context will be provided from:
+- Current meeting transcript (what's been said so far)
+- User's knowledge base (personal context, terminology, project details)`;
+
 const SUMMARY_SYSTEM_PROMPT = `You are a helpful assistant that summarizes transcription text.
 Given a transcript of spoken content, provide a clear and concise summary.
 Focus on:
@@ -225,6 +245,89 @@ export async function generateAskResponse(
   }
 
   return text;
+}
+
+export async function generateIdeaScript(
+  rawContent: string,
+  transcriptText: string,
+  knowledgeContext: string,
+  apiKey: string,
+  model: GeminiModel = 'gemini-2.5-flash'
+): Promise<{ title: string; script: string }> {
+  if (!apiKey) {
+    throw new Error('API key is required');
+  }
+
+  if (!rawContent.trim()) {
+    throw new Error('Please enter your idea content');
+  }
+
+  const url = `${GEMINI_API_BASE}/${model}:generateContent?key=${apiKey}`;
+
+  let contextParts = '';
+  if (knowledgeContext.trim()) {
+    contextParts += `\n\nUser's Knowledge/Context:\n${knowledgeContext}`;
+  }
+  if (transcriptText.trim()) {
+    contextParts += `\n\nCurrent Meeting Transcript:\n${transcriptText}`;
+  }
+
+  const prompt = `${IDEA_CORRECTION_SYSTEM_PROMPT}${contextParts}
+
+User's Raw Input (may contain mistakes):
+${rawContent}
+
+Generate:
+1. A short title (3-6 words) that summarizes the idea
+2. A corrected, natural speaking script
+
+Format your response exactly as:
+TITLE: [your generated title here]
+SCRIPT: [your corrected speaking script here]`;
+
+  const requestBody = {
+    contents: [
+      {
+        parts: [{ text: prompt }]
+      }
+    ],
+    generationConfig: {
+      temperature: 0.7,
+      maxOutputTokens: 512,
+      topP: 0.9,
+    }
+  };
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(requestBody),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(
+      errorData.error?.message || `API request failed: ${response.status}`
+    );
+  }
+
+  const data: GeminiResponse = await response.json();
+
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!text) {
+    throw new Error('No script generated');
+  }
+
+  // Parse the response to extract title and script
+  const titleMatch = text.match(/TITLE:\s*(.+?)(?:\n|$)/i);
+  const scriptMatch = text.match(/SCRIPT:\s*(.+)/is);
+
+  const title = titleMatch ? titleMatch[1].trim() : 'Quick Idea';
+  const script = scriptMatch ? scriptMatch[1].trim() : text;
+
+  return { title, script };
 }
 
 export async function validateApiKey(apiKey: string): Promise<boolean> {
