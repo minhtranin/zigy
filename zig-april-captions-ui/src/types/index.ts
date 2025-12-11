@@ -46,6 +46,7 @@ export interface KnowledgeEntry {
   id: string;
   content: string;
   created_at: number;
+  nominated: boolean; // Whether this entry is selected for use with Gemini
 }
 
 // Idea entry for grammar correction and script generation

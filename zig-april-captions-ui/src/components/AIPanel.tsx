@@ -89,6 +89,7 @@ export function AIPanel({
   const [isSaving, setIsSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingContent, setEditingContent] = useState('');
+  const [expandedKnowledgeId, setExpandedKnowledgeId] = useState<string | null>(null);
 
   // Speak state
   const [askInput, setAskInput] = useState('');
@@ -137,7 +138,7 @@ export function AIPanel({
     if (!newKnowledge.trim()) return;
     setIsSaving(true);
     try {
-      await invoke('add_knowledge', { content: newKnowledge.trim() });
+      await invoke('add_knowledge_entry', { content: newKnowledge.trim() });
       setNewKnowledge('');
       await loadKnowledge();
     } catch (e) {
@@ -147,10 +148,20 @@ export function AIPanel({
     }
   };
 
+  const handleToggleNomination = async (id: string) => {
+    try {
+      await invoke('toggle_knowledge_nomination', { id });
+      await loadKnowledge();
+    } catch (e) {
+      console.error('Failed to toggle nomination:', e);
+    }
+  };
+
   const handleDeleteKnowledge = async (id: string) => {
     try {
-      await invoke('delete_knowledge', { id });
+      await invoke('delete_knowledge_entry', { id });
       await loadKnowledge();
+      if (expandedKnowledgeId === id) setExpandedKnowledgeId(null);
     } catch (e) {
       console.error('Failed to delete knowledge:', e);
     }
@@ -170,7 +181,7 @@ export function AIPanel({
     if (!editingContent.trim() || editingId === null) return;
     setIsSaving(true);
     try {
-      await invoke('update_knowledge', { id: editingId, content: editingContent.trim() });
+      await invoke('update_knowledge_entry', { id: editingId, content: editingContent.trim() });
       setEditingId(null);
       setEditingContent('');
       await loadKnowledge();
@@ -189,7 +200,10 @@ export function AIPanel({
     setIdeaError(null);
 
     try {
-      const knowledgeContext = knowledgeEntries.map(e => e.content).join('\n\n');
+      const knowledgeContext = knowledgeEntries
+        .filter(e => e.nominated)
+        .map(e => e.content)
+        .join('\n\n');
       const { title, script } = await generateIdeaScript(
         ideaRawContent.trim(),
         transcriptText,
@@ -244,7 +258,10 @@ export function AIPanel({
     setSelectedHistoryIndex(null);
 
     try {
-      const knowledgeContext = knowledgeEntries.map((e) => e.content).join('\n\n');
+      const knowledgeContext = knowledgeEntries
+        .filter(e => e.nominated)
+        .map((e) => e.content)
+        .join('\n\n');
       const response = await generateAskResponse(askInput.trim(), transcriptText, knowledgeContext, apiKey, model);
       setAskResponse(response);
       setSpeakHistory(prev => [{ title: askInput.trim(), script: response, timestamp: Date.now() }, ...prev].slice(0, 20));
@@ -542,66 +559,92 @@ export function AIPanel({
               <div className="flex flex-col gap-2">
                 <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Saved Knowledge ({knowledgeEntries.length})
+                  <span className="ml-2 text-indigo-600 dark:text-indigo-400">
+                    ✓ {knowledgeEntries.filter(e => e.nominated).length} Nominated
+                  </span>
                 </div>
+                <div className="flex flex-col gap-2 max-h-64 overflow-y-auto">
                 {knowledgeEntries.map((entry) => (
-                  <div key={entry.id} className="p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg border-l-2 border-green-500">
-                    {editingId === entry.id ? (
-                      <>
-                        <textarea
-                          className="w-full p-2 mb-2 border border-indigo-500 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 resize-y min-h-[60px] focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                          value={editingContent}
-                          onChange={(e) => setEditingContent(e.target.value)}
-                          rows={3}
-                          style={{ fontSize: `${fontSize}px` }}
-                          autoFocus
-                        />
-                        <div className="flex justify-end gap-2">
+                  <div key={entry.id} className="p-2 bg-gray-100 dark:bg-gray-800 rounded-md">
+                    <div className="flex items-start gap-2">
+                      <input
+                        type="checkbox"
+                        checked={entry.nominated}
+                        onChange={() => handleToggleNomination(entry.id)}
+                        className="mt-1 w-4 h-4 text-indigo-600 bg-gray-100 border-gray-300 rounded focus:ring-indigo-500 dark:focus:ring-indigo-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600 cursor-pointer"
+                        title={entry.nominated ? "Nominated for AI use" : "Not nominated"}
+                      />
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between mb-1">
                           <button
-                            className="px-3 py-1 text-xs font-semibold text-white bg-green-600 rounded-md hover:bg-green-700 disabled:opacity-50"
-                            onClick={handleSaveEdit}
-                            disabled={isSaving || !editingContent.trim()}
+                            className="flex-1 text-left text-sm font-semibold text-gray-800 dark:text-gray-200 hover:text-indigo-600 dark:hover:text-indigo-400 truncate"
+                            onClick={() => setExpandedKnowledgeId(expandedKnowledgeId === entry.id ? null : entry.id)}
                           >
-                            {isSaving ? 'Saving...' : 'Save'}
+                            {entry.content.substring(0, 60)}{entry.content.length > 60 ? '...' : ''}
                           </button>
                           <button
-                            className="px-3 py-1 text-xs font-semibold text-gray-700 dark:text-gray-300 bg-transparent border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700"
-                            onClick={handleCancelEdit}
-                            disabled={isSaving}
+                            className="p-1 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/50 rounded"
+                            onClick={() => handleDeleteKnowledge(entry.id)}
+                            title="Delete"
                           >
-                            Cancel
+                            <X size={14} />
                           </button>
                         </div>
-                      </>
-                    ) : (
-                      <>
-                        <div className="text-gray-800 dark:text-gray-200 leading-relaxed whitespace-pre-wrap mb-2" style={{ fontSize: `${fontSize}px` }}>
-                          {entry.content}
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-xs text-gray-400 dark:text-gray-500">
-                            {new Date(entry.created_at).toLocaleDateString()}
-                          </span>
-                          <div className="flex gap-2">
-                            <button
-                              className="px-3 py-1 text-xs font-semibold text-indigo-600 dark:text-indigo-400 rounded-md border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
-                              onClick={() => handleStartEdit(entry)}
-                              title="Edit"
-                            >
-                              Edit
-                            </button>
-                            <button
-                              className="px-3 py-1 text-xs font-semibold text-red-600 dark:text-red-400 rounded-md border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
-                              onClick={() => handleDeleteKnowledge(entry.id)}
-                              title="Delete"
-                            >
-                              Delete
-                            </button>
+                        {expandedKnowledgeId === entry.id && (
+                          <div className="mt-2">
+                            {editingId === entry.id ? (
+                              <>
+                                <textarea
+                                  className="w-full p-2 mb-2 border border-indigo-500 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 resize-y min-h-[60px] focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                  value={editingContent}
+                                  onChange={(e) => setEditingContent(e.target.value)}
+                                  rows={3}
+                                  style={{ fontSize: `${fontSize}px` }}
+                                  autoFocus
+                                />
+                                <div className="flex justify-end gap-2">
+                                  <button
+                                    className="px-3 py-1 text-xs font-semibold text-white bg-green-600 rounded-md hover:bg-green-700 disabled:opacity-50"
+                                    onClick={handleSaveEdit}
+                                    disabled={isSaving || !editingContent.trim()}
+                                  >
+                                    {isSaving ? 'Saving...' : 'Save'}
+                                  </button>
+                                  <button
+                                    className="px-3 py-1 text-xs font-semibold text-gray-700 dark:text-gray-300 bg-transparent border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700"
+                                    onClick={handleCancelEdit}
+                                    disabled={isSaving}
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              </>
+                            ) : (
+                              <div className="p-2 bg-gray-50 dark:bg-gray-900/50 rounded">
+                                <div className="text-gray-800 dark:text-gray-200 leading-relaxed whitespace-pre-wrap mb-2" style={{ fontSize: `${fontSize}px` }}>
+                                  {entry.content}
+                                </div>
+                                <div className="flex justify-between items-center">
+                                  <span className="text-xs text-gray-400 dark:text-gray-500">
+                                    {new Date(entry.created_at).toLocaleDateString()}
+                                  </span>
+                                  <button
+                                    className="px-3 py-1 text-xs font-semibold text-indigo-600 dark:text-indigo-400 rounded-md border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                    onClick={() => handleStartEdit(entry)}
+                                    title="Edit"
+                                  >
+                                    Edit
+                                  </button>
+                                </div>
+                              </div>
+                            )}
                           </div>
-                        </div>
-                      </>
-                    )}
+                        )}
+                      </div>
+                    </div>
                   </div>
                 ))}
+                </div>
               </div>
             ) : (
               <div className="p-2 text-sm text-gray-500 dark:text-gray-400 italic" style={{ fontSize: `${fontSize}px` }}>

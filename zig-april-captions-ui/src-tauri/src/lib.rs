@@ -100,6 +100,8 @@ pub struct KnowledgeEntry {
     pub id: String,
     pub content: String,
     pub created_at: i64,
+    #[serde(default)]
+    pub nominated: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -374,6 +376,7 @@ async fn add_knowledge_entry(content: String) -> Result<KnowledgeEntry, String> 
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
             .as_millis() as i64,
+        nominated: true, // Default to nominated when adding new entries
     };
 
     entries.push(entry.clone());
@@ -411,6 +414,31 @@ async fn update_knowledge_entry(id: String, content: String) -> Result<Knowledge
     match entry {
         Some(e) => {
             e.content = content;
+            let updated = e.clone();
+
+            let json = serde_json::to_string_pretty(&entries).map_err(|e| e.to_string())?;
+            std::fs::write(&path, json).map_err(|e| format!("Failed to save knowledge: {}", e))?;
+
+            Ok(updated)
+        }
+        None => Err("Knowledge entry not found".to_string()),
+    }
+}
+
+#[tauri::command]
+async fn toggle_knowledge_nomination(id: String) -> Result<KnowledgeEntry, String> {
+    let path = get_knowledge_path();
+    if !path.exists() {
+        return Err("Knowledge file not found".to_string());
+    }
+
+    let file_content = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
+    let mut entries: Vec<KnowledgeEntry> = serde_json::from_str(&file_content).unwrap_or_default();
+
+    let entry = entries.iter_mut().find(|e| e.id == id);
+    match entry {
+        Some(e) => {
+            e.nominated = !e.nominated;
             let updated = e.clone();
 
             let json = serde_json::to_string_pretty(&entries).map_err(|e| e.to_string())?;
@@ -567,6 +595,7 @@ pub fn run() {
             save_knowledge,
             add_knowledge_entry,
             update_knowledge_entry,
+            toggle_knowledge_nomination,
             delete_knowledge_entry,
             get_ideas,
             add_idea,
