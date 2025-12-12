@@ -13,6 +13,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { generateAnswerResponse, generateClarifyingQuestions, generateTalkScript, translateText } from '../services/geminiService';
 import type { GeminiModel, KnowledgeEntry, TranslationLanguage } from '../types';
 import { TRANSLATION_LANGUAGES } from '../types';
+import { Translations } from '../translations';
 
 interface Props {
   text: string;
@@ -24,6 +25,7 @@ interface Props {
   onIdeaAdded?: () => void;
   onQuestionsGenerated?: (questions: string[], lineContext?: string) => void;
   translationLanguage?: TranslationLanguage;
+  t: Translations;
 }
 
 export function HistoryDisplay({
@@ -35,7 +37,8 @@ export function HistoryDisplay({
   model = 'gemini-2.5-flash',
   onIdeaAdded,
   onQuestionsGenerated,
-  translationLanguage
+  translationLanguage,
+  t,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -262,7 +265,7 @@ export function HistoryDisplay({
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 flex flex-col h-full border border-gray-200 dark:border-gray-700">
       <div className="flex-shrink-0 pb-2 mb-2 border-b border-gray-200 dark:border-gray-700">
         <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-          History {wordCount > 0 && `(${wordCount} words)`}
+          {t.history} {wordCount > 0 && `(${wordCount} ${t.words})`}
         </span>
       </div>
       <div className="flex-1 overflow-y-auto min-h-0" ref={containerRef}>
@@ -293,60 +296,60 @@ export function HistoryDisplay({
                     </div>
                   ) : (
                     <>
-                      <div className="flex items-center justify-between gap-4">
-                        <span className="flex-1 min-w-0 truncate">{line}</span>
+                      <div className="flex flex-col gap-2">
+                        <div className="leading-relaxed" style={{ wordWrap: 'break-word', overflowWrap: 'anywhere' }}>{line}</div>
                         {onUpdateHistory && (
-                          <div className={`flex items-center gap-3 transition-opacity duration-200 flex-shrink-0 ${alwaysShowActions ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
-                            <button className="flex items-center gap-1 text-gray-600 hover:text-blue-500" title="Edit" onClick={() => handleStartEdit(i)}>
+                          <div className={`flex items-center gap-2 flex-wrap transition-opacity duration-200 ${alwaysShowActions ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                            <button className="flex items-center gap-1 text-gray-600 hover:text-blue-500" title={t.edit} onClick={() => handleStartEdit(i)}>
                               <Pencil size={18} />
-                              <span className="text-sm">Edit</span>
+                              <span className="text-sm">{t.edit}</span>
                             </button>
-                            <button className="flex items-center gap-1 text-gray-600 hover:text-red-500" onClick={() => handleDeleteLine(i)} title="Delete">
+                            <button className="flex items-center gap-1 text-gray-600 hover:text-red-500" onClick={() => handleDeleteLine(i)} title={t.delete}>
                               <Trash2 size={18} />
-                               <span className="text-sm">Delete</span>
+                               <span className="text-sm">{t.delete}</span>
                             </button>
                             <button
                               className="flex items-center gap-1 text-gray-600 hover:text-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                              title="Ask"
+                              title={t.ask}
                               onClick={() => handleAskClick(i)}
                               disabled={!apiKey || askingIndex !== null}
                             >
                               <HelpCircle size={18} />
                               <span className="text-sm">
-                                {askingIndex === i ? 'Generating...' : 'Ask'}
+                                {askingIndex === i ? t.generating : t.ask}
                               </span>
                             </button>
                             <button
                               className="flex items-center gap-1 text-gray-600 hover:text-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                              title="Answer"
+                              title={t.answer}
                               onClick={() => handleAnswerClick(i)}
                               disabled={!apiKey || answeringIndex !== null}
                             >
                               <MessageSquare size={18} />
                               <span className="text-sm">
-                                {answeringIndex === i ? 'Generating...' : 'Answer'}
+                                {answeringIndex === i ? t.generating : t.answer}
                               </span>
                             </button>
                             <button
                               className="flex items-center gap-1 text-gray-600 hover:text-teal-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                              title="Talk"
+                              title={t.talk}
                               onClick={() => handleTalkClick(i)}
                               disabled={!apiKey || talkingIndex !== null}
                             >
                               <Mic size={18} />
                               <span className="text-sm">
-                                {talkingIndex === i ? 'Generating...' : 'Talk'}
+                                {talkingIndex === i ? t.generating : t.talk}
                               </span>
                             </button>
                             <button
                               className="flex items-center gap-1 text-gray-600 hover:text-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                              title="Translate"
+                              title={t.translate}
                               onClick={() => handleTranslateClick(i)}
                               disabled={!apiKey || !translationLanguage || translationLanguage === 'none' || translatingIndex !== null}
                             >
                               <Languages size={18} />
                               <span className="text-sm">
-                                {translatingIndex === i ? 'Translating...' : translations.has(i) ? 'Hide' : 'Translate'}
+                                {translatingIndex === i ? t.translating : translations.has(i) ? t.hide : t.translate}
                               </span>
                             </button>
                           </div>
@@ -369,7 +372,7 @@ export function HistoryDisplay({
           </div>
         ) : (
           <div className="text-gray-400 dark:text-gray-500 italic text-center py-4" style={{ fontSize: `${fontSize}px` }}>
-            History will appear here...
+            {t.historyPlaceholder}
           </div>
         )}
       </div>

@@ -17,6 +17,8 @@ pub struct AISettings {
     pub api_key: String,
     #[serde(default = "default_model")]
     pub model: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub translation_language: Option<String>,
 }
 
 fn default_model() -> String {
@@ -29,8 +31,14 @@ pub struct Settings {
     pub audio_source: String, // "mic" or "monitor"
     pub font_size: u32,
     pub theme: String, // "light" or "dark"
+    #[serde(default = "default_language")]
+    pub language: String, // "en" or "vi"
     #[serde(default)]
     pub ai: Option<AISettings>,
+}
+
+fn default_language() -> String {
+    "en".to_string()
 }
 
 impl Default for Settings {
@@ -40,6 +48,7 @@ impl Default for Settings {
             audio_source: "mic".to_string(),
             font_size: 24,
             theme: "dark".to_string(),
+            language: "en".to_string(),
             ai: None,
         }
     }

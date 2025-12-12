@@ -1,3 +1,5 @@
+import { Translations } from '../translations';
+
 interface Props {
   isRunning: boolean;
   isLoading: boolean;
@@ -7,6 +9,7 @@ interface Props {
   onStop: () => void;
   onClear: () => void;
   modelPath: string;
+  t: Translations;
 }
 
 export function ControlBar({
@@ -17,6 +20,7 @@ export function ControlBar({
   onStop,
   onClear,
   modelPath,
+  t,
 }: Props) {
   const canStart = !isRunning && !isLoading && modelPath;
 
@@ -25,23 +29,23 @@ export function ControlBar({
       <div className="flex gap-2">
         {!isRunning ? (
           <button
-            className="flex-1 px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-200 dark:bg-gray-700 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 disabled:bg-gray-300 dark:disabled:bg-gray-800 disabled:cursor-not-allowed transition-colors"
+            className="flex-1 px-4 py-1 text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-200 dark:bg-gray-700 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 disabled:bg-gray-300 dark:disabled:bg-gray-800 disabled:cursor-not-allowed transition-colors"
             onClick={onStart}
             disabled={!canStart}
           >
-            {isLoading ? 'Starting...' : 'Start Listening'}
+            {isLoading ? `${t.start}...` : t.start}
           </button>
         ) : (
-          <button className="flex-1 px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-200 dark:bg-gray-700 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors" onClick={onStop}>
-            Stop
+          <button className="flex-1 px-4 py-1 text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-200 dark:bg-gray-700 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors" onClick={onStop}>
+            {t.stop}
           </button>
         )}
         <button
-          className="px-4 py-2 text-sm font-semibold bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="px-4 py-1 text-sm font-semibold bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           onClick={onClear}
           disabled={isLoading}
         >
-          Clear History
+          {t.clear}
         </button>
       </div>
 

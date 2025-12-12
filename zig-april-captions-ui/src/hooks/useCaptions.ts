@@ -38,6 +38,7 @@ export function useCaptions() {
     audio_source: 'mic',
     font_size: 18,
     theme: 'dark',
+    language: 'en',
   });
 
   // Refs for state setters

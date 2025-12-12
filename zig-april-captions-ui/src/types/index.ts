@@ -18,6 +18,8 @@ export type GeminiModel =
   | 'gemini-2.5-pro'
   | 'gemini-1.5-pro';
 
+export type AppLanguage = 'en' | 'vi';
+
 export type TranslationLanguage =
   | 'none'
   | 'zh-CN'
@@ -52,6 +54,7 @@ export interface Settings {
   audio_source: 'mic' | 'monitor';
   font_size: number;
   theme: 'light' | 'dark' | 'system';
+  language: AppLanguage;
   ai?: AISettings;
 }
 

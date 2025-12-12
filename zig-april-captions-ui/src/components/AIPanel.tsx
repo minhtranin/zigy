@@ -3,6 +3,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { SummaryState, QuestionsState, KnowledgeEntry, IdeaEntry, GeminiModel } from '../types';
 import { generateIdeaScript } from '../services/geminiService';
 import { X } from 'lucide-react';
+import { Translations } from '../translations';
 
 interface Tab {
   id: string;
@@ -31,14 +32,9 @@ interface Props {
   apiKey: string;
   model: GeminiModel;
   reloadIdeasTrigger?: number;
+  t: Translations;
 }
 
-const tabs: Tab[] = [
-  { id: 'questions', label: 'Questions' },
-  { id: 'summary', label: 'Summary' },
-  { id: 'examples', label: 'Examples' },
-  { id: 'knowledge', label: 'Knowledge' },
-];
 
 // Pre-written greeting and warm-up phrases for meetings
 const examplePhrases = [
@@ -89,9 +85,18 @@ export function AIPanel({
   apiKey,
   model,
   reloadIdeasTrigger,
+  t,
 }: Props) {
   const [activeTab, setActiveTab] = useState('questions');
   const canGenerate = hasApiKey && hasTranscript;
+
+  // Dynamic tabs based on translations
+  const tabs: Tab[] = [
+    { id: 'questions', label: t.questionsTab },
+    { id: 'summary', label: t.summaryTab },
+    { id: 'examples', label: t.examplesTab },
+    { id: 'knowledge', label: t.knowledgeTab },
+  ];
 
   // Knowledge state
   const [knowledgeEntries, setKnowledgeEntries] = useState<KnowledgeEntry[]>([]);
@@ -296,11 +301,11 @@ export function AIPanel({
                 onClick={onGenerateQuestions}
                 disabled={!canGenerate || questions.isLoading}
               >
-                {questions.isLoading ? 'Thinking...' : 'Suggest Questions'}
+                {questions.isLoading ? t.thinking : t.suggestQuestions}
               </button>
               {questionBatches.length > 0 && (
                 <button className="px-4 py-2 text-xs font-semibold text-gray-700 dark:text-gray-300 bg-transparent border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700" onClick={onClearQuestions}>
-                  Clear
+                  {t.clear}
                 </button>
               )}
             </div>
@@ -324,7 +329,7 @@ export function AIPanel({
                       {/* Batch header */}
                       <div className="flex items-center gap-2 pb-1 border-b border-gray-200 dark:border-gray-700">
                         <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
-                          {batch.source === 'generated' ? '✨ AI Suggested' : '🔍 Asked About'}
+                          {batch.source === 'generated' ? `✨ ${t.aiSuggested}` : `🔍 ${t.askedAbout}`}
                         </span>
                         <span className="text-xs text-gray-400 dark:text-gray-500">{timeStr}</span>
                       </div>
@@ -332,7 +337,7 @@ export function AIPanel({
                       {/* Line context for "ask" batches */}
                       {batch.lineContext && (
                         <div className="text-xs italic text-gray-600 dark:text-gray-400 px-2 py-1 bg-gray-50 dark:bg-gray-800 rounded">
-                          About: "{batch.lineContext}"
+                          {t.about}: "{batch.lineContext}"
                         </div>
                       )}
 
@@ -365,10 +370,10 @@ export function AIPanel({
             ) : (
               <div className="p-2 text-gray-500 dark:text-gray-400 italic" style={{ fontSize: `${fontSize}px` }}>
                 {!hasApiKey
-                  ? 'Configure Gemini API key in Settings tab'
+                  ? t.noApiKey
                   : !hasTranscript
-                  ? 'Start a transcription first'
-                  : 'Click "Suggest Questions" to get smart questions for the meeting, or click "Ask" on any transcript line'}
+                  ? t.noTranscript
+                  : t.suggestQuestionsHint}
               </div>
             )}
           </div>
@@ -382,11 +387,11 @@ export function AIPanel({
                 onClick={onGenerateSummary}
                 disabled={!canGenerate || summary.isLoading}
               >
-                {summary.isLoading ? 'Generating...' : 'Generate Summary'}
+                {summary.isLoading ? t.generating : t.generateSummary}
               </button>
               {summary.content && (
                 <button className="px-4 py-2 text-xs font-semibold text-gray-700 dark:text-gray-300 bg-transparent border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700" onClick={onClearSummary}>
-                  Clear
+                  {t.clear}
                 </button>
               )}
             </div>
@@ -404,16 +409,16 @@ export function AIPanel({
             ) : (
               <div className="p-2 text-sm text-gray-500 dark:text-gray-400 italic" style={{ fontSize: `${fontSize}px` }}>
                 {!hasApiKey
-                  ? 'Configure Gemini API key in Settings tab'
+                  ? t.noApiKey
                   : !hasTranscript
-                  ? 'Start a transcription first'
-                  : 'Click "Generate Summary" to create an AI summary of your transcript'}
+                  ? t.noTranscript
+                  : t.generateSummaryHint}
               </div>
             )}
 
             {summary.lastGeneratedAt && (
               <div className="text-xs text-gray-400 dark:text-gray-500 text-right mt-2">
-                Generated at {new Date(summary.lastGeneratedAt).toLocaleTimeString()}
+                {t.generatedAt} {new Date(summary.lastGeneratedAt).toLocaleTimeString()}
               </div>
             )}
           </div>
@@ -422,13 +427,20 @@ export function AIPanel({
         {activeTab === 'examples' && (
           <div className="p-3 flex flex-col gap-4 h-full">
             <div className="text-sm text-gray-500 dark:text-gray-400 italic pb-2 border-b border-gray-200 dark:border-gray-700" style={{ fontSize: `${fontSize}px` }}>
-              Quick phrases for meeting greetings and warm-ups
+              {t.examplesDescription}
             </div>
 
-            {['Greetings', 'Small Talk', 'Check-in', 'Starting', 'During Meeting', 'Ending'].map((category) => (
+            {[
+              { category: 'Greetings', label: t.greetings },
+              { category: 'Small Talk', label: t.smallTalk },
+              { category: 'Check-in', label: t.checkIn },
+              { category: 'Starting', label: t.starting },
+              { category: 'During Meeting', label: t.duringMeeting },
+              { category: 'Ending', label: t.ending },
+            ].map(({ category, label }) => (
               <div key={category} className="flex flex-col gap-2">
                 <div className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
-                  {category}
+                  {label}
                 </div>
                 <div className="flex flex-col gap-1">
                   {examplePhrases
@@ -451,13 +463,13 @@ export function AIPanel({
         {activeTab === 'knowledge' && (
           <div className="p-3 flex flex-col gap-4 h-full">
             <div className="text-sm text-gray-500 dark:text-gray-400 italic pb-2 border-b border-gray-200 dark:border-gray-700" style={{ fontSize: `${fontSize}px` }}>
-              Add your own knowledge for AI to reference in future responses
+              {t.knowledgeDescription}
             </div>
 
             <div className="flex flex-col gap-2">
               <textarea
                 className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 resize-y min-h-[60px] focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-gray-400 dark:placeholder-gray-500"
-                placeholder="Enter your knowledge here... (e.g., project details, team info, terminology)"
+                placeholder={t.knowledgePlaceholder}
                 value={newKnowledge}
                 onChange={(e) => setNewKnowledge(e.target.value)}
                 rows={3}
@@ -468,16 +480,16 @@ export function AIPanel({
                 onClick={handleAddKnowledge}
                 disabled={!newKnowledge.trim() || isSaving}
               >
-                {isSaving ? 'Saving...' : 'Save'}
+                {isSaving ? t.saving : t.save}
               </button>
             </div>
 
             {knowledgeEntries.length > 0 ? (
               <div className="flex flex-col gap-2">
                 <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Saved Knowledge ({knowledgeEntries.length})
+                  {t.savedKnowledge} ({knowledgeEntries.length})
                   <span className="ml-2 text-indigo-600 dark:text-indigo-400">
-                    ✓ {knowledgeEntries.filter(e => e.nominated).length} Nominated
+                    ✓ {knowledgeEntries.filter(e => e.nominated).length} {t.nominated}
                   </span>
                 </div>
                 <div className="flex flex-col gap-2 max-h-64 overflow-y-auto">
@@ -526,14 +538,14 @@ export function AIPanel({
                                     onClick={handleSaveEdit}
                                     disabled={isSaving || !editingContent.trim()}
                                   >
-                                    {isSaving ? 'Saving...' : 'Save'}
+                                    {isSaving ? t.saving : t.save}
                                   </button>
                                   <button
                                     className="px-3 py-1 text-xs font-semibold text-gray-700 dark:text-gray-300 bg-transparent border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700"
                                     onClick={handleCancelEdit}
                                     disabled={isSaving}
                                   >
-                                    Cancel
+                                    {t.clear}
                                   </button>
                                 </div>
                               </>
@@ -566,7 +578,7 @@ export function AIPanel({
               </div>
             ) : (
               <div className="p-2 text-sm text-gray-500 dark:text-gray-400 italic" style={{ fontSize: `${fontSize}px` }}>
-                No knowledge saved yet. Add information above to help AI provide better responses.
+                {t.noKnowledge}
               </div>
             )}
           </div>
@@ -581,7 +593,7 @@ export function AIPanel({
             <div className="flex flex-col gap-2">
               <textarea
                 className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 resize-y min-h-[50px] focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-gray-400 dark:placeholder-gray-500"
-                placeholder="Type your raw idea (don't worry about grammar)... AI will auto-generate a title for you!"
+                placeholder={t.ideasPlaceholder}
                 value={ideaRawContent}
                 onChange={(e) => setIdeaRawContent(e.target.value)}
                 rows={2}
@@ -599,14 +611,14 @@ export function AIPanel({
                   onClick={handleGenerateIdea}
                   disabled={!hasApiKey || !ideaRawContent.trim() || isGeneratingIdea}
                 >
-                  {isGeneratingIdea ? 'Generating...' : 'Generate'}
+                  {isGeneratingIdea ? t.generating : t.generate}
                 </button>
                 {(ideaRawContent || ideaCorrectedScript) && (
                   <button
                     className="px-4 py-2 text-xs font-semibold text-gray-700 dark:text-gray-300 bg-transparent border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700"
                     onClick={handleClearIdea}
                   >
-                    Clear
+                    {t.clear}
                   </button>
                 )}
               </div>
@@ -627,7 +639,7 @@ export function AIPanel({
                     {ideaCorrectedTitle}
                   </div>
                   <div className="text-xs text-gray-500 dark:text-gray-400">
-                    ✨ AI Generated
+                    ✨ {t.aiGenerated}
                   </div>
                 </div>
                 <div className="text-gray-800 dark:text-gray-200 leading-relaxed" style={{ fontSize: `${fontSize}px` }}>
@@ -661,11 +673,11 @@ export function AIPanel({
                       {expandedIdeaId === idea.id && (
                         <div className="flex flex-col gap-2 mt-2 text-xs">
                           <div className="p-2 bg-gray-200 dark:bg-gray-700 rounded">
-                            <div className="font-semibold text-gray-600 dark:text-gray-400 mb-1">Raw:</div>
+                            <div className="font-semibold text-gray-600 dark:text-gray-400 mb-1">{t.raw}:</div>
                             <div className="text-gray-700 dark:text-gray-300" style={{ fontSize: `${fontSize}px` }}>{idea.raw_content}</div>
                           </div>
                           <div className="p-2 bg-indigo-50 dark:bg-indigo-900/20 rounded border-l-2 border-indigo-500">
-                            <div className="font-semibold text-indigo-600 dark:text-indigo-400 mb-1">Script:</div>
+                            <div className="font-semibold text-indigo-600 dark:text-indigo-400 mb-1">{t.script}:</div>
                             <div className="text-gray-800 dark:text-gray-200" style={{ fontSize: `${fontSize}px` }}>{idea.corrected_script}</div>
                           </div>
                         </div>

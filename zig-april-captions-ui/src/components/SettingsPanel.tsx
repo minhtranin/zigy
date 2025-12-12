@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { open, save } from '@tauri-apps/plugin-dialog';
-import { Settings, GeminiModel, TranslationLanguage, TRANSLATION_LANGUAGES } from '../types';
+import { Settings, GeminiModel, TranslationLanguage, TRANSLATION_LANGUAGES, AppLanguage } from '../types';
+import { Translations } from '../translations';
 
 interface Props {
   settings: Settings;
@@ -10,6 +11,7 @@ interface Props {
   disabled?: boolean;
   onThemeToggle: () => void;
   effectiveTheme: 'light' | 'dark';
+  t: Translations;
 }
 
 const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
@@ -36,6 +38,7 @@ export function SettingsPanel({
   disabled,
   onThemeToggle,
   effectiveTheme,
+  t,
 }: Props) {
   const [isExporting, setIsExporting] = useState(false);
 
@@ -112,58 +115,58 @@ export function SettingsPanel({
 
   return (
     <div className="p-4 bg-white dark:bg-gray-800 rounded-lg text-sm">
-      <Section title="Speech Recognition">
-        <SettingRow label="ASR Model:">
+      <Section title={t.speechRecognition}>
+        <SettingRow label={`${t.asrModel}:`}>
           <div className="flex gap-2">
             <input
               type="text"
               value={modelFileName}
               readOnly
               className="flex-1 w-full px-3 py-2 text-sm bg-gray-100 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md text-gray-800 dark:text-gray-200 truncate"
-              title={settings.model_path || 'No model selected'}
+              title={settings.model_path || t.noModelSelected}
             />
-            <button 
-              onClick={handleSelectModel} 
+            <button
+              onClick={handleSelectModel}
               disabled={disabled}
               className="px-4 py-2 text-sm font-semibold bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50"
             >
-              Browse
+              {t.browse}
             </button>
           </div>
         </SettingRow>
 
-        <SettingRow label="Audio Source:">
+        <SettingRow label={`${t.audioSource}:`}>
           <div className="flex">
             <button
               className={`px-4 py-2 text-sm rounded-l-md border border-r-0 transition-colors ${settings.audio_source === 'mic' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-transparent border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
               onClick={() => onSettingsChange({ ...settings, audio_source: 'mic' })}
               disabled={disabled}
             >
-              Microphone
+              {t.microphone}
             </button>
             <button
               className={`px-4 py-2 text-sm rounded-r-md border transition-colors ${settings.audio_source === 'monitor' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-transparent border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
               onClick={() => onSettingsChange({ ...settings, audio_source: 'monitor' })}
               disabled={disabled}
             >
-              System Audio
+              {t.systemAudio}
             </button>
           </div>
         </SettingRow>
       </Section>
 
-      <Section title="AI Settings (Gemini)">
-        <SettingRow label="API Key:">
+      <Section title={t.aiSettings}>
+        <SettingRow label={`${t.apiKey}:`}>
           <input
             type="password"
             value={settings.ai?.api_key || ''}
             onChange={(e) => handleApiKeyChange(e.target.value)}
-            placeholder="Enter Gemini API key"
+            placeholder={t.apiKeyPlaceholder}
             className="w-full px-3 py-2 text-sm bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
         </SettingRow>
 
-        <SettingRow label="AI Model:">
+        <SettingRow label={`${t.aiModel}:`}>
           <select
             value={settings.ai?.model || 'gemini-2.5-flash'}
             onChange={(e) => handleModelChange(e.target.value as GeminiModel)}
@@ -176,7 +179,7 @@ export function SettingsPanel({
           </select>
         </SettingRow>
 
-        <SettingRow label="Translation:">
+        <SettingRow label={`${t.translation}:`}>
           <select
             value={settings.ai?.translation_language || 'none'}
             onChange={(e) => handleTranslationLanguageChange(e.target.value as TranslationLanguage)}
@@ -191,20 +194,31 @@ export function SettingsPanel({
         </SettingRow>
       </Section>
 
-      <Section title="Display">
-        <SettingRow label="Theme:">
+      <Section title={t.display}>
+        <SettingRow label={`${t.appLanguage}:`}>
+          <select
+            value={settings.language}
+            onChange={(e) => onSettingsChange({ ...settings, language: e.target.value as AppLanguage })}
+            className="w-full px-3 py-2 text-sm bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none"
+          >
+            <option value="en">English</option>
+            <option value="vi">Tiếng Việt</option>
+          </select>
+        </SettingRow>
+
+        <SettingRow label={`${t.theme}:`}>
           <div className="flex gap-2 items-center">
             <button
               onClick={onThemeToggle}
               className="px-4 py-2 text-sm font-semibold bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 flex items-center gap-2"
             >
               <span>{effectiveTheme === 'dark' ? '☀️' : '🌙'}</span>
-              <span>Switch to {effectiveTheme === 'dark' ? 'Light' : 'Dark'} Mode</span>
+              <span>{t.switchTo} {effectiveTheme === 'dark' ? t.lightMode : t.darkMode} Mode</span>
             </button>
           </div>
         </SettingRow>
 
-        <SettingRow label={`Font Size: ${settings.font_size}px`}>
+        <SettingRow label={`${t.fontSize}: ${settings.font_size}px`}>
           <input
             type="range"
             min="14"
@@ -216,14 +230,14 @@ export function SettingsPanel({
         </SettingRow>
       </Section>
 
-      <Section title="Data">
-        <SettingRow label="Export:">
+      <Section title={t.data}>
+        <SettingRow label={`${t.export}:`}>
           <button
             className="px-4 py-2 text-sm font-semibold bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50"
             onClick={handleExport}
             disabled={captionsCount === 0 || isExporting}
           >
-            {isExporting ? 'Exporting...' : `Export Captions (${captionsCount} words)`}
+            {isExporting ? t.exporting : `${t.exportCaptions} (${captionsCount} ${t.words})`}
           </button>
         </SettingRow>
       </Section>

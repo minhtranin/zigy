@@ -5,7 +5,9 @@ import { HistoryDisplay } from './components/HistoryDisplay';
 import { AIPanel } from './components/AIPanel';
 import { SettingsPanel } from './components/SettingsPanel';
 import { ControlBar } from './components/ControlBar';
+import { TitleBar } from './components/TitleBar';
 import type { Settings } from './types';
+import { getTranslations } from './translations';
 import './App.css'; // Keep for global styles like scrollbar
 
 interface QuestionBatch {
@@ -41,6 +43,9 @@ function App() {
     saveSettings,
     updateHistory,
   } = useCaptions();
+
+  // Get translations based on current language setting
+  const t = getTranslations(settings.language);
 
   const handleQuestionsGenerated = (newQuestions: string[], lineContext?: string) => {
     setQuestionBatches(prev => [...prev, {
@@ -143,6 +148,7 @@ function App() {
           onIdeaAdded={() => setReloadIdeasTrigger(prev => prev + 1)}
           onQuestionsGenerated={handleQuestionsGenerated}
           translationLanguage={settings.ai?.translation_language}
+          t={t}
         />
       </div>
 
@@ -155,6 +161,7 @@ function App() {
         onStop={stopCaptions}
         onClear={clearCaptions}
         modelPath={settings.model_path}
+        t={t}
       />
     </div>
   );
@@ -169,46 +176,22 @@ function App() {
         disabled={isRunning}
         onThemeToggle={toggleTheme}
         effectiveTheme={getEffectiveTheme(settings.theme)}
+        t={t}
       />
     </div>
   );
 
   return (
-    <div className="flex h-screen p-2 md:p-3 gap-3 bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-      {/* Left side: Header + Content - Takes more space */}
-      <div className="flex-[2] flex flex-col gap-2 min-w-0 min-h-0">
-        <header className="px-2.5 py-1 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-sm font-semibold text-indigo-600 dark:text-indigo-400">Zipy</h1>
-            <div className="flex gap-0.5">
-              <button
-                className={`px-2.5 py-0.5 text-xs font-medium rounded-md transition-colors duration-200 ${
-                  activeTab === 'captions'
-                    ? 'bg-indigo-600 text-white'
-                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                }`}
-                onClick={() => setActiveTab('captions')}
-              >
-                Captions
-              </button>
-              <button
-                className={`px-2.5 py-0.5 text-xs font-medium rounded-md transition-colors duration-200 ${
-                  activeTab === 'settings'
-                    ? 'bg-indigo-600 text-white'
-                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                }`}
-                onClick={() => setActiveTab('settings')}
-              >
-                Settings
-              </button>
-            </div>
-          </div>
-        </header>
+    <div className="flex flex-col h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+      {/* Title Bar */}
+      <TitleBar activeTab={activeTab} onTabChange={setActiveTab} t={t} />
 
-        <main className="flex-1 min-h-0">
+      {/* Main Content Area */}
+      <div className="flex flex-1 p-2 md:p-3 gap-3 min-h-0">
+        {/* Left side: Content - Takes more space */}
+        <div className="flex-[2] flex flex-col min-w-0 min-h-0">
           {activeTab === 'captions' ? renderCaptionsContent() : renderSettingsContent()}
-        </main>
-      </div>
+        </div>
 
       {/* Right side: AI Panel (only shown in captions tab) - Takes less space */}
       {activeTab === 'captions' && (
@@ -231,9 +214,11 @@ function App() {
             apiKey={settings.ai?.api_key || ''}
             model={settings.ai?.model || 'gemini-2.5-flash'}
             reloadIdeasTrigger={reloadIdeasTrigger}
+            t={t}
           />
         </div>
       )}
+      </div>
     </div>
   );
 }
