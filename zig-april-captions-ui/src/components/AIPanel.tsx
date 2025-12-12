@@ -354,7 +354,7 @@ export function AIPanel({
                             }`}>
                               {i + 1}
                             </div>
-                            <div className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed">{q}</div>
+                            <div className="text-gray-800 dark:text-gray-200 leading-relaxed" style={{ fontSize: `${fontSize}px` }}>{q}</div>
                           </div>
                         ))}
                       </div>
@@ -363,7 +363,7 @@ export function AIPanel({
                 })}
               </div>
             ) : (
-              <div className="p-2 text-sm text-gray-500 dark:text-gray-400 italic">
+              <div className="p-2 text-gray-500 dark:text-gray-400 italic" style={{ fontSize: `${fontSize}px` }}>
                 {!hasApiKey
                   ? 'Configure Gemini API key in Settings tab'
                   : !hasTranscript
@@ -494,8 +494,9 @@ export function AIPanel({
                       <div className="flex-1">
                         <div className="flex items-center justify-between mb-1">
                           <button
-                            className="flex-1 text-left text-sm font-semibold text-gray-800 dark:text-gray-200 hover:text-indigo-600 dark:hover:text-indigo-400 truncate"
+                            className="flex-1 text-left font-semibold text-gray-800 dark:text-gray-200 hover:text-indigo-600 dark:hover:text-indigo-400 truncate"
                             onClick={() => setExpandedKnowledgeId(expandedKnowledgeId === entry.id ? null : entry.id)}
+                            style={{ fontSize: `${fontSize}px` }}
                           >
                             {entry.content.substring(0, 60)}{entry.content.length > 60 ? '...' : ''}
                           </button>
@@ -643,8 +644,9 @@ export function AIPanel({
                     <div key={idea.id} className="p-2 bg-gray-100 dark:bg-gray-800 rounded-md">
                       <div className="flex items-center justify-between mb-1">
                         <button
-                          className="flex-1 text-left text-sm font-semibold text-gray-800 dark:text-gray-200 hover:text-indigo-600 dark:hover:text-indigo-400"
+                          className="flex-1 text-left font-semibold text-gray-800 dark:text-gray-200 hover:text-indigo-600 dark:hover:text-indigo-400"
                           onClick={() => setExpandedIdeaId(expandedIdeaId === idea.id ? null : idea.id)}
+                          style={{ fontSize: `${fontSize}px` }}
                         >
                           {idea.title}
                         </button>
