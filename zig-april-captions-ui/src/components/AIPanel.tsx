@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { SummaryState, QuestionsState, KnowledgeEntry, IdeaEntry, GeminiModel } from '../types';
-import { generateAskResponse, generateIdeaScript } from '../services/geminiService';
+import { generateIdeaScript } from '../services/geminiService';
 import { X } from 'lucide-react';
 
 interface Tab {
@@ -34,7 +34,6 @@ interface Props {
 }
 
 const tabs: Tab[] = [
-  { id: 'ask', label: 'Speak' },
   { id: 'questions', label: 'Questions' },
   { id: 'summary', label: 'Summary' },
   { id: 'examples', label: 'Examples' },
@@ -91,7 +90,7 @@ export function AIPanel({
   model,
   reloadIdeasTrigger,
 }: Props) {
-  const [activeTab, setActiveTab] = useState('ask');
+  const [activeTab, setActiveTab] = useState('questions');
   const canGenerate = hasApiKey && hasTranscript;
 
   // Knowledge state
@@ -101,14 +100,6 @@ export function AIPanel({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingContent, setEditingContent] = useState('');
   const [expandedKnowledgeId, setExpandedKnowledgeId] = useState<string | null>(null);
-
-  // Speak state
-  const [askInput, setAskInput] = useState('');
-  const [askResponse, setAskResponse] = useState('');
-  const [isAsking, setIsAsking] = useState(false);
-  const [askError, setAskError] = useState<string | null>(null);
-  const [speakHistory, setSpeakHistory] = useState<Array<{ title: string; script: string; timestamp: number }>>([]);
-  const [selectedHistoryIndex, setSelectedHistoryIndex] = useState<number | null>(null);
 
   // Idea section state
   const [ideaRawContent, setIdeaRawContent] = useState('');
@@ -274,52 +265,6 @@ export function AIPanel({
     }
   };
 
-  // Ask AI handler
-  const handleAsk = async () => {
-    if (!askInput.trim()) return;
-
-    setIsAsking(true);
-    setAskError(null);
-    setSelectedHistoryIndex(null);
-
-    try {
-      const knowledgeContext = knowledgeEntries
-        .filter(e => e.nominated)
-        .map((e) => e.content)
-        .join('\n\n');
-      const response = await generateAskResponse(askInput.trim(), transcriptText, knowledgeContext, apiKey, model);
-      setAskResponse(response);
-      setSpeakHistory(prev => [{ title: askInput.trim(), script: response, timestamp: Date.now() }, ...prev].slice(0, 20));
-    } catch (e) {
-      setAskError(e instanceof Error ? e.message : 'Failed to generate response');
-    } finally {
-      setIsAsking(false);
-    }
-  };
-
-  const handleClearAsk = () => {
-    setAskInput('');
-    setAskResponse('');
-    setAskError(null);
-    setSelectedHistoryIndex(null);
-  };
-
-  const handleSelectHistory = (index: number) => {
-    const item = speakHistory[index];
-    setSelectedHistoryIndex(index);
-    setAskInput(item.title);
-    setAskResponse(item.script);
-  };
-
-  const handleDeleteHistory = (index: number) => {
-    setSpeakHistory(prev => prev.filter((_, i) => i !== index));
-    if (selectedHistoryIndex === index) {
-      setSelectedHistoryIndex(null);
-      setAskInput('');
-      setAskResponse('');
-    }
-  };
-
   return (
     <div className="flex flex-col flex-1 gap-2 min-h-0">
       {/* Top Section: Tabs */}
@@ -343,99 +288,6 @@ export function AIPanel({
         </div>
 
         <div className="flex-1 overflow-y-auto min-h-0">
-        {activeTab === 'ask' && (
-          <div className="p-3 flex flex-col gap-3 h-full">
-            <div className="flex flex-col gap-2">
-              <textarea
-                className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 resize-y min-h-[50px] focus:outline-none focus:ring-2 focus:ring-purple-500 placeholder-gray-400 dark:placeholder-gray-500"
-                placeholder="What do you want to talk about? (e.g., 'discuss the incident yesterday')"
-                value={askInput}
-                onChange={(e) => setAskInput(e.target.value)}
-                rows={2}
-                style={{ fontSize: `${fontSize}px` }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleAsk();
-                  }
-                }}
-              />
-              <div className="flex gap-2">
-                <button
-                  className="px-4 py-2 text-xs font-semibold text-white bg-purple-600 rounded-md hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                  onClick={handleAsk}
-                  disabled={!hasApiKey || !askInput.trim() || isAsking}
-                >
-                  {isAsking ? 'Thinking...' : 'Generate'}
-                </button>
-                {(askResponse || askInput) && (
-                  <button className="px-4 py-2 text-xs font-semibold text-gray-700 dark:text-gray-300 bg-transparent border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700" onClick={handleClearAsk}>
-                    Clear
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {askError && (
-              <div className="p-2 text-xs text-red-700 bg-red-100 dark:bg-red-900/20 dark:text-red-400 rounded-md">
-                {askError}
-              </div>
-            )}
-
-            {askResponse ? (
-              <div className="flex flex-col gap-1.5 p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg border-l-4 border-purple-500">
-                <div className="text-xs font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wider">
-                  Speaking Script:
-                </div>
-                <div className="text-gray-800 dark:text-gray-200 leading-relaxed whitespace-pre-wrap" style={{ fontSize: `${fontSize}px` }}>
-                  {askResponse}
-                </div>
-              </div>
-            ) : (
-              <div className="p-2 text-sm text-gray-500 dark:text-gray-400 italic" style={{ fontSize: `${fontSize}px` }}>
-                {!hasApiKey
-                  ? 'Configure Gemini API key in Settings tab'
-                  : 'Enter what you want to talk about and get a speaking script'}
-              </div>
-            )}
-
-            {speakHistory.length > 0 && (
-              <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-                <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
-                  History ({speakHistory.length})
-                </div>
-                <div className="flex flex-col gap-1 max-h-40 overflow-y-auto">
-                  {speakHistory.map((item, index) => (
-                    <div
-                      key={item.timestamp}
-                      className={`group flex items-center justify-between p-2 rounded-md cursor-pointer transition-colors ${
-                        selectedHistoryIndex === index
-                          ? 'bg-gray-200 dark:bg-gray-700 border-purple-500'
-                          : 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700'
-                      }`}
-                      onClick={() => handleSelectHistory(index)}
-                    >
-                      <span className="text-xs text-gray-700 dark:text-gray-300 flex-1 overflow-hidden text-ellipsis whitespace-nowrap" title={item.title}>
-                        {item.title}
-                      </span>
-                      <button
-                        className="p-1 text-gray-500 dark:text-gray-400 rounded-full hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/50 dark:hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteHistory(index);
-                        }}
-                        title="Delete"
-                      >
-                        <X size={14} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
         {activeTab === 'questions' && (
           <div className="p-3 flex flex-col gap-3 h-full">
             <div className="flex gap-2">
