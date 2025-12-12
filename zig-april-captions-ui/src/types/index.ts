@@ -9,6 +9,7 @@ export interface Caption {
 export interface AISettings {
   api_key: string;
   model: GeminiModel;
+  translation_language?: TranslationLanguage;
 }
 
 export type GeminiModel =
@@ -16,6 +17,35 @@ export type GeminiModel =
   | 'gemini-2.0-flash'
   | 'gemini-2.5-pro'
   | 'gemini-1.5-pro';
+
+export type TranslationLanguage =
+  | 'none'
+  | 'zh-CN'
+  | 'ja'
+  | 'es'
+  | 'fr'
+  | 'de'
+  | 'ko'
+  | 'tr'
+  | 'ar'
+  | 'ru'
+  | 'pt'
+  | 'vi';
+
+export const TRANSLATION_LANGUAGES: Record<TranslationLanguage, string> = {
+  'none': 'None',
+  'zh-CN': 'Chinese (Simplified)',
+  'ja': 'Japanese',
+  'es': 'Spanish',
+  'fr': 'French',
+  'de': 'German',
+  'ko': 'Korean',
+  'tr': 'Turkish',
+  'ar': 'Arabic',
+  'ru': 'Russian',
+  'pt': 'Portuguese',
+  'vi': 'Vietnamese',
+};
 
 export interface Settings {
   model_path: string;

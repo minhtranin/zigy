@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { open, save } from '@tauri-apps/plugin-dialog';
-import { Settings, GeminiModel } from '../types';
+import { Settings, GeminiModel, TranslationLanguage, TRANSLATION_LANGUAGES } from '../types';
 
 interface Props {
   settings: Settings;
@@ -79,6 +79,7 @@ export function SettingsPanel({
       ai: {
         api_key: apiKey,
         model: settings.ai?.model || 'gemini-2.5-flash',
+        translation_language: settings.ai?.translation_language,
       },
     });
   };
@@ -89,6 +90,18 @@ export function SettingsPanel({
       ai: {
         api_key: settings.ai?.api_key || '',
         model,
+        translation_language: settings.ai?.translation_language,
+      },
+    });
+  };
+
+  const handleTranslationLanguageChange = (language: TranslationLanguage) => {
+    onSettingsChange({
+      ...settings,
+      ai: {
+        api_key: settings.ai?.api_key || '',
+        model: settings.ai?.model || 'gemini-2.5-flash',
+        translation_language: language,
       },
     });
   };
@@ -160,6 +173,20 @@ export function SettingsPanel({
             <option value="gemini-2.0-flash">Gemini 2.0 Flash (Fast)</option>
             <option value="gemini-2.5-pro">Gemini 2.5 Pro (Best Quality)</option>
             <option value="gemini-1.5-pro">Gemini 1.5 Pro (Stable)</option>
+          </select>
+        </SettingRow>
+
+        <SettingRow label="Translation:">
+          <select
+            value={settings.ai?.translation_language || 'none'}
+            onChange={(e) => handleTranslationLanguageChange(e.target.value as TranslationLanguage)}
+            className="w-full px-3 py-2 text-sm bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none"
+          >
+            {Object.entries(TRANSLATION_LANGUAGES).map(([code, name]) => (
+              <option key={code} value={code}>
+                {name}
+              </option>
+            ))}
           </select>
         </SettingRow>
       </Section>

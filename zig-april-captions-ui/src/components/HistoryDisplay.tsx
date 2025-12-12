@@ -7,10 +7,12 @@ import {
   Mic,
   Check,
   X,
+  Languages,
 } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
-import { generateAnswerResponse, generateClarifyingQuestions, generateTalkScript } from '../services/geminiService';
-import type { GeminiModel, KnowledgeEntry } from '../types';
+import { generateAnswerResponse, generateClarifyingQuestions, generateTalkScript, translateText } from '../services/geminiService';
+import type { GeminiModel, KnowledgeEntry, TranslationLanguage } from '../types';
+import { TRANSLATION_LANGUAGES } from '../types';
 
 interface Props {
   text: string;
@@ -21,6 +23,7 @@ interface Props {
   model?: GeminiModel;
   onIdeaAdded?: () => void;
   onQuestionsGenerated?: (questions: string[], lineContext?: string) => void;
+  translationLanguage?: TranslationLanguage;
 }
 
 export function HistoryDisplay({
@@ -31,7 +34,8 @@ export function HistoryDisplay({
   apiKey,
   model = 'gemini-2.5-flash',
   onIdeaAdded,
-  onQuestionsGenerated
+  onQuestionsGenerated,
+  translationLanguage
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -43,6 +47,9 @@ export function HistoryDisplay({
   const [talkingIndex, setTalkingIndex] = useState<number | null>(null);
   const [talkError, setTalkError] = useState<string | null>(null);
   const [localKnowledge, setLocalKnowledge] = useState<KnowledgeEntry[]>([]);
+  const [translations, setTranslations] = useState<Map<number, string>>(new Map());
+  const [translatingIndex, setTranslatingIndex] = useState<number | null>(null);
+  const [translateError, setTranslateError] = useState<string | null>(null);
 
   const lines = text ? text.toLowerCase().split('\n').filter(line => line.trim() !== '') : [];
 
@@ -204,6 +211,53 @@ export function HistoryDisplay({
     }
   };
 
+  const handleTranslateClick = async (index: number) => {
+    if (!apiKey) {
+      setTranslateError('API key is required');
+      return;
+    }
+
+    if (!translationLanguage || translationLanguage === 'none') {
+      setTranslateError('Please select a translation language in Settings');
+      return;
+    }
+
+    const lineText = lines[index];
+
+    // If already translated, toggle visibility (hide it)
+    if (translations.has(index)) {
+      setTranslations(prev => {
+        const newMap = new Map(prev);
+        newMap.delete(index);
+        return newMap;
+      });
+      return;
+    }
+
+    setTranslatingIndex(index);
+    setTranslateError(null);
+
+    try {
+      const targetLanguageName = TRANSLATION_LANGUAGES[translationLanguage];
+      const translation = await translateText(
+        lineText,
+        targetLanguageName,
+        apiKey,
+        model
+      );
+
+      setTranslations(prev => {
+        const newMap = new Map(prev);
+        newMap.set(index, translation);
+        return newMap;
+      });
+    } catch (e) {
+      setTranslateError(e instanceof Error ? e.message : 'Failed to translate');
+    } finally {
+      setTranslatingIndex(null);
+    }
+  };
+
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 flex flex-col h-full border border-gray-200 dark:border-gray-700">
       <div className="flex-shrink-0 pb-2 mb-2 border-b border-gray-200 dark:border-gray-700">
@@ -217,7 +271,7 @@ export function HistoryDisplay({
             {lines.map((line, i) => {
               const alwaysShowActions = i >= lines.length - 3;
               return (
-                <div key={i} className="group flex items-center justify-between py-2 border-b border-gray-200 dark:border-gray-700 last:border-b-0">
+                <div key={i} className="group py-2 border-b border-gray-200 dark:border-gray-700 last:border-b-0">
                   {editingIndex === i ? (
                     <div className="flex w-full items-center gap-2">
                       <input
@@ -238,54 +292,76 @@ export function HistoryDisplay({
                       </div>
                     </div>
                   ) : (
-                    <div className="flex items-center justify-between w-full gap-4">
-                      <span className="flex-1 min-w-0 truncate">{line}</span>
-                      {onUpdateHistory && (
-                        <div className={`flex items-center gap-3 transition-opacity duration-200 flex-shrink-0 ${alwaysShowActions ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
-                          <button className="flex items-center gap-1 text-gray-600 hover:text-blue-500" title="Edit" onClick={() => handleStartEdit(i)}>
-                            <Pencil size={18} />
-                            <span className="text-sm">Edit</span>
-                          </button>
-                          <button className="flex items-center gap-1 text-gray-600 hover:text-red-500" onClick={() => handleDeleteLine(i)} title="Delete">
-                            <Trash2 size={18} />
-                             <span className="text-sm">Delete</span>
-                          </button>
-                          <button
-                            className="flex items-center gap-1 text-gray-600 hover:text-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                            title="Ask"
-                            onClick={() => handleAskClick(i)}
-                            disabled={!apiKey || askingIndex !== null}
-                          >
-                            <HelpCircle size={18} />
-                            <span className="text-sm">
-                              {askingIndex === i ? 'Generating...' : 'Ask'}
-                            </span>
-                          </button>
-                          <button
-                            className="flex items-center gap-1 text-gray-600 hover:text-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                            title="Answer"
-                            onClick={() => handleAnswerClick(i)}
-                            disabled={!apiKey || answeringIndex !== null}
-                          >
-                            <MessageSquare size={18} />
-                            <span className="text-sm">
-                              {answeringIndex === i ? 'Generating...' : 'Answer'}
-                            </span>
-                          </button>
-                          <button
-                            className="flex items-center gap-1 text-gray-600 hover:text-teal-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                            title="Talk"
-                            onClick={() => handleTalkClick(i)}
-                            disabled={!apiKey || talkingIndex !== null}
-                          >
-                            <Mic size={18} />
-                            <span className="text-sm">
-                              {talkingIndex === i ? 'Generating...' : 'Talk'}
-                            </span>
-                          </button>
+                    <>
+                      <div className="flex items-center justify-between gap-4">
+                        <span className="flex-1 min-w-0 truncate">{line}</span>
+                        {onUpdateHistory && (
+                          <div className={`flex items-center gap-3 transition-opacity duration-200 flex-shrink-0 ${alwaysShowActions ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                            <button className="flex items-center gap-1 text-gray-600 hover:text-blue-500" title="Edit" onClick={() => handleStartEdit(i)}>
+                              <Pencil size={18} />
+                              <span className="text-sm">Edit</span>
+                            </button>
+                            <button className="flex items-center gap-1 text-gray-600 hover:text-red-500" onClick={() => handleDeleteLine(i)} title="Delete">
+                              <Trash2 size={18} />
+                               <span className="text-sm">Delete</span>
+                            </button>
+                            <button
+                              className="flex items-center gap-1 text-gray-600 hover:text-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                              title="Ask"
+                              onClick={() => handleAskClick(i)}
+                              disabled={!apiKey || askingIndex !== null}
+                            >
+                              <HelpCircle size={18} />
+                              <span className="text-sm">
+                                {askingIndex === i ? 'Generating...' : 'Ask'}
+                              </span>
+                            </button>
+                            <button
+                              className="flex items-center gap-1 text-gray-600 hover:text-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                              title="Answer"
+                              onClick={() => handleAnswerClick(i)}
+                              disabled={!apiKey || answeringIndex !== null}
+                            >
+                              <MessageSquare size={18} />
+                              <span className="text-sm">
+                                {answeringIndex === i ? 'Generating...' : 'Answer'}
+                              </span>
+                            </button>
+                            <button
+                              className="flex items-center gap-1 text-gray-600 hover:text-teal-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                              title="Talk"
+                              onClick={() => handleTalkClick(i)}
+                              disabled={!apiKey || talkingIndex !== null}
+                            >
+                              <Mic size={18} />
+                              <span className="text-sm">
+                                {talkingIndex === i ? 'Generating...' : 'Talk'}
+                              </span>
+                            </button>
+                            <button
+                              className="flex items-center gap-1 text-gray-600 hover:text-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                              title="Translate"
+                              onClick={() => handleTranslateClick(i)}
+                              disabled={!apiKey || !translationLanguage || translationLanguage === 'none' || translatingIndex !== null}
+                            >
+                              <Languages size={18} />
+                              <span className="text-sm">
+                                {translatingIndex === i ? 'Translating...' : translations.has(i) ? 'Hide' : 'Translate'}
+                              </span>
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      {/* Show translation if available */}
+                      {translations.has(i) && (
+                        <div className="mt-2 pl-4 border-l-2 border-blue-500 bg-blue-50 dark:bg-blue-900/20 rounded-r p-2 flex items-start gap-2">
+                          <Languages size={12} className="text-blue-600 dark:text-blue-400 mt-1 flex-shrink-0" />
+                          <div className="text-gray-700 dark:text-gray-300 flex-1" style={{ fontSize: `${Math.round(fontSize * 0.85)}px` }}>
+                            {translations.get(i)}
+                          </div>
                         </div>
                       )}
-                    </div>
+                    </>
                   )}
                 </div>
               );

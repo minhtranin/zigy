@@ -618,6 +618,78 @@ Generate 1-3 natural clarifying questions about this specific statement:`;
   return questions;
 }
 
+const TRANSLATION_SYSTEM_PROMPT = `You are a professional translator. Translate the provided text accurately while maintaining the original meaning and tone.
+
+Requirements:
+- Translate the text to the target language
+- Preserve the original meaning and context
+- Keep the same tone (formal/informal)
+- Do not add explanations or notes
+- Return ONLY the translated text, nothing else`;
+
+export async function translateText(
+  text: string,
+  targetLanguage: string,
+  apiKey: string,
+  model: GeminiModel = 'gemini-2.5-flash'
+): Promise<string> {
+  if (!apiKey) {
+    throw new Error('API key is required');
+  }
+
+  if (!text.trim()) {
+    throw new Error('No text to translate');
+  }
+
+  const url = `${GEMINI_API_BASE}/${model}:generateContent?key=${apiKey}`;
+
+  const prompt = `${TRANSLATION_SYSTEM_PROMPT}
+
+Target Language: ${targetLanguage}
+
+Text to translate:
+"${text}"
+
+Provide the translation:`;
+
+  const requestBody = {
+    contents: [
+      {
+        parts: [{ text: prompt }]
+      }
+    ],
+    generationConfig: {
+      temperature: 0.3,
+      maxOutputTokens: 512,
+      topP: 0.8,
+    }
+  };
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(requestBody),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(
+      errorData.error?.message || `API request failed: ${response.status}`
+    );
+  }
+
+  const data: GeminiResponse = await response.json();
+
+  const translation = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!translation) {
+    throw new Error('No translation generated');
+  }
+
+  return translation.trim();
+}
+
 export async function validateApiKey(apiKey: string): Promise<boolean> {
   if (!apiKey) return false;
 

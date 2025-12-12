@@ -142,6 +142,7 @@ function App() {
           model={settings.ai?.model}
           onIdeaAdded={() => setReloadIdeasTrigger(prev => prev + 1)}
           onQuestionsGenerated={handleQuestionsGenerated}
+          translationLanguage={settings.ai?.translation_language}
         />
       </div>
 
