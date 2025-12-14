@@ -95,6 +95,17 @@ export interface Translations {
   aiGenerated: string;
   raw: string;
   script: string;
+
+  // Timeline (unified Ideas tab)
+  ideasTab: string;
+  timeline: string;
+  noTimelineItems: string;
+  timelineHint: string;
+  summaryTitle: string;
+  questionsTitle: string;
+  ideaTitle: string;
+  generateSummaryBtn: string;
+  generateQuestionsBtn: string;
 }
 
 export const translations: Record<AppLanguage, Translations> = {
@@ -193,6 +204,17 @@ export const translations: Record<AppLanguage, Translations> = {
     aiGenerated: 'AI Generated',
     raw: 'Raw',
     script: 'Script',
+
+    // Timeline (unified Ideas tab)
+    ideasTab: 'Ideas',
+    timeline: 'Timeline',
+    noTimelineItems: 'No timeline items yet',
+    timelineHint: 'Generate a summary or questions from the buttons above, or create an idea below',
+    summaryTitle: 'Summary',
+    questionsTitle: 'Questions',
+    ideaTitle: 'Idea',
+    generateSummaryBtn: 'Summary',
+    generateQuestionsBtn: 'Questions',
   },
   vi: {
     // App Header
@@ -289,6 +311,17 @@ export const translations: Record<AppLanguage, Translations> = {
     aiGenerated: 'AI đã tạo',
     raw: 'Thô',
     script: 'Kịch bản',
+
+    // Timeline (unified Ideas tab)
+    ideasTab: 'Ý tưởng',
+    timeline: 'Dòng thời gian',
+    noTimelineItems: 'Chưa có mục nào',
+    timelineHint: 'Tạo tóm tắt hoặc câu hỏi từ các nút ở trên, hoặc tạo ý tưởng bên dưới',
+    summaryTitle: 'Tóm tắt',
+    questionsTitle: 'Câu hỏi',
+    ideaTitle: 'Ý tưởng',
+    generateSummaryBtn: 'Tóm tắt',
+    generateQuestionsBtn: 'Câu hỏi',
   },
 };
 

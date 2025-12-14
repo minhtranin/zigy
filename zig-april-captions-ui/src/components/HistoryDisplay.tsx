@@ -44,15 +44,15 @@ export function HistoryDisplay({
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editText, setEditText] = useState('');
   const [answeringIndex, setAnsweringIndex] = useState<number | null>(null);
-  const [answerError, setAnswerError] = useState<string | null>(null);
+  const [_answerError, setAnswerError] = useState<string | null>(null);
   const [askingIndex, setAskingIndex] = useState<number | null>(null);
-  const [askError, setAskError] = useState<string | null>(null);
+  const [_askError, setAskError] = useState<string | null>(null);
   const [talkingIndex, setTalkingIndex] = useState<number | null>(null);
-  const [talkError, setTalkError] = useState<string | null>(null);
+  const [_talkError, setTalkError] = useState<string | null>(null);
   const [localKnowledge, setLocalKnowledge] = useState<KnowledgeEntry[]>([]);
   const [translations, setTranslations] = useState<Map<number, string>>(new Map());
   const [translatingIndex, setTranslatingIndex] = useState<number | null>(null);
-  const [translateError, setTranslateError] = useState<string | null>(null);
+  const [_translateError, setTranslateError] = useState<string | null>(null);
 
   const lines = text ? text.toLowerCase().split('\n').filter(line => line.trim() !== '') : [];
 
@@ -131,7 +131,7 @@ export function HistoryDisplay({
         ? question.substring(0, 47) + '...'
         : question;
 
-      const newIdea = await invoke('add_idea', {
+      await invoke('add_idea', {
         title: `Answer: ${title}`,
         rawContent: question,
         correctedScript: answer

@@ -388,7 +388,8 @@ export async function generateIdeaScript(
   transcriptText: string,
   knowledgeContext: string,
   apiKey: string,
-  model: GeminiModel = 'gemini-2.5-flash'
+  model: GeminiModel = 'gemini-2.5-flash',
+  translationLanguage?: string
 ): Promise<{ title: string; script: string }> {
   if (!apiKey) {
     throw new Error('API key is required');
@@ -408,14 +409,34 @@ export async function generateIdeaScript(
     contextParts += `\n\nCurrent Meeting Transcript:\n${transcriptText}`;
   }
 
-  const prompt = `${IDEA_CORRECTION_SYSTEM_PROMPT}${contextParts}
+  // Add translation instruction if translation language is set (and not 'none')
+  const needsTranslation = translationLanguage && translationLanguage !== 'none';
+  const languageMap: Record<string, string> = {
+    'vi': 'Vietnamese',
+    'zh-CN': 'Chinese (Simplified)',
+    'ja': 'Japanese',
+    'es': 'Spanish',
+    'fr': 'French',
+    'de': 'German',
+    'ko': 'Korean',
+    'tr': 'Turkish',
+    'ar': 'Arabic',
+    'ru': 'Russian',
+    'pt': 'Portuguese',
+  };
 
-User's Raw Input (may contain mistakes):
+  const translationInstruction = needsTranslation
+    ? `\n\nIMPORTANT: The user's input is in ${languageMap[translationLanguage] || translationLanguage}. First translate it to English, then generate a natural English speaking script based on the translated meaning. Make sure to provide a complete, detailed response that fully expresses the user's idea.`
+    : '';
+
+  const prompt = `${IDEA_CORRECTION_SYSTEM_PROMPT}${translationInstruction}${contextParts}
+
+User's Raw Input (may contain mistakes or be in another language):
 ${rawContent}
 
 Generate:
 1. A short title (3-6 words) that summarizes the idea
-2. A corrected, natural speaking script
+2. A corrected, natural speaking script (in English)
 
 Format your response exactly as:
 TITLE: [your generated title here]
@@ -429,7 +450,7 @@ SCRIPT: [your corrected speaking script here]`;
     ],
     generationConfig: {
       temperature: 0.7,
-      maxOutputTokens: 512,
+      maxOutputTokens: 1024,  // Increased from 512 to prevent truncation
       topP: 0.9,
     }
   };

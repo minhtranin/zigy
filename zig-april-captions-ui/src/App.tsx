@@ -10,17 +10,8 @@ import type { Settings } from './types';
 import { getTranslations } from './translations';
 import './App.css'; // Keep for global styles like scrollbar
 
-interface QuestionBatch {
-  questions: string[];
-  timestamp: number;
-  source: 'generated' | 'ask';
-  lineContext?: string;
-}
-
 function App() {
   const [activeTab, setActiveTab] = useState('captions');
-  const [reloadIdeasTrigger, setReloadIdeasTrigger] = useState(0);
-  const [questionBatches, setQuestionBatches] = useState<QuestionBatch[]>([]);
   const {
     currentText,
     historyText,
@@ -30,12 +21,15 @@ function App() {
     error,
     status,
     settings,
-    summary,
-    generateTranscriptSummary,
-    clearSummary,
-    questions,
-    generateSuggestedQuestions,
-    clearQuestions,
+    // Timeline
+    timeline,
+    isSummaryLoading,
+    isQuestionsLoading,
+    generateSummaryToTimeline,
+    generateQuestionsToTimeline,
+    addQuestionsToTimeline,
+    deleteTimelineItem,
+    loadTimelineFromIdeas,
     startCaptions,
     stopCaptions,
     clearCaptions,
@@ -47,31 +41,18 @@ function App() {
   // Get translations based on current language setting
   const t = getTranslations(settings.language);
 
-  const handleQuestionsGenerated = (newQuestions: string[], lineContext?: string) => {
-    setQuestionBatches(prev => [...prev, {
-      questions: newQuestions,
-      timestamp: Date.now(),
-      source: 'ask',
-      lineContext
-    }]);
-  };
+  // Reload timeline after idea generation (polling approach)
+  const [ideaGenerationTrigger, setIdeaGenerationTrigger] = useState(0);
 
-  // Watch for new generated questions and add to batches
   useEffect(() => {
-    if (questions.lastGeneratedAt && questions.questions.length > 0) {
-      // Check if this batch already exists
-      const alreadyExists = questionBatches.some(
-        batch => batch.timestamp === questions.lastGeneratedAt && batch.source === 'generated'
-      );
-      if (!alreadyExists) {
-        setQuestionBatches(prev => [...prev, {
-          questions: questions.questions,
-          timestamp: questions.lastGeneratedAt!,
-          source: 'generated'
-        }]);
-      }
+    if (ideaGenerationTrigger > 0) {
+      // Small delay to allow backend to save
+      const timer = setTimeout(() => {
+        loadTimelineFromIdeas();
+      }, 100);
+      return () => clearTimeout(timer);
     }
-  }, [questions.lastGeneratedAt, questions.questions]);
+  }, [ideaGenerationTrigger, loadTimelineFromIdeas]);
 
   // Get effective theme considering system preference
   const getEffectiveTheme = (theme: 'light' | 'dark' | 'system'): 'light' | 'dark' => {
@@ -145,8 +126,8 @@ function App() {
           onUpdateHistory={updateHistory}
           apiKey={settings.ai?.api_key}
           model={settings.ai?.model}
-          onIdeaAdded={() => setReloadIdeasTrigger(prev => prev + 1)}
-          onQuestionsGenerated={handleQuestionsGenerated}
+          onIdeaAdded={() => setIdeaGenerationTrigger(prev => prev + 1)}
+          onQuestionsGenerated={addQuestionsToTimeline}
           translationLanguage={settings.ai?.translation_language}
           t={t}
         />
@@ -161,6 +142,12 @@ function App() {
         onStop={stopCaptions}
         onClear={clearCaptions}
         modelPath={settings.model_path}
+        onGenerateSummary={generateSummaryToTimeline}
+        onGenerateQuestions={generateQuestionsToTimeline}
+        isSummaryLoading={isSummaryLoading}
+        isQuestionsLoading={isQuestionsLoading}
+        hasApiKey={!!settings.ai?.api_key}
+        hasTranscript={captionsCount > 0}
         t={t}
       />
     </div>
@@ -197,24 +184,16 @@ function App() {
       {activeTab === 'captions' && (
         <div className="flex-[1] flex flex-col min-h-0 max-w-[600px] min-w-[400px]">
           <AIPanel
-            summary={summary}
-            questions={questions}
-            questionBatches={questionBatches}
-            onGenerateSummary={generateTranscriptSummary}
-            onClearSummary={clearSummary}
-            onGenerateQuestions={generateSuggestedQuestions}
-            onClearQuestions={() => {
-              clearQuestions();
-              setQuestionBatches([]);
-            }}
+            timeline={timeline}
+            onDeleteTimelineItem={deleteTimelineItem}
+            onIdeaAdded={() => setIdeaGenerationTrigger(prev => prev + 1)}
             hasApiKey={!!settings.ai?.api_key}
-            hasTranscript={captionsCount > 0}
             fontSize={settings.font_size}
             transcriptText={historyText}
             apiKey={settings.ai?.api_key || ''}
             model={settings.ai?.model || 'gemini-2.5-flash'}
-            reloadIdeasTrigger={reloadIdeasTrigger}
             t={t}
+            translationLanguage={settings.ai?.translation_language}
           />
         </div>
       )}

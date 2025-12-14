@@ -9,6 +9,12 @@ interface Props {
   onStop: () => void;
   onClear: () => void;
   modelPath: string;
+  onGenerateSummary: () => void;
+  onGenerateQuestions: () => void;
+  isSummaryLoading: boolean;
+  isQuestionsLoading: boolean;
+  hasApiKey: boolean;
+  hasTranscript: boolean;
   t: Translations;
 }
 
@@ -20,13 +26,20 @@ export function ControlBar({
   onStop,
   onClear,
   modelPath,
+  onGenerateSummary,
+  onGenerateQuestions,
+  isSummaryLoading,
+  isQuestionsLoading,
+  hasApiKey,
+  hasTranscript,
   t,
 }: Props) {
   const canStart = !isRunning && !isLoading && modelPath;
+  const canGenerateAI = hasApiKey && hasTranscript;
 
   return (
     <div className="flex flex-col gap-2 p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-      <div className="flex gap-2">
+      <div className="flex gap-2 flex-wrap">
         {!isRunning ? (
           <button
             className="flex-1 px-4 py-1 text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-200 dark:bg-gray-700 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 disabled:bg-gray-300 dark:disabled:bg-gray-800 disabled:cursor-not-allowed transition-colors"
@@ -46,6 +59,20 @@ export function ControlBar({
           disabled={isLoading}
         >
           {t.clear}
+        </button>
+        <button
+          className="px-4 py-1 text-sm font-semibold bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-700 rounded-md hover:bg-indigo-200 dark:hover:bg-indigo-900/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          onClick={onGenerateSummary}
+          disabled={!canGenerateAI || isSummaryLoading}
+        >
+          {isSummaryLoading ? `${t.generating}` : t.generateSummaryBtn}
+        </button>
+        <button
+          className="px-4 py-1 text-sm font-semibold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-700 rounded-md hover:bg-amber-200 dark:hover:bg-amber-900/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          onClick={onGenerateQuestions}
+          disabled={!canGenerateAI || isQuestionsLoading}
+        >
+          {isQuestionsLoading ? `${t.generating}` : t.generateQuestionsBtn}
         </button>
       </div>
 

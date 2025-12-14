@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
-import { CaptionEvent, Settings, SummaryState, QuestionsState } from '../types';
+import { CaptionEvent, Settings, SummaryState, QuestionsState, TimelineItem, IdeaEntry } from '../types';
 import { generateSummary, generateQuestions } from '../services/geminiService';
 
 // Global state outside React
@@ -28,6 +28,11 @@ export function useCaptions() {
     error: null,
     lastGeneratedAt: null,
   });
+
+  // Timeline state (unified Ideas tab)
+  const [timeline, setTimeline] = useState<TimelineItem[]>([]);
+  const [isSummaryLoading, setIsSummaryLoading] = useState(false);
+  const [isQuestionsLoading, setIsQuestionsLoading] = useState(false);
 
   const [isRunning, setIsRunning] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -58,11 +63,30 @@ export function useCaptions() {
     setStatusRef.current = setStatus;
   });
 
-  // Load settings on mount
+  // Load settings and timeline on mount
   useEffect(() => {
     loadSettings();
     loadTranscript();
-  }, []);
+
+    // Load timeline from backend ideas
+    const loadTimeline = async () => {
+      try {
+        const ideas = await invoke<IdeaEntry[]>('get_ideas');
+        const ideaItems: TimelineItem[] = ideas.map(idea => ({
+          id: idea.id,
+          timestamp: idea.created_at,
+          type: 'idea' as const,
+          title: idea.title,
+          rawContent: idea.raw_content,
+          correctedScript: idea.corrected_script,
+        }));
+        setTimeline(ideaItems);
+      } catch (e) {
+        console.error('Failed to load timeline from ideas:', e);
+      }
+    };
+    loadTimeline();
+  }, []); // Only run on mount
 
   const loadTranscript = async () => {
     try {
@@ -242,6 +266,8 @@ export function useCaptions() {
         error: null,
         lastGeneratedAt: null,
       });
+      // Clear timeline (keep only persisted ideas)
+      setTimeline(prev => prev.filter(item => item.type === 'idea'));
     } catch (e) {
       console.error('Failed to clear transcript:', e);
     }
@@ -355,6 +381,132 @@ export function useCaptions() {
     });
   }, []);
 
+  // Load timeline from backend ideas
+  const loadTimelineFromIdeas = useCallback(async () => {
+    try {
+      const ideas = await invoke<IdeaEntry[]>('get_ideas');
+      const ideaItems: TimelineItem[] = ideas.map(idea => ({
+        id: idea.id,
+        timestamp: idea.created_at,
+        type: 'idea' as const,
+        title: idea.title,
+        rawContent: idea.raw_content,
+        correctedScript: idea.corrected_script,
+      }));
+      setTimeline(ideaItems);
+    } catch (e) {
+      console.error('Failed to load timeline from ideas:', e);
+    }
+  }, []);
+
+  // Generate summary and add to timeline
+  const generateSummaryToTimeline = useCallback(async () => {
+    if (!settings.ai?.api_key) {
+      setError('Please configure your Gemini API key in Settings');
+      return;
+    }
+
+    const historyText = globalHistory.join(' ');
+    if (!historyText.trim()) {
+      setError('No transcript to summarize');
+      return;
+    }
+
+    setIsSummaryLoading(true);
+
+    try {
+      const content = await generateSummary(
+        historyText,
+        settings.ai.api_key,
+        settings.ai.model || 'gemini-2.5-flash'
+      );
+
+      const summaryItem: TimelineItem = {
+        id: `summary-${Date.now()}`,
+        timestamp: Date.now(),
+        type: 'summary',
+        content,
+      };
+
+      setTimeline(prev => [summaryItem, ...prev]);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to generate summary');
+    } finally {
+      setIsSummaryLoading(false);
+    }
+  }, [settings.ai]);
+
+  // Generate questions and add to timeline
+  const generateQuestionsToTimeline = useCallback(async () => {
+    if (!settings.ai?.api_key) {
+      setError('Please configure your Gemini API key in Settings');
+      return;
+    }
+
+    const historyText = globalHistory.join(' ');
+    if (!historyText.trim()) {
+      setError('No transcript to analyze');
+      return;
+    }
+
+    setIsQuestionsLoading(true);
+
+    try {
+      const suggestedQuestions = await generateQuestions(
+        historyText,
+        settings.ai.api_key,
+        settings.ai.model || 'gemini-2.5-flash'
+      );
+
+      const questionsItem: TimelineItem = {
+        id: `questions-${Date.now()}`,
+        timestamp: Date.now(),
+        type: 'questions',
+        questions: suggestedQuestions,
+        source: 'generated',
+      };
+
+      setTimeline(prev => [questionsItem, ...prev]);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to generate questions');
+    } finally {
+      setIsQuestionsLoading(false);
+    }
+  }, [settings.ai]);
+
+  // Add questions to timeline (from Ask button)
+  const addQuestionsToTimeline = useCallback((questions: string[], lineContext?: string) => {
+    const questionsItem: TimelineItem = {
+      id: `questions-ask-${Date.now()}`,
+      timestamp: Date.now(),
+      type: 'questions',
+      questions,
+      source: 'ask',
+      lineContext,
+    };
+
+    setTimeline(prev => [questionsItem, ...prev]);
+  }, []);
+
+  // Delete timeline item
+  const deleteTimelineItem = useCallback(async (id: string) => {
+    // Find the item to check if it's an idea
+    const item = timeline.find(item => item.id === id);
+
+    if (item?.type === 'idea') {
+      // Delete from backend
+      try {
+        await invoke('delete_idea', { id });
+      } catch (e) {
+        console.error('Failed to delete idea from backend:', e);
+        return;
+      }
+    }
+
+    // Remove from timeline
+    setTimeline(prev => prev.filter(item => item.id !== id));
+  }, [timeline]);
+
   // Update history manually (for editing)
   const updateHistory = useCallback(async (newText: string) => {
     try {
@@ -400,6 +552,15 @@ export function useCaptions() {
     questions,
     generateSuggestedQuestions,
     clearQuestions,
+    // Timeline
+    timeline,
+    isSummaryLoading,
+    isQuestionsLoading,
+    generateSummaryToTimeline,
+    generateQuestionsToTimeline,
+    addQuestionsToTimeline,
+    deleteTimelineItem,
+    loadTimelineFromIdeas,
     // Actions
     startCaptions,
     stopCaptions,

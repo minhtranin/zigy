@@ -91,6 +91,36 @@ export interface IdeaEntry {
   created_at: number;         // Unix timestamp in milliseconds
 }
 
+// Timeline items for unified Ideas tab display
+export type TimelineItemType = 'summary' | 'questions' | 'idea';
+
+export interface BaseTimelineItem {
+  id: string;
+  timestamp: number;
+  type: TimelineItemType;
+}
+
+export interface SummaryTimelineItem extends BaseTimelineItem {
+  type: 'summary';
+  content: string;
+}
+
+export interface QuestionsTimelineItem extends BaseTimelineItem {
+  type: 'questions';
+  questions: string[];
+  source: 'generated' | 'ask';
+  lineContext?: string;
+}
+
+export interface IdeaTimelineItem extends BaseTimelineItem {
+  type: 'idea';
+  title: string;
+  rawContent: string;
+  correctedScript: string;
+}
+
+export type TimelineItem = SummaryTimelineItem | QuestionsTimelineItem | IdeaTimelineItem;
+
 export interface CaptionEvent {
   type: 'ready' | 'listening' | 'caption' | 'warning' | 'error' | 'stopped';
   captionType?: 'partial' | 'final';
