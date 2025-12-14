@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { invoke } from '@tauri-apps/api/core';
-import { KnowledgeEntry, TimelineItem, GeminiModel, TranslationLanguage } from '../types';
+import { KnowledgeEntry, TimelineItem, GeminiModel, TranslationLanguage, ChatHistoryStats } from '../types';
 import { generateIdeaScript } from '../services/geminiService';
 import { X, FileText, HelpCircle, Lightbulb } from 'lucide-react';
 import { Translations } from '../translations';
+import { ContextMonitor } from './ContextMonitor';
 
 interface Tab {
   id: string;
@@ -21,6 +22,10 @@ interface Props {
   model: GeminiModel;
   t: Translations;
   translationLanguage?: TranslationLanguage;
+  // Context monitoring props
+  chatHistoryStats?: ChatHistoryStats | null;
+  useContextOptimization?: boolean;
+  onToggleContextOptimization?: (enabled: boolean) => void;
 }
 
 export function AIPanel({
@@ -34,6 +39,9 @@ export function AIPanel({
   model,
   t,
   translationLanguage,
+  chatHistoryStats,
+  useContextOptimization = true,
+  onToggleContextOptimization,
 }: Props) {
   const [activeTab, setActiveTab] = useState('ideas');
 
@@ -58,11 +66,34 @@ export function AIPanel({
 
   // Expanded timeline item ID
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
+  // Track previous timeline length to detect new additions
+  const prevTimelineLengthRef = useRef(timeline.length);
 
   // Load knowledge on mount
   useEffect(() => {
     loadKnowledge();
   }, []);
+
+  // Auto-expand the newest timeline item when a new item is added
+  useEffect(() => {
+    const prevLength = prevTimelineLengthRef.current;
+    const currentLength = timeline.length;
+
+    // Check if a new item was added (length increased)
+    if (currentLength > prevLength && timeline.length > 0) {
+      // Sort timeline by timestamp to get the newest item
+      const sortedTimeline = [...timeline].sort((a, b) => b.timestamp - a.timestamp);
+      const newestItem = sortedTimeline[0];
+
+      // Auto-expand the newest item
+      if (newestItem) {
+        setExpandedItemId(newestItem.id);
+      }
+    }
+
+    // Update the ref for next comparison
+    prevTimelineLengthRef.current = currentLength;
+  }, [timeline]);
 
   const loadKnowledge = async () => {
     try {
@@ -188,12 +219,15 @@ export function AIPanel({
     switch (item.type) {
       case 'summary':
         return (
-          <div key={item.id} className="p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg border-l-4 border-indigo-500">
+          <div key={item.id} className="p-3 bg-rose-50 dark:bg-rose-900/20 rounded-lg border-l-4 border-rose-500">
             <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <FileText size={16} className="text-indigo-600 dark:text-indigo-400" />
-                <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase">{t.summaryTitle}</span>
-              </div>
+              <button
+                className="flex items-center gap-2 flex-1 text-left group"
+                onClick={() => setExpandedItemId(isExpanded ? null : item.id)}
+              >
+                <FileText size={16} className="text-rose-600 dark:text-rose-400" />
+                <span className="text-xs font-semibold text-rose-600 dark:text-rose-400 uppercase group-hover:text-rose-700 dark:group-hover:text-rose-300">{t.summaryTitle}</span>
+              </button>
               <div className="flex items-center gap-2">
                 <span className="text-xs text-gray-400 dark:text-gray-500">{timeStr}</span>
                 <button
@@ -205,9 +239,11 @@ export function AIPanel({
                 </button>
               </div>
             </div>
-            <div className="text-gray-800 dark:text-gray-200 leading-relaxed whitespace-pre-wrap" style={{ fontSize: `${fontSize}px` }}>
-              {item.content}
-            </div>
+            {isExpanded && (
+              <div className="mt-2 text-gray-800 dark:text-gray-200 leading-relaxed whitespace-pre-wrap" style={{ fontSize: `${fontSize}px` }}>
+                {item.content}
+              </div>
+            )}
           </div>
         );
 
@@ -219,14 +255,19 @@ export function AIPanel({
               : 'bg-purple-50 dark:bg-purple-900/10 border-purple-500'
           }`}>
             <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
+              <button
+                className="flex items-center gap-2 flex-1 text-left group"
+                onClick={() => setExpandedItemId(isExpanded ? null : item.id)}
+              >
                 <HelpCircle size={16} className={item.source === 'generated' ? 'text-amber-600 dark:text-amber-400' : 'text-purple-600 dark:text-purple-400'} />
                 <span className={`text-xs font-semibold uppercase ${
-                  item.source === 'generated' ? 'text-amber-600 dark:text-amber-400' : 'text-purple-600 dark:text-purple-400'
+                  item.source === 'generated'
+                    ? 'text-amber-600 dark:text-amber-400 group-hover:text-amber-700 dark:group-hover:text-amber-300'
+                    : 'text-purple-600 dark:text-purple-400 group-hover:text-purple-700 dark:group-hover:text-purple-300'
                 }`}>
                   {t.questionsTitle} {item.source === 'generated' ? `• ${t.aiSuggested}` : `• ${t.askedAbout}`}
                 </span>
-              </div>
+              </button>
               <div className="flex items-center gap-2">
                 <span className="text-xs text-gray-400 dark:text-gray-500">{timeStr}</span>
                 <button
@@ -238,27 +279,31 @@ export function AIPanel({
                 </button>
               </div>
             </div>
-            {item.lineContext && (
-              <div className="text-xs italic text-gray-600 dark:text-gray-400 px-2 py-1 mb-2 bg-gray-100 dark:bg-gray-800 rounded">
-                {t.about}: "{item.lineContext}"
-              </div>
-            )}
-            <div className="flex flex-col gap-2">
-              {item.questions.map((q, i) => (
-                <div key={i} className="flex items-start gap-2 p-2 bg-white/50 dark:bg-gray-800/50 rounded">
-                  <div className={`flex-shrink-0 flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold ${
-                    item.source === 'generated'
-                      ? 'bg-amber-500 text-white'
-                      : 'bg-purple-500 text-white'
-                  }`}>
-                    {i + 1}
+            {isExpanded && (
+              <>
+                {item.lineContext && (
+                  <div className="text-xs italic text-gray-600 dark:text-gray-400 px-2 py-1 mb-2 bg-gray-100 dark:bg-gray-800 rounded">
+                    {t.about}: "{item.lineContext}"
                   </div>
-                  <div className="text-gray-800 dark:text-gray-200 leading-relaxed flex-1" style={{ fontSize: `${fontSize}px` }}>
-                    {q}
-                  </div>
+                )}
+                <div className="flex flex-col gap-2">
+                  {item.questions.map((q, i) => (
+                    <div key={i} className="flex items-start gap-2 p-2 bg-white/50 dark:bg-gray-800/50 rounded">
+                      <div className={`flex-shrink-0 flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold ${
+                        item.source === 'generated'
+                          ? 'bg-amber-500 text-white'
+                          : 'bg-purple-500 text-white'
+                      }`}>
+                        {i + 1}
+                      </div>
+                      <div className="text-gray-800 dark:text-gray-200 leading-relaxed flex-1" style={{ fontSize: `${fontSize}px` }}>
+                        {q}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </>
+            )}
           </div>
         );
 
@@ -290,11 +335,11 @@ export function AIPanel({
               <div className="flex flex-col gap-2 mt-2 text-xs">
                 <div className="p-2 bg-gray-200 dark:bg-gray-700 rounded">
                   <div className="font-semibold text-gray-600 dark:text-gray-400 mb-1">{t.raw}:</div>
-                  <div className="text-gray-700 dark:text-gray-300" style={{ fontSize: `${fontSize}px` }}>{item.rawContent}</div>
+                  <div className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-words" style={{ fontSize: `${fontSize}px`, wordWrap: 'break-word', overflowWrap: 'break-word' }}>{item.rawContent}</div>
                 </div>
                 <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded border-l-2 border-indigo-500">
                   <div className="font-semibold text-indigo-600 dark:text-indigo-400 mb-1">{t.script}:</div>
-                  <div className="text-gray-800 dark:text-gray-200 leading-relaxed" style={{ fontSize: `${fontSize}px` }}>{item.correctedScript}</div>
+                  <div className="text-gray-800 dark:text-gray-200 leading-relaxed whitespace-pre-wrap break-words" style={{ fontSize: `${fontSize}px`, wordWrap: 'break-word', overflowWrap: 'break-word' }}>{item.correctedScript}</div>
                 </div>
               </div>
             )}
@@ -327,6 +372,15 @@ export function AIPanel({
             ))}
           </div>
         </div>
+
+        {/* Context Monitor */}
+        {onToggleContextOptimization && (
+          <ContextMonitor
+            stats={chatHistoryStats ?? null}
+            useContextOptimization={useContextOptimization}
+            onToggleOptimization={onToggleContextOptimization}
+          />
+        )}
 
         {/* Tab Content */}
         <div className="flex-1 overflow-y-auto min-h-0">

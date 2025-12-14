@@ -104,6 +104,22 @@ fn get_ideas_path() -> std::path::PathBuf {
     config_dir.join("ideas.json")
 }
 
+fn get_chat_history_path() -> std::path::PathBuf {
+    let config_dir = dirs::config_dir()
+        .unwrap_or_else(|| std::path::PathBuf::from("."))
+        .join("zipy");
+    std::fs::create_dir_all(&config_dir).ok();
+    config_dir.join("chat_history.json")
+}
+
+fn get_context_snapshots_path() -> std::path::PathBuf {
+    let config_dir = dirs::config_dir()
+        .unwrap_or_else(|| std::path::PathBuf::from("."))
+        .join("zipy");
+    std::fs::create_dir_all(&config_dir).ok();
+    config_dir.join("context_snapshots.json")
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct KnowledgeEntry {
     pub id: String,
@@ -120,6 +136,28 @@ pub struct IdeaEntry {
     pub raw_content: String,
     pub corrected_script: String,
     pub created_at: i64,
+}
+
+// Chat history entry - unified record of all interactions
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ChatHistoryEntry {
+    pub id: String,
+    pub timestamp: i64,
+    pub entry_type: String, // "transcript" | "question" | "answer" | "summary" | "idea" | "translation"
+    pub content: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub metadata: Option<serde_json::Value>, // For type-specific data
+}
+
+// Context compression snapshot
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ContextSnapshot {
+    pub id: String,
+    pub created_at: i64,
+    pub summary: String,           // Compressed summary of old context
+    pub covered_until: i64,        // Timestamp of last message in summary
+    pub original_token_count: i64, // Estimated tokens before compression
+    pub compressed_token_count: i64, // Estimated tokens after compression
 }
 
 fn get_zig_binary_path() -> String {
@@ -557,6 +595,159 @@ async fn update_transcript(state: tauri::State<'_, Arc<AppState>>, lines: Vec<St
     Ok(())
 }
 
+// Chat history CRUD commands
+#[tauri::command]
+async fn get_chat_history(since: Option<i64>, limit: Option<usize>) -> Result<Vec<ChatHistoryEntry>, String> {
+    let path = get_chat_history_path();
+    if path.exists() {
+        let content = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
+        let mut entries: Vec<ChatHistoryEntry> = serde_json::from_str(&content).unwrap_or_default();
+
+        // Filter by timestamp if since is provided
+        if let Some(since_ts) = since {
+            entries.retain(|e| e.timestamp >= since_ts);
+        }
+
+        // Sort by timestamp (oldest first)
+        entries.sort_by(|a, b| a.timestamp.cmp(&b.timestamp));
+
+        // Apply limit if provided
+        if let Some(max) = limit {
+            if entries.len() > max {
+                entries = entries.into_iter().rev().take(max).collect::<Vec<_>>();
+                entries.reverse();
+            }
+        }
+
+        Ok(entries)
+    } else {
+        Ok(vec![])
+    }
+}
+
+#[tauri::command]
+async fn add_chat_entry(entry: ChatHistoryEntry) -> Result<ChatHistoryEntry, String> {
+    let path = get_chat_history_path();
+    let mut entries: Vec<ChatHistoryEntry> = if path.exists() {
+        let file_content = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
+        serde_json::from_str(&file_content).unwrap_or_default()
+    } else {
+        vec![]
+    };
+
+    entries.push(entry.clone());
+
+    let json = serde_json::to_string_pretty(&entries).map_err(|e| e.to_string())?;
+    std::fs::write(&path, json).map_err(|e| format!("Failed to save chat history: {}", e))?;
+
+    Ok(entry)
+}
+
+#[tauri::command]
+async fn clear_chat_history() -> Result<(), String> {
+    let path = get_chat_history_path();
+    if path.exists() {
+        std::fs::remove_file(&path).map_err(|e| format!("Failed to clear chat history: {}", e))?;
+    }
+    Ok(())
+}
+
+#[tauri::command]
+async fn get_chat_history_stats() -> Result<serde_json::Value, String> {
+    let path = get_chat_history_path();
+    if path.exists() {
+        let content = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
+        let entries: Vec<ChatHistoryEntry> = serde_json::from_str(&content).unwrap_or_default();
+
+        let total_entries = entries.len();
+        let total_chars: usize = entries.iter().map(|e| e.content.len()).sum();
+        let estimated_tokens = total_chars / 4; // ~4 chars per token
+
+        // Count by type
+        let transcript_count = entries.iter().filter(|e| e.entry_type == "transcript").count();
+        let question_count = entries.iter().filter(|e| e.entry_type == "question").count();
+        let answer_count = entries.iter().filter(|e| e.entry_type == "answer").count();
+        let summary_count = entries.iter().filter(|e| e.entry_type == "summary").count();
+        let idea_count = entries.iter().filter(|e| e.entry_type == "idea").count();
+
+        Ok(serde_json::json!({
+            "total_entries": total_entries,
+            "total_chars": total_chars,
+            "estimated_tokens": estimated_tokens,
+            "by_type": {
+                "transcript": transcript_count,
+                "question": question_count,
+                "answer": answer_count,
+                "summary": summary_count,
+                "idea": idea_count
+            }
+        }))
+    } else {
+        Ok(serde_json::json!({
+            "total_entries": 0,
+            "total_chars": 0,
+            "estimated_tokens": 0,
+            "by_type": {}
+        }))
+    }
+}
+
+// Context snapshot commands
+#[tauri::command]
+async fn save_context_snapshot(snapshot: ContextSnapshot) -> Result<ContextSnapshot, String> {
+    let path = get_context_snapshots_path();
+    let mut snapshots: Vec<ContextSnapshot> = if path.exists() {
+        let file_content = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
+        serde_json::from_str(&file_content).unwrap_or_default()
+    } else {
+        vec![]
+    };
+
+    snapshots.push(snapshot.clone());
+
+    let json = serde_json::to_string_pretty(&snapshots).map_err(|e| e.to_string())?;
+    std::fs::write(&path, json).map_err(|e| format!("Failed to save context snapshot: {}", e))?;
+
+    Ok(snapshot)
+}
+
+#[tauri::command]
+async fn get_latest_snapshot() -> Result<Option<ContextSnapshot>, String> {
+    let path = get_context_snapshots_path();
+    if path.exists() {
+        let content = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
+        let mut snapshots: Vec<ContextSnapshot> = serde_json::from_str(&content).unwrap_or_default();
+
+        // Sort by created_at descending and return the latest
+        snapshots.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+        Ok(snapshots.into_iter().next())
+    } else {
+        Ok(None)
+    }
+}
+
+#[tauri::command]
+async fn get_all_snapshots() -> Result<Vec<ContextSnapshot>, String> {
+    let path = get_context_snapshots_path();
+    if path.exists() {
+        let content = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
+        let mut snapshots: Vec<ContextSnapshot> = serde_json::from_str(&content).unwrap_or_default();
+        snapshots.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+        Ok(snapshots)
+    } else {
+        Ok(vec![])
+    }
+}
+
+#[tauri::command]
+async fn clear_context_snapshots() -> Result<(), String> {
+    let path = get_context_snapshots_path();
+    if path.exists() {
+        std::fs::remove_file(&path).map_err(|e| format!("Failed to clear snapshots: {}", e))?;
+    }
+    Ok(())
+}
+
 fn load_settings() -> Settings {
     let path = get_settings_path();
     if path.exists() {
@@ -610,6 +801,16 @@ pub fn run() {
             add_idea,
             update_idea,
             delete_idea,
+            // Chat history commands
+            get_chat_history,
+            add_chat_entry,
+            clear_chat_history,
+            get_chat_history_stats,
+            // Context snapshot commands
+            save_context_snapshot,
+            get_latest_snapshot,
+            get_all_snapshots,
+            clear_context_snapshots,
         ])
         .on_window_event(move |_window, event| {
             if let tauri::WindowEvent::Destroyed = event {

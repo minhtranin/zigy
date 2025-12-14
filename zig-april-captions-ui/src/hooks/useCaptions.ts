@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
-import { CaptionEvent, Settings, SummaryState, QuestionsState, TimelineItem, IdeaEntry } from '../types';
-import { generateSummary, generateQuestions } from '../services/geminiService';
+import { CaptionEvent, Settings, SummaryState, QuestionsState, TimelineItem, IdeaEntry, ChatHistoryStats } from '../types';
+import { generateSummary, generateQuestions, generateSummaryWithContext, generateQuestionsWithContext } from '../services/geminiService';
+import { addChatEntry, getChatHistoryStats, createSessionSnapshot } from '../services/contextService';
 
 // Global state outside React
 let globalHistory: string[] = [];  // All finalized sentences
@@ -33,6 +34,10 @@ export function useCaptions() {
   const [timeline, setTimeline] = useState<TimelineItem[]>([]);
   const [isSummaryLoading, setIsSummaryLoading] = useState(false);
   const [isQuestionsLoading, setIsQuestionsLoading] = useState(false);
+
+  // Chat history stats for context monitoring
+  const [chatHistoryStats, setChatHistoryStats] = useState<ChatHistoryStats | null>(null);
+  const [useContextOptimization, setUseContextOptimization] = useState(true);
 
   const [isRunning, setIsRunning] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -86,6 +91,17 @@ export function useCaptions() {
       }
     };
     loadTimeline();
+
+    // Load chat history stats
+    const loadStats = async () => {
+      try {
+        const stats = await getChatHistoryStats();
+        setChatHistoryStats(stats);
+      } catch (e) {
+        console.error('Failed to load chat history stats:', e);
+      }
+    };
+    loadStats();
   }, []); // Only run on mount
 
   const loadTranscript = async () => {
@@ -140,9 +156,13 @@ export function useCaptions() {
                     globalHistory = [...globalHistory, oldText];
                     setHistoryRef.current([...globalHistory]);
 
-                    // Persist to backend
+                    // Persist to backend (both transcript and chat history)
                     invoke('add_transcript_line', { line: oldText }).catch(e => {
                       console.error('Failed to persist:', e);
+                    });
+                    // Also save to chat history for context management
+                    addChatEntry('transcript', oldText).catch(e => {
+                      console.error('Failed to save to chat history:', e);
                     });
                   }
                 }
@@ -156,9 +176,13 @@ export function useCaptions() {
                   globalHistory = [...globalHistory, newText];
                   setHistoryRef.current([...globalHistory]);
 
-                  // Persist to backend
+                  // Persist to backend (both transcript and chat history)
                   invoke('add_transcript_line', { line: newText }).catch(e => {
                     console.error('Failed to persist:', e);
+                  });
+                  // Also save to chat history for context management
+                  addChatEntry('transcript', newText).catch(e => {
+                    console.error('Failed to save to chat history:', e);
                   });
                 }
                 lastText = '';
@@ -248,7 +272,24 @@ export function useCaptions() {
 
   const clearCaptions = useCallback(async () => {
     try {
+      // Create a session snapshot before clearing if we have content and API key
+      if (globalHistory.length > 0 && settings.ai?.api_key) {
+        try {
+          await createSessionSnapshot(
+            settings.ai.api_key,
+            settings.ai.model || 'gemini-2.5-flash'
+          );
+          console.log('Created session snapshot before clearing');
+        } catch (e) {
+          console.error('Failed to create session snapshot:', e);
+          // Continue with clear even if snapshot fails
+        }
+      }
+
       await invoke('clear_transcript');
+      // Clear chat history as well (but snapshots are preserved)
+      await invoke('clear_chat_history');
+
       globalHistory = [];
       lastText = '';
       setHistory([]);
@@ -268,10 +309,12 @@ export function useCaptions() {
       });
       // Clear timeline (keep only persisted ideas)
       setTimeline(prev => prev.filter(item => item.type === 'idea'));
+      // Reset chat history stats
+      setChatHistoryStats(null);
     } catch (e) {
       console.error('Failed to clear transcript:', e);
     }
-  }, []);
+  }, [settings.ai]);
 
   const exportCaptions = useCallback(async (filePath: string) => {
     try {
@@ -399,7 +442,7 @@ export function useCaptions() {
     }
   }, []);
 
-  // Generate summary and add to timeline
+  // Generate summary and add to timeline (with optional context optimization)
   const generateSummaryToTimeline = useCallback(async () => {
     if (!settings.ai?.api_key) {
       setError('Please configure your Gemini API key in Settings');
@@ -415,11 +458,24 @@ export function useCaptions() {
     setIsSummaryLoading(true);
 
     try {
-      const content = await generateSummary(
-        historyText,
-        settings.ai.api_key,
-        settings.ai.model || 'gemini-2.5-flash'
-      );
+      let content: string;
+
+      if (useContextOptimization) {
+        // Use context-aware version (token optimized)
+        content = await generateSummaryWithContext(
+          settings.ai.api_key,
+          settings.ai.model || 'gemini-2.5-flash'
+        );
+      } else {
+        // Use original version (full transcript)
+        content = await generateSummary(
+          historyText,
+          settings.ai.api_key,
+          settings.ai.model || 'gemini-2.5-flash'
+        );
+        // Save to chat history manually since original doesn't do it
+        await addChatEntry('summary', content);
+      }
 
       const summaryItem: TimelineItem = {
         id: `summary-${Date.now()}`,
@@ -429,14 +485,18 @@ export function useCaptions() {
       };
 
       setTimeline(prev => [summaryItem, ...prev]);
+
+      // Update chat history stats
+      const stats = await getChatHistoryStats();
+      setChatHistoryStats(stats);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to generate summary');
     } finally {
       setIsSummaryLoading(false);
     }
-  }, [settings.ai]);
+  }, [settings.ai, useContextOptimization]);
 
-  // Generate questions and add to timeline
+  // Generate questions and add to timeline (with optional context optimization)
   const generateQuestionsToTimeline = useCallback(async () => {
     if (!settings.ai?.api_key) {
       setError('Please configure your Gemini API key in Settings');
@@ -452,11 +512,24 @@ export function useCaptions() {
     setIsQuestionsLoading(true);
 
     try {
-      const suggestedQuestions = await generateQuestions(
-        historyText,
-        settings.ai.api_key,
-        settings.ai.model || 'gemini-2.5-flash'
-      );
+      let suggestedQuestions: string[];
+
+      if (useContextOptimization) {
+        // Use context-aware version (token optimized)
+        suggestedQuestions = await generateQuestionsWithContext(
+          settings.ai.api_key,
+          settings.ai.model || 'gemini-2.5-flash'
+        );
+      } else {
+        // Use original version (full transcript)
+        suggestedQuestions = await generateQuestions(
+          historyText,
+          settings.ai.api_key,
+          settings.ai.model || 'gemini-2.5-flash'
+        );
+        // Save to chat history manually since original doesn't do it
+        await addChatEntry('question', suggestedQuestions.join('\n'), { source: 'generated' });
+      }
 
       const questionsItem: TimelineItem = {
         id: `questions-${Date.now()}`,
@@ -467,12 +540,16 @@ export function useCaptions() {
       };
 
       setTimeline(prev => [questionsItem, ...prev]);
+
+      // Update chat history stats
+      const stats = await getChatHistoryStats();
+      setChatHistoryStats(stats);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to generate questions');
     } finally {
       setIsQuestionsLoading(false);
     }
-  }, [settings.ai]);
+  }, [settings.ai, useContextOptimization]);
 
   // Add questions to timeline (from Ask button)
   const addQuestionsToTimeline = useCallback((questions: string[], lineContext?: string) => {
@@ -561,6 +638,10 @@ export function useCaptions() {
     addQuestionsToTimeline,
     deleteTimelineItem,
     loadTimelineFromIdeas,
+    // Context management
+    chatHistoryStats,
+    useContextOptimization,
+    setUseContextOptimization,
     // Actions
     startCaptions,
     stopCaptions,

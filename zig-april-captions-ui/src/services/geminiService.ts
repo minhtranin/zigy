@@ -1,4 +1,5 @@
 import { GeminiModel, GeminiResponse } from '../types';
+import { buildCompressedContext, buildContextString, addChatEntry } from './contextService';
 
 const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 
@@ -728,4 +729,460 @@ export async function validateApiKey(apiKey: string): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+// ============================================
+// Context-Aware API Functions (Token Optimized)
+// ============================================
+
+// Generate summary using compressed context (token optimized)
+export async function generateSummaryWithContext(
+  apiKey: string,
+  model: GeminiModel = 'gemini-2.5-flash'
+): Promise<string> {
+  if (!apiKey) {
+    throw new Error('API key is required');
+  }
+
+  // Build compressed context from chat history
+  const context = await buildCompressedContext(apiKey, model);
+  const contextStr = buildContextString(context);
+
+  if (!contextStr.trim()) {
+    throw new Error('No context available to summarize');
+  }
+
+  const url = `${GEMINI_API_BASE}/${model}:generateContent?key=${apiKey}`;
+
+  const prompt = `${SUMMARY_SYSTEM_PROMPT}
+
+${contextStr}
+
+Generate a summary of the conversation above:`;
+
+  const requestBody = {
+    contents: [
+      {
+        parts: [{ text: prompt }]
+      }
+    ],
+    generationConfig: {
+      temperature: 0.3,
+      maxOutputTokens: 1024,
+      topP: 0.8,
+    }
+  };
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(requestBody),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(
+      errorData.error?.message || `API request failed: ${response.status}`
+    );
+  }
+
+  const data: GeminiResponse = await response.json();
+
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!text) {
+    throw new Error('No summary generated');
+  }
+
+  // Save summary to chat history
+  await addChatEntry('summary', text, { estimatedTokens: context.estimatedTokens });
+
+  return text;
+}
+
+// Generate questions using compressed context (token optimized)
+export async function generateQuestionsWithContext(
+  apiKey: string,
+  model: GeminiModel = 'gemini-2.5-flash'
+): Promise<string[]> {
+  if (!apiKey) {
+    throw new Error('API key is required');
+  }
+
+  // Build compressed context
+  const context = await buildCompressedContext(apiKey, model);
+  const contextStr = buildContextString(context);
+
+  if (!contextStr.trim()) {
+    throw new Error('No context available to analyze');
+  }
+
+  const url = `${GEMINI_API_BASE}/${model}:generateContent?key=${apiKey}`;
+
+  const prompt = `${QUESTIONS_SYSTEM_PROMPT}
+
+${contextStr}
+
+Based on the conversation above, generate 3 smart questions:`;
+
+  const requestBody = {
+    contents: [
+      {
+        parts: [{ text: prompt }]
+      }
+    ],
+    generationConfig: {
+      temperature: 0.7,
+      maxOutputTokens: 512,
+      topP: 0.9,
+    }
+  };
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(requestBody),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(
+      errorData.error?.message || `API request failed: ${response.status}`
+    );
+  }
+
+  const data: GeminiResponse = await response.json();
+
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!text) {
+    throw new Error('No questions generated');
+  }
+
+  // Parse the numbered questions
+  const questions = text
+    .split('\n')
+    .map(line => line.trim())
+    .filter(line => /^\d+\./.test(line))
+    .map(line => line.replace(/^\d+\.\s*/, ''));
+
+  if (questions.length === 0) {
+    throw new Error('Failed to parse questions');
+  }
+
+  // Save questions to chat history
+  await addChatEntry('question', questions.join('\n'), { source: 'generated' });
+
+  return questions;
+}
+
+// Generate idea script using compressed context (token optimized)
+export async function generateIdeaScriptWithContext(
+  rawContent: string,
+  apiKey: string,
+  model: GeminiModel = 'gemini-2.5-flash'
+): Promise<{ title: string; script: string }> {
+  if (!apiKey) {
+    throw new Error('API key is required');
+  }
+
+  if (!rawContent.trim()) {
+    throw new Error('Please enter your idea content');
+  }
+
+  // Build compressed context
+  const context = await buildCompressedContext(apiKey, model);
+  const contextStr = buildContextString(context);
+
+  const url = `${GEMINI_API_BASE}/${model}:generateContent?key=${apiKey}`;
+
+  const prompt = `${IDEA_CORRECTION_SYSTEM_PROMPT}
+
+${contextStr}
+
+User's Raw Input (may contain mistakes):
+${rawContent}
+
+Generate:
+1. A short title (3-6 words) that summarizes the idea
+2. A corrected, natural speaking script
+
+Format your response exactly as:
+TITLE: [your generated title here]
+SCRIPT: [your corrected speaking script here]`;
+
+  const requestBody = {
+    contents: [
+      {
+        parts: [{ text: prompt }]
+      }
+    ],
+    generationConfig: {
+      temperature: 0.7,
+      maxOutputTokens: 512,
+      topP: 0.9,
+    }
+  };
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(requestBody),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(
+      errorData.error?.message || `API request failed: ${response.status}`
+    );
+  }
+
+  const data: GeminiResponse = await response.json();
+
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!text) {
+    throw new Error('No script generated');
+  }
+
+  // Parse the response to extract title and script
+  const titleMatch = text.match(/TITLE:\s*(.+?)(?:\n|$)/i);
+  const scriptMatch = text.match(/SCRIPT:\s*(.+)/is);
+
+  const title = titleMatch ? titleMatch[1].trim() : 'Quick Idea';
+  const script = scriptMatch ? scriptMatch[1].trim() : text;
+
+  // Save idea to chat history
+  await addChatEntry('idea', `${title}: ${script}`, { rawContent, title });
+
+  return { title, script };
+}
+
+// Generate answer response using compressed context (token optimized)
+export async function generateAnswerWithContext(
+  question: string,
+  apiKey: string,
+  model: GeminiModel = 'gemini-2.5-flash'
+): Promise<string> {
+  if (!apiKey) {
+    throw new Error('API key is required');
+  }
+
+  if (!question.trim()) {
+    throw new Error('Question is required');
+  }
+
+  // Build compressed context
+  const context = await buildCompressedContext(apiKey, model);
+  const contextStr = buildContextString(context);
+
+  const url = `${GEMINI_API_BASE}/${model}:generateContent?key=${apiKey}`;
+
+  const prompt = `${ANSWER_SYSTEM_PROMPT}
+
+${contextStr}
+
+Question asked:
+${question}
+
+Generate a natural speaking script to answer this question:`;
+
+  const requestBody = {
+    contents: [
+      {
+        parts: [{ text: prompt }]
+      }
+    ],
+    generationConfig: {
+      temperature: 0.7,
+      maxOutputTokens: 512,
+      topP: 0.9,
+    }
+  };
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(requestBody),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(
+      errorData.error?.message || `API request failed: ${response.status}`
+    );
+  }
+
+  const data: GeminiResponse = await response.json();
+
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!text) {
+    throw new Error('No response generated');
+  }
+
+  // Save answer to chat history
+  await addChatEntry('answer', text, { questionAsked: question });
+
+  return text;
+}
+
+// Generate talk script using compressed context (token optimized)
+export async function generateTalkScriptWithContext(
+  specificLine: string,
+  apiKey: string,
+  model: GeminiModel = 'gemini-2.5-flash'
+): Promise<{ title: string; script: string }> {
+  if (!apiKey) {
+    throw new Error('API key is required');
+  }
+
+  if (!specificLine.trim()) {
+    throw new Error('Line to talk about is required');
+  }
+
+  // Build compressed context
+  const context = await buildCompressedContext(apiKey, model);
+  const contextStr = buildContextString(context);
+
+  const url = `${GEMINI_API_BASE}/${model}:generateContent?key=${apiKey}`;
+
+  const prompt = `${TALK_ABOUT_LINE_PROMPT}
+
+${contextStr}
+
+Specific line/statement the user wants to talk about:
+"${specificLine}"
+
+Generate a natural speaking script that relates to this line and contributes to the meeting discussion:`;
+
+  const requestBody = {
+    contents: [
+      {
+        parts: [{ text: prompt }]
+      }
+    ],
+    generationConfig: {
+      temperature: 0.8,
+      maxOutputTokens: 512,
+      topP: 0.9,
+    }
+  };
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(requestBody),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(
+      errorData.error?.message || `API request failed: ${response.status}`
+    );
+  }
+
+  const data: GeminiResponse = await response.json();
+
+  const script = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!script) {
+    throw new Error('No script generated');
+  }
+
+  // Generate a title from the line
+  const title = specificLine.length > 50
+    ? specificLine.substring(0, 47) + '...'
+    : specificLine;
+
+  // Save to chat history
+  await addChatEntry('answer', `Talk about "${title}": ${script}`, { specificLine });
+
+  return { title: `Talk: ${title}`, script };
+}
+
+// Generate clarifying questions using compressed context (token optimized)
+export async function generateClarifyingQuestionsWithContext(
+  specificLine: string,
+  apiKey: string,
+  model: GeminiModel = 'gemini-2.5-flash'
+): Promise<string[]> {
+  if (!apiKey) {
+    throw new Error('API key is required');
+  }
+
+  if (!specificLine.trim()) {
+    throw new Error('Line to clarify is required');
+  }
+
+  // Build compressed context
+  const context = await buildCompressedContext(apiKey, model);
+  const contextStr = buildContextString(context);
+
+  const url = `${GEMINI_API_BASE}/${model}:generateContent?key=${apiKey}`;
+
+  const prompt = `${ASK_CLARIFYING_QUESTIONS_PROMPT}
+
+${contextStr}
+
+Specific line/statement to ask about:
+"${specificLine}"
+
+Generate 1-3 natural clarifying questions about this specific statement:`;
+
+  const requestBody = {
+    contents: [
+      {
+        parts: [{ text: prompt }]
+      }
+    ],
+    generationConfig: {
+      temperature: 0.7,
+      maxOutputTokens: 512,
+      topP: 0.9,
+    }
+  };
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(requestBody),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(
+      errorData.error?.message || `API request failed: ${response.status}`
+    );
+  }
+
+  const data: GeminiResponse = await response.json();
+
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!text) {
+    throw new Error('No questions generated');
+  }
+
+  // Parse the numbered questions
+  const questions = text
+    .split('\n')
+    .map(line => line.trim())
+    .filter(line => /^\d+\./.test(line))
+    .map(line => line.replace(/^\d+\.\s*/, ''));
+
+  if (questions.length === 0) {
+    throw new Error('Failed to parse questions');
+  }
+
+  // Save questions to chat history
+  await addChatEntry('question', questions.join('\n'), { source: 'ask', lineContext: specificLine });
+
+  return questions;
 }

@@ -30,6 +30,11 @@ function App() {
     addQuestionsToTimeline,
     deleteTimelineItem,
     loadTimelineFromIdeas,
+    // Context management
+    chatHistoryStats,
+    useContextOptimization,
+    setUseContextOptimization,
+    // Actions
     startCaptions,
     stopCaptions,
     clearCaptions,
@@ -194,6 +199,9 @@ function App() {
             model={settings.ai?.model || 'gemini-2.5-flash'}
             t={t}
             translationLanguage={settings.ai?.translation_language}
+            chatHistoryStats={chatHistoryStats}
+            useContextOptimization={useContextOptimization}
+            onToggleContextOptimization={setUseContextOptimization}
           />
         </div>
       )}

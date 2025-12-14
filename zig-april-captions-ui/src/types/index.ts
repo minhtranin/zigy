@@ -139,3 +139,46 @@ export interface GeminiResponse {
     };
   }>;
 }
+
+// Chat history entry - unified record of all interactions
+export type ChatHistoryEntryType = 'transcript' | 'question' | 'answer' | 'summary' | 'idea' | 'translation';
+
+export interface ChatHistoryEntry {
+  id: string;
+  timestamp: number;
+  entry_type: ChatHistoryEntryType;
+  content: string;
+  metadata?: Record<string, unknown>; // For type-specific data
+}
+
+// Context compression snapshot
+export interface ContextSnapshot {
+  id: string;
+  created_at: number;
+  summary: string;           // Compressed summary of old context
+  covered_until: number;     // Timestamp of last message in summary
+  original_token_count: number;  // Estimated tokens before compression
+  compressed_token_count: number; // Estimated tokens after compression
+}
+
+// Chat history stats from backend
+export interface ChatHistoryStats {
+  total_entries: number;
+  total_chars: number;
+  estimated_tokens: number;
+  by_type: {
+    transcript?: number;
+    question?: number;
+    answer?: number;
+    summary?: number;
+    idea?: number;
+  };
+}
+
+// Compressed context for API calls
+export interface CompressedContext {
+  sessionSummary: string;      // From latest snapshot
+  knowledgeBase: string;       // User's nominated knowledge
+  recentHistory: string;       // Recent chat entries (full)
+  estimatedTokens: number;
+}
