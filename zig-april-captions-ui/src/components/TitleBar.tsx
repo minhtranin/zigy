@@ -1,14 +1,16 @@
 import { getCurrentWindow } from '@tauri-apps/api/window';
-import { Minus, Square, X } from 'lucide-react';
+import { Minus, Square, X, Maximize2 } from 'lucide-react';
 import { Translations } from '../translations';
 
 interface Props {
   activeTab: string;
   onTabChange: (tab: string) => void;
   t: Translations;
+  simpleMode: boolean;
+  onToggleSimpleMode: () => void;
 }
 
-export function TitleBar({ activeTab, onTabChange, t }: Props) {
+export function TitleBar({ activeTab, onTabChange, t, simpleMode, onToggleSimpleMode }: Props) {
   const handleMinimize = async () => {
     try {
       const window = getCurrentWindow();
@@ -80,8 +82,22 @@ export function TitleBar({ activeTab, onTabChange, t }: Props) {
         </div>
       </div>
 
-      {/* Right side: Window Controls */}
+      {/* Right side: Simple Mode + Window Controls */}
       <div className="flex items-center h-full">
+        <button
+          onClick={onToggleSimpleMode}
+          className={`h-full px-3 transition-colors flex items-center justify-center gap-1 ${
+            simpleMode
+              ? 'bg-indigo-600 text-white hover:bg-indigo-700'
+              : 'hover:bg-gray-200 dark:hover:bg-gray-700'
+          }`}
+          title={simpleMode ? "Exit Simple Mode" : "Simple Mode - Show only live transcription"}
+        >
+          <Maximize2 size={14} className={simpleMode ? 'text-white' : 'text-gray-600 dark:text-gray-300'} />
+          <span className={`text-xs font-medium ${simpleMode ? 'text-white' : 'text-gray-600 dark:text-gray-300'}`}>
+            Simple
+          </span>
+        </button>
         <button
           onClick={handleMinimize}
           className="h-full px-4 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors flex items-center justify-center"

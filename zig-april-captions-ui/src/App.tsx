@@ -56,6 +56,9 @@ function App() {
   const [isInitModalOpen, setIsInitModalOpen] = useState(false);
   const [isGreetingLoading, setIsGreetingLoading] = useState(false);
 
+  // Simple mode state - shows only live transcription
+  const [simpleMode, setSimpleMode] = useState(false);
+
   useEffect(() => {
     if (ideaGenerationTrigger > 0) {
       // Small delay to allow backend to save
@@ -236,39 +239,74 @@ function App() {
     </div>
   );
 
+  // Simple mode view - only live transcription
+  const renderSimpleMode = () => (
+    <div className="flex items-center justify-center h-full p-8">
+      <div className="w-full max-w-4xl">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 border-2 border-indigo-500">
+          <div className="text-center">
+            <div className="text-sm font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-4">
+              Live Transcription
+            </div>
+            <div
+              className="text-gray-800 dark:text-gray-200 leading-relaxed min-h-[100px] whitespace-pre-wrap"
+              style={{ fontSize: `${settings.font_size * 1.2}px` }}
+            >
+              {currentText || (
+                <span className="text-gray-400 dark:text-gray-500 italic">
+                  {isRunning ? 'Listening...' : 'Start captions to see live transcription'}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="flex flex-col h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
       {/* Title Bar */}
-      <TitleBar activeTab={activeTab} onTabChange={setActiveTab} t={t} />
+      <TitleBar
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        t={t}
+        simpleMode={simpleMode}
+        onToggleSimpleMode={() => setSimpleMode(!simpleMode)}
+      />
 
       {/* Main Content Area */}
-      <div className="flex flex-1 p-2 md:p-3 gap-3 min-h-0">
-        {/* Left side: Content - Takes more space */}
-        <div className="flex-[2] flex flex-col min-w-0 min-h-0">
-          {activeTab === 'captions' ? renderCaptionsContent() : renderSettingsContent()}
-        </div>
+      {simpleMode ? (
+        renderSimpleMode()
+      ) : (
+        <div className="flex flex-1 p-2 md:p-3 gap-3 min-h-0">
+          {/* Left side: Content - Takes more space */}
+          <div className="flex-[2] flex flex-col min-w-0 min-h-0">
+            {activeTab === 'captions' ? renderCaptionsContent() : renderSettingsContent()}
+          </div>
 
-      {/* Right side: AI Panel (only shown in captions tab) - Takes less space */}
-      {activeTab === 'captions' && (
-        <div className="flex-[1] flex flex-col min-h-0 max-w-[600px] min-w-[400px]">
-          <AIPanel
-            timeline={timeline}
-            onDeleteTimelineItem={deleteTimelineItem}
-            onIdeaAdded={() => setIdeaGenerationTrigger(prev => prev + 1)}
-            hasApiKey={!!settings.ai?.api_key}
-            fontSize={settings.font_size}
-            transcriptText={historyText}
-            apiKey={settings.ai?.api_key || ''}
-            model={settings.ai?.model || 'gemini-2.5-flash'}
-            t={t}
-            translationLanguage={settings.ai?.translation_language}
-            chatHistoryStats={chatHistoryStats}
-            useContextOptimization={useContextOptimization}
-            onToggleContextOptimization={setUseContextOptimization}
-          />
+        {/* Right side: AI Panel (only shown in captions tab) - Takes less space */}
+        {activeTab === 'captions' && (
+          <div className="flex-[1] flex flex-col min-h-0 max-w-[600px] min-w-[400px]">
+            <AIPanel
+              timeline={timeline}
+              onDeleteTimelineItem={deleteTimelineItem}
+              onIdeaAdded={() => setIdeaGenerationTrigger(prev => prev + 1)}
+              hasApiKey={!!settings.ai?.api_key}
+              fontSize={settings.font_size}
+              transcriptText={historyText}
+              apiKey={settings.ai?.api_key || ''}
+              model={settings.ai?.model || 'gemini-2.5-flash'}
+              t={t}
+              translationLanguage={settings.ai?.translation_language}
+              chatHistoryStats={chatHistoryStats}
+              useContextOptimization={useContextOptimization}
+              onToggleContextOptimization={setUseContextOptimization}
+            />
+          </div>
+        )}
         </div>
       )}
-      </div>
 
       {/* Meeting Init Modal */}
       <InitMeetingModal
