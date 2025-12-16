@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { invoke } from '@tauri-apps/api/core';
-import { KnowledgeEntry, TimelineItem, GeminiModel, TranslationLanguage, ChatHistoryStats } from '../types';
-import { generateIdeaScript } from '../services/geminiService';
-import { X, FileText, HelpCircle, Lightbulb, MessageCircle } from 'lucide-react';
+import { KnowledgeEntry, TimelineItem, GeminiModel, TranslationLanguage, ChatHistoryStats, TRANSLATION_LANGUAGES } from '../types';
+import { generateIdeaScript, translateText } from '../services/geminiService';
+import { X, FileText, HelpCircle, Lightbulb, MessageCircle, Languages } from 'lucide-react';
 import { Translations } from '../translations';
 import { ContextMonitor } from './ContextMonitor';
 
@@ -68,6 +68,10 @@ export function AIPanel({
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
   // Track previous timeline length to detect new additions
   const prevTimelineLengthRef = useRef(timeline.length);
+
+  // Translation state for timeline items
+  const [timelineTranslations, setTimelineTranslations] = useState<Map<string, string>>(new Map());
+  const [translatingItemId, setTranslatingItemId] = useState<string | null>(null);
 
   // Load knowledge on mount
   useEffect(() => {
@@ -208,6 +212,56 @@ export function AIPanel({
     setIdeaError(null);
   };
 
+  // Handle translation for timeline items
+  const handleTranslateTimelineItem = async (item: TimelineItem) => {
+    if (!translationLanguage || translationLanguage === 'none') {
+      return;
+    }
+
+    // If already translated, toggle visibility (hide it)
+    if (timelineTranslations.has(item.id)) {
+      setTimelineTranslations(prev => {
+        const newMap = new Map(prev);
+        newMap.delete(item.id);
+        return newMap;
+      });
+      return;
+    }
+
+    setTranslatingItemId(item.id);
+
+    try {
+      const targetLanguageName = TRANSLATION_LANGUAGES[translationLanguage];
+
+      // Get the content to translate based on item type
+      let contentToTranslate = '';
+      if (item.type === 'summary' || item.type === 'greeting') {
+        contentToTranslate = item.content;
+      } else if (item.type === 'questions') {
+        contentToTranslate = item.questions.join('\n');
+      } else if (item.type === 'idea') {
+        contentToTranslate = item.correctedScript;
+      }
+
+      const translation = await translateText(
+        contentToTranslate,
+        targetLanguageName,
+        apiKey,
+        model
+      );
+
+      setTimelineTranslations(prev => {
+        const newMap = new Map(prev);
+        newMap.set(item.id, translation);
+        return newMap;
+      });
+    } catch (error) {
+      console.error('Failed to translate timeline item:', error);
+    } finally {
+      setTranslatingItemId(null);
+    }
+  };
+
   // Render timeline item based on type
   const renderTimelineItem = (item: TimelineItem) => {
     const timeStr = new Date(item.timestamp).toLocaleTimeString('en-US', {
@@ -231,6 +285,14 @@ export function AIPanel({
               <div className="flex items-center gap-2">
                 <span className="text-xs text-gray-400 dark:text-gray-500">{timeStr}</span>
                 <button
+                  className="p-1 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded disabled:opacity-50"
+                  onClick={() => handleTranslateTimelineItem(item)}
+                  disabled={!translationLanguage || translationLanguage === 'none' || translatingItemId === item.id}
+                  title={timelineTranslations.has(item.id) ? t.hide : t.translate}
+                >
+                  <Languages size={14} />
+                </button>
+                <button
                   className="p-1 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/50 rounded"
                   onClick={() => onDeleteTimelineItem(item.id)}
                   title="Delete"
@@ -240,9 +302,21 @@ export function AIPanel({
               </div>
             </div>
             {isExpanded && (
-              <div className="mt-2 text-gray-800 dark:text-gray-200 leading-relaxed whitespace-pre-wrap" style={{ fontSize: `${fontSize}px` }}>
-                {item.content}
-              </div>
+              <>
+                <div className="mt-2 text-gray-800 dark:text-gray-200 leading-relaxed whitespace-pre-wrap" style={{ fontSize: `${fontSize}px` }}>
+                  {item.content}
+                </div>
+                {timelineTranslations.has(item.id) && (
+                  <div className="mt-2 pl-4 border-l-2 border-blue-500 bg-blue-50 dark:bg-blue-900/20 rounded-r p-2">
+                    <div className="flex items-start gap-2">
+                      <Languages size={12} className="text-blue-600 dark:text-blue-400 mt-1 flex-shrink-0" />
+                      <div className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap" style={{ fontSize: `${Math.round(fontSize * 0.9)}px` }}>
+                        {timelineTranslations.get(item.id)}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
         );
@@ -270,6 +344,14 @@ export function AIPanel({
               </button>
               <div className="flex items-center gap-2">
                 <span className="text-xs text-gray-400 dark:text-gray-500">{timeStr}</span>
+                <button
+                  className="p-1 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded disabled:opacity-50"
+                  onClick={() => handleTranslateTimelineItem(item)}
+                  disabled={!translationLanguage || translationLanguage === 'none' || translatingItemId === item.id}
+                  title={timelineTranslations.has(item.id) ? t.hide : t.translate}
+                >
+                  <Languages size={14} />
+                </button>
                 <button
                   className="p-1 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/50 rounded"
                   onClick={() => onDeleteTimelineItem(item.id)}
@@ -302,6 +384,16 @@ export function AIPanel({
                     </div>
                   ))}
                 </div>
+                {timelineTranslations.has(item.id) && (
+                  <div className="mt-2 pl-4 border-l-2 border-blue-500 bg-blue-50 dark:bg-blue-900/20 rounded-r p-2">
+                    <div className="flex items-start gap-2">
+                      <Languages size={12} className="text-blue-600 dark:text-blue-400 mt-1 flex-shrink-0" />
+                      <div className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap" style={{ fontSize: `${Math.round(fontSize * 0.9)}px` }}>
+                        {timelineTranslations.get(item.id)}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </>
             )}
           </div>
@@ -323,6 +415,14 @@ export function AIPanel({
               <div className="flex items-center gap-2">
                 <span className="text-xs text-gray-400 dark:text-gray-500">{timeStr}</span>
                 <button
+                  className="p-1 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded disabled:opacity-50"
+                  onClick={() => handleTranslateTimelineItem(item)}
+                  disabled={!translationLanguage || translationLanguage === 'none' || translatingItemId === item.id}
+                  title={timelineTranslations.has(item.id) ? t.hide : t.translate}
+                >
+                  <Languages size={14} />
+                </button>
+                <button
                   className="p-1 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/50 rounded"
                   onClick={() => onDeleteTimelineItem(item.id)}
                   title="Delete"
@@ -332,16 +432,28 @@ export function AIPanel({
               </div>
             </div>
             {isExpanded && (
-              <div className="flex flex-col gap-2 mt-2 text-xs">
-                <div className="p-2 bg-gray-200 dark:bg-gray-700 rounded">
-                  <div className="font-semibold text-gray-600 dark:text-gray-400 mb-1">{t.raw}:</div>
-                  <div className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-words" style={{ fontSize: `${fontSize}px`, wordWrap: 'break-word', overflowWrap: 'break-word' }}>{item.rawContent}</div>
+              <>
+                <div className="flex flex-col gap-2 mt-2 text-xs">
+                  <div className="p-2 bg-gray-200 dark:bg-gray-700 rounded">
+                    <div className="font-semibold text-gray-600 dark:text-gray-400 mb-1">{t.raw}:</div>
+                    <div className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-words" style={{ fontSize: `${fontSize}px`, wordWrap: 'break-word', overflowWrap: 'break-word' }}>{item.rawContent}</div>
+                  </div>
+                  <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded border-l-2 border-indigo-500">
+                    <div className="font-semibold text-indigo-600 dark:text-indigo-400 mb-1">{t.script}:</div>
+                    <div className="text-gray-800 dark:text-gray-200 leading-relaxed whitespace-pre-wrap break-words" style={{ fontSize: `${fontSize}px`, wordWrap: 'break-word', overflowWrap: 'break-word' }}>{item.correctedScript}</div>
+                  </div>
                 </div>
-                <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded border-l-2 border-indigo-500">
-                  <div className="font-semibold text-indigo-600 dark:text-indigo-400 mb-1">{t.script}:</div>
-                  <div className="text-gray-800 dark:text-gray-200 leading-relaxed whitespace-pre-wrap break-words" style={{ fontSize: `${fontSize}px`, wordWrap: 'break-word', overflowWrap: 'break-word' }}>{item.correctedScript}</div>
-                </div>
-              </div>
+                {timelineTranslations.has(item.id) && (
+                  <div className="mt-2 pl-4 border-l-2 border-blue-500 bg-blue-50 dark:bg-blue-900/20 rounded-r p-2">
+                    <div className="flex items-start gap-2">
+                      <Languages size={12} className="text-blue-600 dark:text-blue-400 mt-1 flex-shrink-0" />
+                      <div className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap" style={{ fontSize: `${Math.round(fontSize * 0.9)}px` }}>
+                        {timelineTranslations.get(item.id)}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
         );
@@ -362,6 +474,14 @@ export function AIPanel({
               <div className="flex items-center gap-2">
                 <span className="text-xs text-gray-400 dark:text-gray-500">{timeStr}</span>
                 <button
+                  className="p-1 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded disabled:opacity-50"
+                  onClick={() => handleTranslateTimelineItem(item)}
+                  disabled={!translationLanguage || translationLanguage === 'none' || translatingItemId === item.id}
+                  title={timelineTranslations.has(item.id) ? t.hide : t.translate}
+                >
+                  <Languages size={14} />
+                </button>
+                <button
                   className="p-1 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/50 rounded"
                   onClick={() => onDeleteTimelineItem(item.id)}
                   title="Delete"
@@ -371,11 +491,23 @@ export function AIPanel({
               </div>
             </div>
             {isExpanded && (
-              <div className="mt-2 p-2 bg-blue-100 dark:bg-blue-900/30 rounded border-l-2 border-blue-500">
-                <div className="text-gray-800 dark:text-gray-200 leading-relaxed whitespace-pre-wrap break-words" style={{ fontSize: `${fontSize}px`, wordWrap: 'break-word', overflowWrap: 'break-word' }}>
-                  {item.content}
+              <>
+                <div className="mt-2 p-2 bg-blue-100 dark:bg-blue-900/30 rounded border-l-2 border-blue-500">
+                  <div className="text-gray-800 dark:text-gray-200 leading-relaxed whitespace-pre-wrap break-words" style={{ fontSize: `${fontSize}px`, wordWrap: 'break-word', overflowWrap: 'break-word' }}>
+                    {item.content}
+                  </div>
                 </div>
-              </div>
+                {timelineTranslations.has(item.id) && (
+                  <div className="mt-2 pl-4 border-l-2 border-blue-500 bg-blue-50 dark:bg-blue-900/20 rounded-r p-2">
+                    <div className="flex items-start gap-2">
+                      <Languages size={12} className="text-blue-600 dark:text-blue-400 mt-1 flex-shrink-0" />
+                      <div className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap" style={{ fontSize: `${Math.round(fontSize * 0.9)}px` }}>
+                        {timelineTranslations.get(item.id)}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
         );
