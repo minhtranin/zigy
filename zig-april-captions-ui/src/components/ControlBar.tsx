@@ -16,6 +16,11 @@ interface Props {
   hasApiKey: boolean;
   hasTranscript: boolean;
   t: Translations;
+  // Meeting init and greeting
+  onInitMeeting: () => void;
+  onGenerateGreeting: () => void;
+  isGreetingLoading: boolean;
+  hasMeetingContext: boolean;
 }
 
 export function ControlBar({
@@ -33,13 +38,42 @@ export function ControlBar({
   hasApiKey,
   hasTranscript,
   t,
+  onInitMeeting,
+  onGenerateGreeting,
+  isGreetingLoading,
+  hasMeetingContext,
 }: Props) {
   const canStart = !isRunning && !isLoading && modelPath;
   const canGenerateAI = hasApiKey && hasTranscript;
+  const canGenerateGreeting = hasApiKey;
 
   return (
     <div className="flex flex-col gap-2 p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
       <div className="flex gap-2 flex-wrap">
+        {/* Init Meeting Button */}
+        <button
+          className={`px-4 py-1 text-sm font-semibold rounded-md transition-colors ${
+            hasMeetingContext
+              ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-300 dark:border-green-700 hover:bg-green-200 dark:hover:bg-green-900/50'
+              : 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700 hover:bg-purple-200 dark:hover:bg-purple-900/50'
+          }`}
+          onClick={onInitMeeting}
+          title={hasMeetingContext ? 'Meeting context set - click to update' : 'Set meeting context'}
+        >
+          {hasMeetingContext ? '✓ Init' : 'Init'}
+        </button>
+
+        {/* Greeting Button */}
+        <button
+          className="px-4 py-1 text-sm font-semibold bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-700 rounded-md hover:bg-blue-200 dark:hover:bg-blue-900/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          onClick={onGenerateGreeting}
+          disabled={!canGenerateGreeting || isGreetingLoading}
+          title="Generate meeting greeting"
+        >
+          {isGreetingLoading ? 'Generating...' : 'Greeting'}
+        </button>
+
+        {/* Start/Stop Button */}
         {!isRunning ? (
           <button
             className="flex-1 px-4 py-1 text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-200 dark:bg-gray-700 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 disabled:bg-gray-300 dark:disabled:bg-gray-800 disabled:cursor-not-allowed transition-colors"

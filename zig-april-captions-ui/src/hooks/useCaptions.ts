@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
-import { CaptionEvent, Settings, SummaryState, QuestionsState, TimelineItem, IdeaEntry, ChatHistoryStats } from '../types';
+import { CaptionEvent, Settings, SummaryState, QuestionsState, TimelineItem, IdeaEntry, ChatHistoryStats, ChatHistoryEntry } from '../types';
 import { generateSummary, generateQuestions, generateSummaryWithContext, generateQuestionsWithContext } from '../services/geminiService';
 import { addChatEntry, getChatHistoryStats, createSessionSnapshot } from '../services/contextService';
 
@@ -424,9 +424,10 @@ export function useCaptions() {
     });
   }, []);
 
-  // Load timeline from backend ideas
+  // Load timeline from backend chat history (all types: ideas, summaries, questions, greetings)
   const loadTimelineFromIdeas = useCallback(async () => {
     try {
+      // Load ideas from the old ideas file
       const ideas = await invoke<IdeaEntry[]>('get_ideas');
       const ideaItems: TimelineItem[] = ideas.map(idea => ({
         id: idea.id,
@@ -436,9 +437,52 @@ export function useCaptions() {
         rawContent: idea.raw_content,
         correctedScript: idea.corrected_script,
       }));
-      setTimeline(ideaItems);
+
+      // Load from chat history (summaries, questions, greetings)
+      const chatHistory = await invoke<ChatHistoryEntry[]>('get_chat_history', {
+        since: null,
+        limit: null
+      });
+
+      // Convert chat history entries to timeline items
+      const chatItems: TimelineItem[] = [];
+
+      for (const entry of chatHistory) {
+        if (entry.entry_type === 'summary') {
+          chatItems.push({
+            id: entry.id,
+            timestamp: entry.timestamp,
+            type: 'summary',
+            content: entry.content,
+          });
+        } else if (entry.entry_type === 'greeting') {
+          chatItems.push({
+            id: entry.id,
+            timestamp: entry.timestamp,
+            type: 'greeting',
+            title: entry.metadata?.title as string | undefined,
+            content: entry.content,
+          });
+        } else if (entry.entry_type === 'question') {
+          // Questions from the Questions button (saved to chat history)
+          const questions = entry.metadata?.questions as string[] | undefined;
+          if (questions && Array.isArray(questions)) {
+            chatItems.push({
+              id: entry.id,
+              timestamp: entry.timestamp,
+              type: 'questions',
+              questions,
+              source: 'generated',
+            });
+          }
+        }
+      }
+
+      // Merge all items and sort by timestamp
+      const allItems = [...ideaItems, ...chatItems];
+      setTimeline(allItems);
     } catch (e) {
-      console.error('Failed to load timeline from ideas:', e);
+      console.error('Failed to load timeline:', e);
     }
   }, []);
 

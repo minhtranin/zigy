@@ -1186,3 +1186,100 @@ Generate 1-3 natural clarifying questions about this specific statement:`;
 
   return questions;
 }
+
+// Generate greeting script for meeting start
+export async function generateMeetingGreeting(
+  meetingContext: string | undefined,
+  transcriptText: string,
+  apiKey: string,
+  model: GeminiModel = 'gemini-2.5-flash'
+): Promise<{ title: string; script: string }> {
+  if (!apiKey) {
+    throw new Error('API key is required');
+  }
+
+  // Build compressed context
+  const context = await buildCompressedContext(apiKey, model);
+  const contextStr = buildContextString(context);
+
+  const url = `${GEMINI_API_BASE}/${model}:generateContent?key=${apiKey}`;
+
+  const meetingContextPart = meetingContext
+    ? `\n\nMeeting Purpose:\n${meetingContext}\n`
+    : '';
+
+  // Get the last few lines of transcript for recent context
+  const recentTranscript = transcriptText
+    ? `\n\nRecent Conversation:\n${transcriptText.split('\n').slice(-10).join('\n')}\n`
+    : '';
+
+  const prompt = `You are a casual, friendly conversation starter. Generate a short, natural greeting to continue the conversation.
+
+${meetingContextPart}${recentTranscript}${contextStr ? `\n${contextStr}\n` : ''}
+
+Requirements:
+- Keep it VERY SHORT (1-2 sentences, 5-10 seconds when spoken)
+- Reference something from the recent conversation if available
+- Be casual and friendly (like "Hey, how's it going?", "How about that flood situation?")
+- Include a light joke or casual comment if relevant to context
+- Sound like a natural conversation starter, NOT a formal meeting greeting
+- Be contextually aware - mention specific topics if they were discussed
+
+Examples of the style:
+- "Hey! How are things with the flooding situation? Hope you're staying safe."
+- "What's up? Still dealing with that API integration headache?"
+- "Hey there! How'd that meeting with the ops team go?"
+
+Generate a SHORT, casual greeting that references the recent context.
+
+Format your response exactly as:
+TITLE: [2-3 word casual title like "Quick Check-in" or "Flood Update"]
+SCRIPT: [your 1-2 sentence casual greeting]`;
+
+  const requestBody = {
+    contents: [
+      {
+        parts: [{ text: prompt }]
+      }
+    ],
+    generationConfig: {
+      temperature: 0.8,
+      maxOutputTokens: 512,
+      topP: 0.9,
+    }
+  };
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(requestBody),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(
+      errorData.error?.message || `API request failed: ${response.status}`
+    );
+  }
+
+  const data: GeminiResponse = await response.json();
+
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!text) {
+    throw new Error('No greeting generated');
+  }
+
+  // Parse the response to extract title and script
+  const titleMatch = text.match(/TITLE:\s*(.+?)(?:\n|$)/i);
+  const scriptMatch = text.match(/SCRIPT:\s*(.+)/is);
+
+  const title = titleMatch ? titleMatch[1].trim() : 'Meeting Greeting';
+  const script = scriptMatch ? scriptMatch[1].trim() : text;
+
+  // Save to chat history
+  await addChatEntry('idea', `${title}: ${script}`, { type: 'greeting', meetingContext });
+
+  return { title, script };
+}

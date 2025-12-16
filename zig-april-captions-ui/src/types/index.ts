@@ -10,6 +10,7 @@ export interface AISettings {
   api_key: string;
   model: GeminiModel;
   translation_language?: TranslationLanguage;
+  meeting_context?: string; // User's meeting purpose/agenda
 }
 
 export type GeminiModel =
@@ -92,7 +93,7 @@ export interface IdeaEntry {
 }
 
 // Timeline items for unified Ideas tab display
-export type TimelineItemType = 'summary' | 'questions' | 'idea';
+export type TimelineItemType = 'summary' | 'questions' | 'idea' | 'greeting';
 
 export interface BaseTimelineItem {
   id: string;
@@ -119,7 +120,13 @@ export interface IdeaTimelineItem extends BaseTimelineItem {
   correctedScript: string;
 }
 
-export type TimelineItem = SummaryTimelineItem | QuestionsTimelineItem | IdeaTimelineItem;
+export interface GreetingTimelineItem extends BaseTimelineItem {
+  type: 'greeting';
+  title?: string;
+  content: string;
+}
+
+export type TimelineItem = SummaryTimelineItem | QuestionsTimelineItem | IdeaTimelineItem | GreetingTimelineItem;
 
 export interface CaptionEvent {
   type: 'ready' | 'listening' | 'caption' | 'warning' | 'error' | 'stopped';
@@ -141,7 +148,7 @@ export interface GeminiResponse {
 }
 
 // Chat history entry - unified record of all interactions
-export type ChatHistoryEntryType = 'transcript' | 'question' | 'answer' | 'summary' | 'idea' | 'translation';
+export type ChatHistoryEntryType = 'transcript' | 'question' | 'answer' | 'summary' | 'idea' | 'translation' | 'greeting';
 
 export interface ChatHistoryEntry {
   id: string;

@@ -19,6 +19,8 @@ pub struct AISettings {
     pub model: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub translation_language: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub meeting_context: Option<String>,
 }
 
 fn default_model() -> String {

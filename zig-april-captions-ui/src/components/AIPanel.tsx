@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { KnowledgeEntry, TimelineItem, GeminiModel, TranslationLanguage, ChatHistoryStats } from '../types';
 import { generateIdeaScript } from '../services/geminiService';
-import { X, FileText, HelpCircle, Lightbulb } from 'lucide-react';
+import { X, FileText, HelpCircle, Lightbulb, MessageCircle } from 'lucide-react';
 import { Translations } from '../translations';
 import { ContextMonitor } from './ContextMonitor';
 
@@ -340,6 +340,40 @@ export function AIPanel({
                 <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded border-l-2 border-indigo-500">
                   <div className="font-semibold text-indigo-600 dark:text-indigo-400 mb-1">{t.script}:</div>
                   <div className="text-gray-800 dark:text-gray-200 leading-relaxed whitespace-pre-wrap break-words" style={{ fontSize: `${fontSize}px`, wordWrap: 'break-word', overflowWrap: 'break-word' }}>{item.correctedScript}</div>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+
+      case 'greeting':
+        return (
+          <div key={item.id} className="p-3 bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 rounded-lg border-l-4 border-blue-500">
+            <div className="flex items-center justify-between mb-2">
+              <button
+                className="flex items-center gap-2 flex-1 text-left group"
+                onClick={() => setExpandedItemId(isExpanded ? null : item.id)}
+              >
+                <MessageCircle size={16} className="text-blue-600 dark:text-blue-400" />
+                <span className="font-semibold text-gray-800 dark:text-gray-200 group-hover:text-blue-600 dark:group-hover:text-blue-400" style={{ fontSize: `${fontSize}px` }}>
+                  {item.title || 'Meeting Greeting'}
+                </span>
+              </button>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-400 dark:text-gray-500">{timeStr}</span>
+                <button
+                  className="p-1 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/50 rounded"
+                  onClick={() => onDeleteTimelineItem(item.id)}
+                  title="Delete"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            </div>
+            {isExpanded && (
+              <div className="mt-2 p-2 bg-blue-100 dark:bg-blue-900/30 rounded border-l-2 border-blue-500">
+                <div className="text-gray-800 dark:text-gray-200 leading-relaxed whitespace-pre-wrap break-words" style={{ fontSize: `${fontSize}px`, wordWrap: 'break-word', overflowWrap: 'break-word' }}>
+                  {item.content}
                 </div>
               </div>
             )}

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { invoke } from '@tauri-apps/api/core';
 import { useCaptions } from './hooks/useCaptions';
 import { TranscriptionDisplay } from './components/TranscriptionDisplay';
 import { HistoryDisplay } from './components/HistoryDisplay';
@@ -6,8 +7,10 @@ import { AIPanel } from './components/AIPanel';
 import { SettingsPanel } from './components/SettingsPanel';
 import { ControlBar } from './components/ControlBar';
 import { TitleBar } from './components/TitleBar';
+import { InitMeetingModal } from './components/InitMeetingModal';
 import type { Settings } from './types';
 import { getTranslations } from './translations';
+import { generateMeetingGreeting } from './services/geminiService';
 import './App.css'; // Keep for global styles like scrollbar
 
 function App() {
@@ -48,6 +51,10 @@ function App() {
 
   // Reload timeline after idea generation (polling approach)
   const [ideaGenerationTrigger, setIdeaGenerationTrigger] = useState(0);
+
+  // Meeting init and greeting state
+  const [isInitModalOpen, setIsInitModalOpen] = useState(false);
+  const [isGreetingLoading, setIsGreetingLoading] = useState(false);
 
   useEffect(() => {
     if (ideaGenerationTrigger > 0) {
@@ -116,6 +123,58 @@ function App() {
     saveSettings(newSettings);
   };
 
+  // Meeting init and greeting handlers
+  const handleInitMeeting = () => {
+    setIsInitModalOpen(true);
+  };
+
+  const handleSaveMeetingContext = (context: string) => {
+    const newSettings: Settings = {
+      ...settings,
+      ai: {
+        ...settings.ai,
+        api_key: settings.ai?.api_key || '',
+        model: settings.ai?.model || 'gemini-2.5-flash',
+        meeting_context: context,
+      }
+    };
+    saveSettings(newSettings);
+  };
+
+  const handleGenerateGreeting = async () => {
+    if (!settings.ai?.api_key) return;
+
+    setIsGreetingLoading(true);
+    try {
+      const { title, script } = await generateMeetingGreeting(
+        settings.ai.meeting_context,
+        historyText,
+        settings.ai.api_key,
+        settings.ai.model
+      );
+
+      // Add to chat history (timeline)
+      await invoke('add_chat_entry', {
+        entry: {
+          id: crypto.randomUUID(),
+          timestamp: Date.now(),
+          entry_type: 'greeting',
+          content: script,
+          metadata: { title }
+        }
+      });
+
+      // Reload timeline with a small delay to ensure backend has written the file
+      setTimeout(() => {
+        loadTimelineFromIdeas();
+      }, 100);
+    } catch (error) {
+      console.error('Failed to generate greeting:', error);
+    } finally {
+      setIsGreetingLoading(false);
+    }
+  };
+
   const renderCaptionsContent = () => (
     <div className="h-full flex flex-col gap-2">
       <TranscriptionDisplay
@@ -153,6 +212,10 @@ function App() {
         isQuestionsLoading={isQuestionsLoading}
         hasApiKey={!!settings.ai?.api_key}
         hasTranscript={captionsCount > 0}
+        onInitMeeting={handleInitMeeting}
+        onGenerateGreeting={handleGenerateGreeting}
+        isGreetingLoading={isGreetingLoading}
+        hasMeetingContext={!!settings.ai?.meeting_context}
         t={t}
       />
     </div>
@@ -206,6 +269,14 @@ function App() {
         </div>
       )}
       </div>
+
+      {/* Meeting Init Modal */}
+      <InitMeetingModal
+        isOpen={isInitModalOpen}
+        onClose={() => setIsInitModalOpen(false)}
+        onSave={handleSaveMeetingContext}
+        initialValue={settings.ai?.meeting_context || ''}
+      />
     </div>
   );
 }
