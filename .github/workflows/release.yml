@@ -100,6 +100,10 @@ jobs:
           mkdir -p ~/onnxruntime
           mv onnxruntime-linux-x64-1.16.3/* ~/onnxruntime/
 
+      - name: Install PulseAudio (macOS)
+        if: runner.os == 'macOS'
+        run: brew install pulseaudio
+
       - name: Install ONNX Runtime (macOS)
         if: runner.os == 'macOS'
         run: |
@@ -118,6 +122,7 @@ jobs:
           mv onnxruntime-win-x64-1.16.3/* ~/onnxruntime/
 
       - name: Build zig-april-captions binary
+        shell: bash
         run: |
           cd zig-april-captions
           mkdir -p ../zig-april-captions-ui/src-tauri/resources
@@ -125,12 +130,17 @@ jobs:
           # Copy binary to Tauri resources
           if [ -f "zig-out/bin/zig-april-captions" ]; then
             cp zig-out/bin/zig-april-captions ../zig-april-captions-ui/src-tauri/resources/
+            # Create placeholder for .exe on Unix platforms
+            touch ../zig-april-captions-ui/src-tauri/resources/zig-april-captions.exe
           elif [ -f "zig-out/bin/zig-april-captions.exe" ]; then
             cp zig-out/bin/zig-april-captions.exe ../zig-april-captions-ui/src-tauri/resources/
+            # Create placeholder for non-exe on Windows
+            touch ../zig-april-captions-ui/src-tauri/resources/zig-april-captions
           fi
           cd ..
 
       - name: Install frontend dependencies
+        shell: bash
         run: |
           cd zig-april-captions-ui
           npm install
