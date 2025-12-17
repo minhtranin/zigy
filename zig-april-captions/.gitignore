@@ -1,0 +1,24 @@
+# Zig build artifacts
+zig-out/
+.zig-cache/
+
+# Models (large files - download separately)
+models/*.april
+
+# ONNX Runtime (install separately)
+onnxruntime/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Debug
+*.log
+core
