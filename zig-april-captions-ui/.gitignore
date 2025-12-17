@@ -38,3 +38,7 @@ Thumbs.db
 
 # User data (config files created by the app)
 *.json.bak
+
+# Pre-built binaries in resources (generated during build)
+src-tauri/resources/zig-april-captions
+src-tauri/resources/zig-april-captions.exe

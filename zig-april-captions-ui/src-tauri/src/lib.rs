@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::io::{BufRead, BufReader};
+use std::path::Path;
 use std::process::{Child, Command, Stdio};
 use std::sync::{Arc, Mutex};
 use tauri::{AppHandle, Emitter};
@@ -164,29 +165,45 @@ pub struct ContextSnapshot {
 
 fn get_zig_binary_path() -> String {
     // Try to find the zig-april-captions binary
-    // First check if it's in PATH or relative to the app
+    // Priority order:
+    // 1. Bundled resources (production)
+    // 2. Dev mode build
+    // 3. User's workspace
+    // 4. In PATH
+
+    #[cfg(target_os = "windows")]
+    let binary_name = "zig-april-captions.exe";
+    #[cfg(not(target_os = "windows"))]
+    let binary_name = "zig-april-captions";
+
     let candidates = vec![
+        // Bundled resources - relative to executable (production)
+        format!("./resources/{}", binary_name),
+        format!("../resources/{}", binary_name),
         // In the same parent directory (dev mode)
-        "../zig-april-captions/zig-out/bin/zig-april-captions".to_string(),
+        format!("../zig-april-captions/zig-out/bin/{}", binary_name),
         // Absolute path to user's build
         format!(
-            "{}/workspace/local/zig/zig-april-captions/zig-out/bin/zig-april-captions",
+            "{}/workspace/local/zig/zig-april-captions/zig-out/bin/{}",
             dirs::home_dir()
                 .map(|p| p.to_string_lossy().to_string())
-                .unwrap_or_default()
+                .unwrap_or_default(),
+            binary_name
         ),
         // In PATH
-        "zig-april-captions".to_string(),
+        binary_name.to_string(),
     ];
 
     for candidate in candidates {
-        if std::path::Path::new(&candidate).exists() || candidate == "zig-april-captions" {
+        if Path::new(&candidate).exists() || candidate == binary_name {
+            println!("Found zig-april-captions at: {}", candidate);
             return candidate;
         }
     }
 
-    // Default to relative path
-    "../zig-april-captions/zig-out/bin/zig-april-captions".to_string()
+    // Default to bundled resource
+    println!("Warning: zig-april-captions not found in any location, trying bundled path");
+    format!("./resources/{}", binary_name)
 }
 
 #[tauri::command]

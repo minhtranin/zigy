@@ -34,6 +34,10 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
+    ],
+    "resources": [
+      "resources/zig-april-captions",
+      "resources/zig-april-captions.exe"
     ]
   }
 }

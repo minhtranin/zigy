@@ -82,6 +82,23 @@ jobs:
             patchelf \
             libssl-dev
 
+      - name: Install Zig
+        uses: mlugg/setup-zig@v1
+        with:
+          version: master
+
+      - name: Build zig-april-captions binary
+        run: |
+          cd ../zig-april-captions
+          mkdir -p ../zig-april-captions-ui/src-tauri/resources
+          zig build -Doptimize=ReleaseFast
+          # Copy binary to Tauri resources
+          if [ -f "zig-out/bin/zig-april-captions" ]; then
+            cp zig-out/bin/zig-april-captions ../zig-april-captions-ui/src-tauri/resources/
+          elif [ -f "zig-out/bin/zig-april-captions.exe" ]; then
+            cp zig-out/bin/zig-april-captions.exe ../zig-april-captions-ui/src-tauri/resources/
+          fi
+
       - name: Install frontend dependencies
         run: npm install
 

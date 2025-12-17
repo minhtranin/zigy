@@ -39,12 +39,13 @@ Download the latest release for your platform from the [GitHub releases page](ht
 
 ## 🚀 Installation
 
+All installers include the speech recognition engine - **no additional setup required!**
+
 ### Linux
 
 #### Debian/Ubuntu (.deb)
 ```bash
 sudo dpkg -i zipy_0.1.0_amd64.deb
-sudo apt-get install -f  # Install dependencies if needed
 ```
 
 #### AppImage
@@ -58,17 +59,17 @@ chmod +x zipy_0.1.0_amd64.AppImage
 1. Download the `.dmg` file for your Mac:
    - Choose `Zipy_0.1.0_aarch64.dmg` for Apple Silicon (M1/M2/M3)
    - Choose `Zipy_0.1.0_x64.dmg` for Intel Macs
-2. Open the downloaded `.dmg` file
+2. Open the `.dmg` file
 3. Drag **Zipy** to the **Applications** folder
 4. Launch from Applications folder
-5. On first launch, macOS may show "Zipy cannot be opened" → Click **Open** in System Preferences
+5. First launch: macOS shows "cannot be opened" → Right-click → **Open** to bypass Gatekeeper
 
 ### Windows
 
 1. Download the `.exe` installer
-2. Run the installer and follow the setup wizard
-3. Windows may show "Windows protected your PC" → Click **More info** → **Run anyway**
-4. Once installed, launch from Start Menu or Desktop shortcut
+2. Run the installer and follow the wizard
+3. If "Windows protected your PC" appears → Click **More info** → **Run anyway**
+4. Launch from Start Menu
 
 ## 🛠️ Development
 
@@ -76,16 +77,26 @@ chmod +x zipy_0.1.0_amd64.AppImage
 
 - **Node.js** 20+ ([Download](https://nodejs.org/))
 - **Rust** 1.94+ ([Install](https://rustup.rs/))
+- **Zig** nightly ([Install](https://ziglang.org/download/))
 - **Tauri CLI** v2 (installed via npm)
+- **ONNX Runtime** (for speech recognition) - see [April ASR setup](https://github.com/abb128/april-asr#setup)
 
 ### Setup
 
 ```bash
-# Clone the repository
+# Clone both repositories
 git clone https://github.com/YOUR_USERNAME/zipy.git
 cd zipy
 
-# Install dependencies
+# Build the Zig speech recognition engine (optional for dev)
+# Skip this if you only want to test the UI
+cd ../zig-april-captions
+zig build -Doptimize=ReleaseFast
+# Copy binary to UI resources for testing
+cp zig-out/bin/zig-april-captions ../zipy/src-tauri/resources/
+cd ../zipy
+
+# Install UI dependencies
 npm install
 
 # Run in development mode (hot reload)
@@ -100,6 +111,11 @@ npm run tauri build -- --target aarch64-apple-darwin
 npm run tauri build -- --target x86_64-apple-darwin
 npm run tauri build -- --target x86_64-pc-windows-msvc
 ```
+
+### Notes
+
+- **Dev mode without Zig binary**: If you skip building zig-april-captions, the app will fail to start captions but UI development still works
+- **CI/CD automation**: GitHub Actions automatically builds zig-april-captions for all platforms during release
 
 ### Development Workflow
 
