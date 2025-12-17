@@ -92,7 +92,7 @@ jobs:
 
       - name: Build zig-april-captions binary
         run: |
-          cd ../zig-april-captions
+          cd zig-april-captions
           mkdir -p ../zig-april-captions-ui/src-tauri/resources
           zig build -Doptimize=ReleaseFast
           # Copy binary to Tauri resources
@@ -101,9 +101,12 @@ jobs:
           elif [ -f "zig-out/bin/zig-april-captions.exe" ]; then
             cp zig-out/bin/zig-april-captions.exe ../zig-april-captions-ui/src-tauri/resources/
           fi
+          cd ..
 
       - name: Install frontend dependencies
-        run: npm install
+        run: |
+          cd zig-april-captions-ui
+          npm install
 
       - name: Build Tauri App
         uses: tauri-apps/tauri-action@v0
@@ -112,6 +115,7 @@ jobs:
         with:
           releaseId: ${{ needs.create-release.outputs.release_id }}
           args: --target ${{ matrix.target }}
+          projectPath: zig-april-captions-ui
 
   publish-release:
     needs: [create-release, build-tauri]
