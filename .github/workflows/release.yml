@@ -84,12 +84,38 @@ jobs:
             libappindicator3-dev \
             librsvg2-dev \
             patchelf \
-            libssl-dev
+            libssl-dev \
+            libpulse-dev
 
       - name: Install Zig
         uses: goto-bus-stop/setup-zig@v2
         with:
           version: 0.13.0
+
+      - name: Install ONNX Runtime (Linux)
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          wget https://github.com/microsoft/onnxruntime/releases/download/v1.16.3/onnxruntime-linux-x64-1.16.3.tgz
+          tar -xzf onnxruntime-linux-x64-1.16.3.tgz
+          mkdir -p ~/onnxruntime
+          mv onnxruntime-linux-x64-1.16.3/* ~/onnxruntime/
+
+      - name: Install ONNX Runtime (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          wget https://github.com/microsoft/onnxruntime/releases/download/v1.16.3/onnxruntime-osx-universal2-1.16.3.tgz
+          tar -xzf onnxruntime-osx-universal2-1.16.3.tgz
+          mkdir -p ~/onnxruntime
+          mv onnxruntime-osx-universal2-1.16.3/* ~/onnxruntime/
+
+      - name: Install ONNX Runtime (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          curl -L -o onnxruntime-win-x64-1.16.3.zip https://github.com/microsoft/onnxruntime/releases/download/v1.16.3/onnxruntime-win-x64-1.16.3.zip
+          unzip onnxruntime-win-x64-1.16.3.zip
+          mkdir -p ~/onnxruntime
+          mv onnxruntime-win-x64-1.16.3/* ~/onnxruntime/
 
       - name: Build zig-april-captions binary
         run: |
