@@ -68,6 +68,7 @@ jobs:
         with:
           node-version: 20
           cache: 'npm'
+          cache-dependency-path: 'zig-april-captions-ui/package-lock.json'
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
