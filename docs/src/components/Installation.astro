@@ -112,43 +112,44 @@
 
   .section-title {
     text-align: center;
-    font-size: 1.5rem;
+    font-size: 1.3rem;
     font-weight: 600;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.4rem;
     color: #111827;
+    letter-spacing: -0.01em;
   }
 
   .section-subtitle {
     text-align: center;
-    font-size: 1rem;
-    color: #4B5563;
-    margin-bottom: 2rem;
+    font-size: 0.9rem;
+    color: #6B7280;
+    margin-bottom: 1.5rem;
     line-height: 1.4;
   }
 
   .install-steps {
-    max-width: 800px;
+    max-width: 750px;
     margin: 0 auto;
   }
 
   .step {
     display: flex;
-    gap: 1.5rem;
-    margin-bottom: 2rem;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
   }
 
   .step-number {
     flex-shrink: 0;
-    width: 40px;
-    height: 40px;
+    width: 32px;
+    height: 32px;
     background: linear-gradient(135deg, #6C5CE7 0%, #5A4BD8 100%);
     color: white;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.25rem;
-    font-weight: bold;
+    font-size: 0.95rem;
+    font-weight: 600;
   }
 
   .step-content {
@@ -156,63 +157,65 @@
   }
 
   .step-content h3 {
-    font-size: 1.25rem;
-    margin-bottom: 0.5rem;
+    font-size: 1rem;
+    margin-bottom: 0.4rem;
     color: #111827;
     font-weight: 600;
+    letter-spacing: -0.01em;
   }
 
   .step-content p {
-    color: #4B5563;
-    margin-bottom: 0.75rem;
-    font-size: 0.9rem;
+    color: #6B7280;
+    margin-bottom: 0.6rem;
+    font-size: 0.85rem;
     line-height: 1.4;
   }
 
   .platform-tabs details {
     background: #F9FAFB;
-    padding: 1rem;
-    border-radius: 12px;
-    margin-bottom: 0.5rem;
+    padding: 0.85rem;
+    border-radius: 10px;
+    margin-bottom: 0.4rem;
     border: 1px solid #E5E7EB;
   }
 
   .platform-tabs summary {
     cursor: pointer;
-    padding: 0.5rem;
+    padding: 0.4rem;
     user-select: none;
+    font-size: 0.9rem;
   }
 
   .platform-tabs summary:hover {
-    background: rgba(108, 92, 231, 0.1);
+    background: rgba(108, 92, 231, 0.08);
     border-radius: 6px;
   }
 
   .platform-tabs ol {
-    margin-left: 1.5rem;
-    margin-top: 1rem;
+    margin-left: 1.25rem;
+    margin-top: 0.75rem;
   }
 
   .platform-tabs li {
-    margin-bottom: 0.5rem;
-    color: #4B5563;
-    font-size: 0.9rem;
+    margin-bottom: 0.4rem;
+    color: #6B7280;
+    font-size: 0.85rem;
   }
 
   code, pre {
     background: #1F2937;
     color: #F9FAFB;
-    padding: 0.2rem 0.5rem;
-    border-radius: 6px;
+    padding: 0.2rem 0.4rem;
+    border-radius: 5px;
     font-family: 'Courier New', monospace;
-    font-size: 0.9rem;
+    font-size: 0.82rem;
   }
 
   pre {
-    padding: 1rem;
+    padding: 0.85rem;
     overflow-x: auto;
-    margin: 1rem 0;
-    border-radius: 12px;
+    margin: 0.75rem 0;
+    border-radius: 10px;
   }
 
   pre code {
@@ -221,59 +224,66 @@
   }
 
   .note {
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     color: #9CA3AF;
     font-style: italic;
-    margin-top: 0.5rem;
+    margin-top: 0.4rem;
   }
 
   .model-link {
     display: inline-block;
-    padding: 0.75rem 1.5rem;
+    padding: 0.6rem 1.25rem;
     background: #6C5CE7;
     color: white;
     text-decoration: none;
     border-radius: 999px;
-    margin: 1rem 0;
-    transition: background 0.2s;
-    font-size: 13px;
+    margin: 0.75rem 0;
+    transition: all 0.2s ease;
+    font-size: 0.85rem;
     font-weight: 500;
   }
 
   .model-link:hover {
     background: #5A4BD8;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(108, 92, 231, 0.3);
   }
 
   .feature-highlights {
     display: flex;
-    gap: 0.75rem;
+    gap: 0.5rem;
     flex-wrap: wrap;
-    margin-top: 1rem;
+    margin-top: 0.75rem;
   }
 
   .feature-highlights span {
     background: #EDEBFF;
     color: #6C5CE7;
-    padding: 0.4rem 0.8rem;
+    padding: 0.3rem 0.65rem;
     border-radius: 999px;
-    font-size: 0.85rem;
+    font-size: 0.75rem;
     font-weight: 500;
   }
 
   .help-section {
     background: #F9FAFB;
-    padding: 1.5rem;
+    padding: 1.25rem;
     border-radius: 12px;
     text-align: center;
-    margin-top: 3rem;
+    margin-top: 2rem;
     border: 1px solid #E5E7EB;
   }
 
   .help-section h3 {
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.5rem;
     color: #111827;
     font-weight: 600;
-    font-size: 1.1rem;
+    font-size: 1rem;
+  }
+
+  .help-section p {
+    font-size: 0.85rem;
+    color: #6B7280;
   }
 
   .help-section a {
@@ -289,19 +299,19 @@
   @media (max-width: 768px) {
     .step {
       flex-direction: column;
-      gap: 0.75rem;
-      margin-bottom: 1.5rem;
+      gap: 0.6rem;
+      margin-bottom: 1rem;
     }
 
     .step-number {
-      width: 36px;
-      height: 36px;
-      font-size: 1.1rem;
+      width: 28px;
+      height: 28px;
+      font-size: 0.85rem;
     }
 
     .help-section {
-      margin-top: 2rem;
-      padding: 1.25rem;
+      margin-top: 1.5rem;
+      padding: 1rem;
     }
   }
 </style>

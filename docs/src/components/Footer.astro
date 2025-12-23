@@ -57,26 +57,26 @@ const currentYear = new Date().getFullYear();
   .footer {
     background: #111827;
     color: #F9FAFB;
-    padding: 2rem 0 1.25rem;
+    padding: 1.5rem 0 1rem;
   }
 
   .footer-content {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 1.5rem;
-    margin-bottom: 1.5rem;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 1.25rem;
   }
 
   .footer-section h3 {
-    font-size: 1.25rem;
-    margin-bottom: 0.5rem;
+    font-size: 1.1rem;
+    margin-bottom: 0.4rem;
     color: white;
     font-weight: 600;
   }
 
   .footer-section h4 {
-    font-size: 1rem;
-    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+    margin-bottom: 0.4rem;
     color: #9CA3AF;
     font-weight: 500;
   }
@@ -84,7 +84,7 @@ const currentYear = new Date().getFullYear();
   .footer-section p {
     color: #9CA3AF;
     line-height: 1.4;
-    font-size: 0.9rem;
+    font-size: 0.82rem;
   }
 
   .footer-section ul {
@@ -92,36 +92,36 @@ const currentYear = new Date().getFullYear();
   }
 
   .footer-section li {
-    margin-bottom: 0.375rem;
-    font-size: 0.9rem;
+    margin-bottom: 0.3rem;
+    font-size: 0.82rem;
   }
 
   .footer-section a {
-    color: #6C5CE7;
+    color: #8B9BE6;
     text-decoration: none;
     transition: color 0.2s;
     font-weight: 500;
   }
 
   .footer-section a:hover {
-    color: #5A4BD8;
+    color: #A5B4FC;
     text-decoration: underline;
   }
 
   .footer-bottom {
     border-top: 1px solid #374151;
-    padding-top: 1.25rem;
+    padding-top: 1rem;
     text-align: center;
     color: #9CA3AF;
-    font-size: 0.85rem;
+    font-size: 0.8rem;
   }
 
   .footer-bottom p {
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.35rem;
   }
 
   .footer-bottom a {
-    color: #6C5CE7;
+    color: #8B9BE6;
     text-decoration: none;
     font-weight: 500;
   }
@@ -132,17 +132,20 @@ const currentYear = new Date().getFullYear();
 
   @media (max-width: 768px) {
     .footer {
-      padding: 1.5rem 0 1rem;
+      padding: 1.25rem 0 0.85rem;
     }
+
     .footer-content {
       grid-template-columns: 1fr;
-      gap: 1.25rem;
+      gap: 1rem;
     }
+
     .footer-section h3 {
-      font-size: 1.1rem;
+      font-size: 1rem;
     }
+
     .footer-section h4 {
-      font-size: 0.95rem;
+      font-size: 0.85rem;
     }
   }
 </style>
