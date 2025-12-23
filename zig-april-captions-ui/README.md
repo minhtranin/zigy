@@ -16,14 +16,25 @@
 
 ## 📥 Download
 
-Download the latest release for your platform from the [GitHub releases page](https://github.com/YOUR_USERNAME/zipy/releases/latest):
+Download the latest release for your platform from the [GitHub releases page](https://github.com/minhtranin/zigy/releases/latest)
 
-| Platform | Format | Download |
-|----------|--------|----------|
-| 🐧 Linux (x86_64) | .deb | [Download](https://github.com/YOUR_USERNAME/zipy/releases/latest) |
-| 🐧 Linux (x86_64) | AppImage | [Download](https://github.com/YOUR_USERNAME/zipy/releases/latest) |
-| 🍎 macOS (Apple Silicon) | .dmg | [Download](https://github.com/YOUR_USERNAME/zipy/releases/latest) |
-| 🪟 Windows (x86_64) | .exe | [Download](https://github.com/YOUR_USERNAME/zipy/releases/latest) |
+---
+
+## 📖 Installation Guide for Non-Technical Users
+
+**New to installing apps?** No problem! Follow these simple steps:
+
+👉 **[Click here for the Complete Installation Guide](#-quick-start-guide)** 👈
+
+The guide includes:
+- ✅ How to download Zipy for your computer (Windows, Mac, or Linux)
+- ✅ Step-by-step installation with screenshots descriptions
+- ✅ How to set up voice recognition (one-time, 5 minutes)
+- ✅ Common problems and how to fix them
+
+**Total time:** About 5-10 minutes for first-time setup.
+
+---
 
 ## ✨ Features
 
@@ -36,39 +47,206 @@ Download the latest release for your platform from the [GitHub releases page](ht
 - 📋 **Timeline View** - Organized history of all summaries, questions, ideas, and greetings
 - ⚙️ **Customizable Settings** - Adjust font size, language, AI model, and more
 
-## 🚀 Installation
+## 🚀 Quick Start Guide
 
-All installers include the speech recognition engine - **no additional setup required!**
+**Total time:** ~5-10 minutes (includes one-time model download)
 
-### Linux
+### Step 1: Download Zipy
 
-#### Debian/Ubuntu (.deb)
-```bash
-sudo dpkg -i zipy_0.1.0_amd64.deb
-```
+Go to the [releases page](https://github.com/minhtranin/zigy/releases/latest) and download the installer for your system:
 
-#### AppImage
+- **Windows** → `Zipy_x.x.x_x64-setup.exe`
+- **macOS** (M1/M2/M3/M4) → `Zipy_x.x.x_aarch64.dmg`
+- **Linux** (Ubuntu/Debian) → `zipy_x.x.x_amd64.deb`
+- **Linux** (Other) → `zipy_x.x.x_amd64.AppImage`
+
+### Step 2: Install
+
+<details>
+<summary><b>Windows Installation</b></summary>
+
+1. Double-click the downloaded `.exe` file
+2. If you see "Windows protected your PC":
+   - Click **More info**
+   - Click **Run anyway**
+3. Follow the installation wizard
+4. Launch Zipy from the Start Menu
+
+⚠️ **Note:** Windows version includes the user interface only. Speech recognition is not available on Windows.
+
+</details>
+
+<details>
+<summary><b>macOS Installation</b></summary>
+
+1. Double-click the downloaded `.dmg` file
+2. Drag the **Zipy** app to your **Applications** folder
+3. Go to Applications and double-click **Zipy**
+4. If you see "cannot be opened because the developer cannot be verified":
+   - Right-click (or Control-click) on **Zipy**
+   - Click **Open**
+   - Click **Open** again in the dialog
+
+✅ **Supported:** Apple Silicon only (M1, M2, M3, M4 chips)
+❌ **Not supported:** Intel Macs
+
+</details>
+
+<details>
+<summary><b>Linux Installation - Ubuntu/Debian (.deb)</b></summary>
+
+1. Open Terminal
+2. Navigate to your Downloads folder:
+   ```bash
+   cd ~/Downloads
+   ```
+3. Install the package:
+   ```bash
+   sudo dpkg -i zipy_0.1.0_amd64.deb
+   ```
+4. Launch from your applications menu or run:
+   ```bash
+   zipy
+   ```
+
+</details>
+
+<details>
+<summary><b>Linux Installation - AppImage (All Distributions)</b></summary>
+
+1. Open Terminal
+2. Navigate to your Downloads folder:
+   ```bash
+   cd ~/Downloads
+   ```
+3. Make the file executable:
+   ```bash
+   chmod +x zipy_0.1.0_amd64.AppImage
+   ```
+4. Run it:
+   ```bash
+   ./zipy_0.1.0_amd64.AppImage
+   ```
+
+</details>
+
+### Step 3: Download Voice Recognition Model (One-time)
+
+Zipy needs a voice model to recognize speech. This is a one-time download.
+
+1. **Open this link:** https://april.sapples.net/
+2. **Download the file:** `april-english-dev-01110_en.april` (322 MB)
+3. **Save it** to an easy-to-find location:
+   - Windows: `C:\Users\YourName\Documents\`
+   - macOS: `/Users/YourName/Documents/`
+   - Linux: `/home/yourname/Documents/`
+
+💡 **Tip:** Remember where you save this file - you'll need to select it in the next step.
+
+### Step 4: First Launch Setup
+
+1. **Open Zipy** (if not already open)
+2. Click the **Settings** icon (⚙️ gear icon in the top-right corner)
+3. Find the **"ASR Model"** section
+4. Click the **"Browse"** button
+5. Navigate to where you saved `april-english-dev-01110_en.april`
+6. Select the file and click **Open**
+7. Click **"Save"** at the bottom of Settings
+
+✅ **You're done!** This model will be remembered for all future sessions.
+
+### Step 5: Start Using Zipy
+
+1. Click the **"Start"** button
+2. Start speaking - your words will appear in real-time!
+3. Use the **AI Assistant** to:
+   - Get summaries of your conversation
+   - Ask questions about what you said
+   - Generate ideas from your discussions
+
+---
+
+## 🔧 Troubleshooting
+
+<details>
+<summary><b>macOS: "Zipy cannot be opened"</b></summary>
+
+This is normal for apps downloaded from the internet.
+
+**Solution:**
+1. Don't double-click the app
+2. Right-click (or Control-click) on Zipy
+3. Select **Open**
+4. Click **Open** in the confirmation dialog
+
+</details>
+
+<details>
+<summary><b>Windows: "Windows protected your PC"</b></summary>
+
+This happens because the app is not code-signed (signing costs money for open-source projects).
+
+**Solution:**
+1. Click **More info**
+2. Click **Run anyway**
+
+The app is safe - you can review the [source code](https://github.com/minhtranin/zigy).
+
+</details>
+
+<details>
+<summary><b>Linux: AppImage won't run</b></summary>
+
+You need to make the file executable first.
+
+**Solution:**
 ```bash
 chmod +x zipy_0.1.0_amd64.AppImage
 ./zipy_0.1.0_amd64.AppImage
 ```
 
-### macOS (Apple Silicon only)
+</details>
 
-1. Download `Zipy_0.1.0_aarch64.dmg` for Apple Silicon (M1/M2/M3/M4)
-2. Open the `.dmg` file
-3. Drag **Zipy** to the **Applications** folder
-4. Launch from Applications folder
-5. First launch: macOS shows "cannot be opened" → Right-click → **Open** to bypass Gatekeeper
+<details>
+<summary><b>"Please select a model file first"</b></summary>
 
-**Note:** Intel Mac support is not available. Apple Silicon Macs only.
+You haven't set up the voice recognition model yet.
 
-### Windows
+**Solution:**
+1. Download the model from https://april.sapples.net/ (`april-english-dev-01110_en.april`)
+2. In Zipy, go to Settings (⚙️)
+3. Click Browse next to "ASR Model"
+4. Select the downloaded `.april` file
+5. Click Save
 
-1. Download the `.exe` installer
-2. Run the installer and follow the wizard
-3. If "Windows protected your PC" appears → Click **More info** → **Run anyway**
-4. Launch from Start Menu
+</details>
+
+<details>
+<summary><b>Speech recognition not working on Windows</b></summary>
+
+Speech recognition is not available on Windows because the required audio library (PulseAudio) is not available for Windows.
+
+**Windows version includes:**
+- ✅ User interface
+- ✅ AI Assistant features
+- ✅ Text export
+- ❌ Real-time speech recognition
+
+For full features, use Linux or macOS.
+
+</details>
+
+---
+
+## 🌍 Other Languages
+
+Want to use Zipy with other languages? Download different models from the [April ASR models page](https://github.com/abb128/april-asr#models).
+
+---
+
+## 👨‍💻 For Developers: Build from Source
+
+See the [Development](#-development) section below.
 
 ## 🛠️ Development
 
@@ -83,17 +261,17 @@ chmod +x zipy_0.1.0_amd64.AppImage
 ### Setup
 
 ```bash
-# Clone both repositories
-git clone https://github.com/YOUR_USERNAME/zipy.git
-cd zipy
+# Clone the repository
+git clone https://github.com/minhtranin/zigy.git
+cd zigy
 
 # Build the Zig speech recognition engine (optional for dev)
 # Skip this if you only want to test the UI
-cd ../zig-april-captions
+cd zig-april-captions
 zig build -Doptimize=ReleaseFast
 # Copy binary to UI resources for testing
-cp zig-out/bin/zig-april-captions ../zipy/src-tauri/resources/
-cd ../zipy
+cp zig-out/bin/zig-april-captions ../zig-april-captions-ui/src-tauri/resources/
+cd ../zig-april-captions-ui
 
 # Install UI dependencies
 npm install
@@ -173,7 +351,7 @@ rm -rf src-tauri/target
    - Publish the release
 
 4. Check the release progress:
-   - Go to `https://github.com/YOUR_USERNAME/zipy/actions`
+   - Go to `https://github.com/minhtranin/zigy/actions`
    - Monitor the "Release" workflow (takes ~10-15 minutes)
    - Download and test installers
 
@@ -191,42 +369,6 @@ After a successful release, you'll find:
 **Windows:**
 - `Zipy_0.1.0_x64_en-US.msi` - Windows installer
 - `Zipy_0.1.0_x64-setup.exe` - Setup executable
-
-## 🔧 Troubleshooting
-
-### Installation Issues
-
-**macOS: "Zipy cannot be opened"**
-- Right-click the app → Click "Open"
-- Or go to System Preferences → Security & Privacy → Allow
-
-**Windows: "Windows protected your PC"**
-- Click "More info" → "Run anyway"
-- This is normal for unsigned applications
-
-**Linux: AppImage permission denied**
-```bash
-chmod +x zipy_0.1.0_amd64.AppImage
-./zipy_0.1.0_amd64.AppImage
-```
-
-### Build Issues
-
-**Build fails on macOS**
-- Ensure Xcode Command Line Tools are installed: `xcode-select --install`
-- Update Rust: `rustup update`
-
-**Build fails on Linux**
-- Install required dependencies:
-  ```bash
-  sudo apt-get install libwebkit2gtk-4.1-dev libappindicator3-dev \
-    librsvg2-dev patchelf libssl-dev
-  ```
-
-**Release workflow not triggering**
-- Ensure tag follows `v*.*.*` pattern (e.g., `v0.1.0`, `v1.2.3`)
-- Verify tag was pushed: `git push origin v0.1.0`
-- Check GitHub Actions is enabled in repository settings
 
 ## 📄 License
 

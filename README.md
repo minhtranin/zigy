@@ -10,7 +10,7 @@ This repository contains the complete Zipy project - a real-time speech-to-text 
 This is a monorepo containing two main components:
 
 ```
-zipy/
+zigy/
 ├── zig-april-captions/       # Speech recognition engine (Zig)
 │   └── Zig wrapper for April ASR library
 │
@@ -32,12 +32,40 @@ Zipy is a desktop application that provides:
 
 ## 📥 Download
 
-Get the latest release from [GitHub Releases](https://github.com/minhtranin/zipy/releases/latest)
+Get the latest release from [GitHub Releases](https://github.com/minhtranin/zigy/releases/latest)
 
 **Available platforms:**
-- Linux: `.deb` and `AppImage`
-- macOS: Apple Silicon only (M1/M2/M3/M4)
-- Windows: `.exe` installer
+- 🐧 Linux: `.deb` and `AppImage`
+- 🍎 macOS: Apple Silicon only (M1/M2/M3/M4)
+- 🪟 Windows: `.exe` installer (UI only, no speech recognition)
+
+---
+
+## 📖 Installation Guide for Everyone
+
+### 🎯 New to Installing Apps? Start Here!
+
+**Never installed software from GitHub before?** No worries! We've got you covered.
+
+👉 **[Complete Step-by-Step Installation Guide](zig-april-captions-ui/README.md#-quick-start-guide)** 👈
+
+**What you'll learn:**
+- ✅ How to download Zipy for Windows, Mac, or Linux
+- ✅ How to install it on your computer (with pictures!)
+- ✅ How to download and set up voice recognition (5 minutes, one-time)
+- ✅ How to fix common problems
+
+**Total time:** About 5-10 minutes for first-time setup.
+
+---
+
+### ⚡ Quick Install (For Experienced Users)
+
+1. Download installer from [releases](https://github.com/minhtranin/zigy/releases/latest)
+2. Install Zipy
+3. Download model: [`april-english-dev-01110_en.april`](https://april.sapples.net/) (322 MB)
+4. Open Zipy → Settings → Browse → Select model file
+5. Click Start and begin speaking!
 
 ## 🏗️ Architecture
 
@@ -59,8 +87,8 @@ Get the latest release from [GitHub Releases](https://github.com/minhtranin/zipy
 
 ```bash
 # Clone the repository
-git clone https://github.com/minhtranin/zipy.git
-cd zipy
+git clone https://github.com/minhtranin/zigy.git
+cd zigy
 
 # Build the speech engine
 cd zig-april-captions
@@ -79,7 +107,63 @@ npm run tauri dev
 - **Zig** nightly
 - **ONNX Runtime** (for April ASR)
 
-See detailed setup instructions in `zig-april-captions-ui/README.md`
+<details>
+<summary><b>📚 Detailed Setup Guide (Click to Expand)</b></summary>
+
+### For Non-Technical Users
+
+If you just want to use Zipy (not develop it), follow these simple steps:
+
+#### Step 1: Download Zipy
+
+1. Go to our [Releases page](https://github.com/minhtranin/zigy/releases/latest)
+2. Look for the **Assets** section at the bottom
+3. Download the file for your system:
+   - **Windows**: `Zipy_x.x.x_x64-setup.exe`
+   - **macOS** (M1/M2/M3/M4): `Zipy_x.x.x_aarch64.dmg`
+   - **Linux** (Ubuntu/Debian): `zipy_x.x.x_amd64.deb`
+   - **Linux** (Other): `zipy_x.x.x_amd64.AppImage`
+
+#### Step 2: Install Zipy
+
+**Windows:**
+- Double-click the `.exe` file
+- Click "More info" if you see a security warning, then "Run anyway"
+- Follow the installation wizard
+
+**macOS:**
+- Open the `.dmg` file
+- Drag Zipy to Applications
+- Right-click Zipy → Open (first time only)
+
+**Linux:**
+- Open Terminal in your Downloads folder
+- For .deb: `sudo dpkg -i zipy_0.1.0_amd64.deb`
+- For AppImage: `chmod +x zipy_0.1.0_amd64.AppImage && ./zipy_0.1.0_amd64.AppImage`
+
+#### Step 3: Download Voice Model
+
+1. Visit https://april.sapples.net/
+2. Download `april-english-dev-01110_en.april` (322 MB)
+3. Save it to Documents folder
+
+#### Step 4: Set Up Zipy
+
+1. Open Zipy
+2. Click Settings (⚙️ gear icon)
+3. Click "Browse" next to ASR Model
+4. Select the `april-english-dev-01110_en.april` file you downloaded
+5. Click Save
+
+✅ **Done!** Click "Start" and begin speaking.
+
+---
+
+### For Developers
+
+Full development setup instructions available in [zig-april-captions-ui/README.md](zig-april-captions-ui/README.md#-development)
+
+</details>
 
 ## 📦 Release Process
 
@@ -120,7 +204,7 @@ Copyright (c) 2025 Minh Cong Tran
 
 <div align="center">
 
-**[Download](https://github.com/minhtranin/zipy/releases/latest)** • **[Report Bug](https://github.com/minhtranin/zipy/issues)** • **[Documentation](zig-april-captions-ui/README.md)**
+**[Download](https://github.com/minhtranin/zigy/releases/latest)** • **[Report Bug](https://github.com/minhtranin/zigy/issues)** • **[Documentation](zig-april-captions-ui/README.md)**
 
 Made with ❤️ by Minh Cong Tran
 
