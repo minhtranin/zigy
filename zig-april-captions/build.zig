@@ -54,7 +54,10 @@ pub fn build(b: *std.Build) void {
     // ONNX Runtime paths (required by April ASR)
     // Try environment variable first, then default to ~/onnxruntime
     const onnx_root = std.process.getEnvVarOwned(b.allocator, "ONNX_ROOT") catch null;
-    const onnx_path = onnx_root orelse b.pathJoin(&.{ std.posix.getenv("HOME") orelse "/home", "onnxruntime" });
+    const home_dir = std.process.getEnvVarOwned(b.allocator, "HOME") catch |_|
+        std.process.getEnvVarOwned(b.allocator, "USERPROFILE") catch |_| b.dupe("/home");
+    defer b.allocator.free(home_dir);
+    const onnx_path = onnx_root orelse b.pathJoin(&.{ home_dir, "onnxruntime" });
     defer if (onnx_root) |p| b.allocator.free(p);
 
     april_lib.addIncludePath(.{ .cwd_relative = b.fmt("{s}/include", .{onnx_path}) });

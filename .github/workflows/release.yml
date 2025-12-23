@@ -126,6 +126,17 @@ jobs:
         run: |
           cd zig-april-captions
           mkdir -p ../zig-april-captions-ui/src-tauri/resources
+
+          # Add PulseAudio library paths for macOS (brew locations)
+          if [[ "$OSTYPE" == "darwin"* ]]; then
+            # Try Apple Silicon path first, then Intel path
+            if [ -d "/opt/homebrew/lib" ]; then
+              export LIBRARY_PATH="/opt/homebrew/lib:${LIBRARY_PATH:-}"
+            elif [ -d "/usr/local/lib" ]; then
+              export LIBRARY_PATH="/usr/local/lib:${LIBRARY_PATH:-}"
+            fi
+          fi
+
           zig build -Doptimize=ReleaseFast
           # Copy binary to Tauri resources
           if [ -f "zig-out/bin/zig-april-captions" ]; then
