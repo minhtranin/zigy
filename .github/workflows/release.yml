@@ -144,22 +144,28 @@ jobs:
 
       - name: Create placeholder binaries (Windows)
         if: runner.os == 'Windows'
-        shell: bash
+        shell: pwsh
         run: |
-          cd zig-april-captions-ui/src-tauri
-          mkdir -p resources
-          # Create empty placeholder files for Windows
+          New-Item -ItemType Directory -Force -Path "zig-april-captions-ui\src-tauri\resources"
+          # Create placeholder files for Windows
           # Note: Speech recognition not available on Windows
-          echo "" > resources/zig-april-captions.exe
-          echo "" > resources/zig-april-captions
-          ls -la resources/
-          cd ../..
+          "# Speech recognition unavailable on Windows" | Out-File -FilePath "zig-april-captions-ui\src-tauri\resources\zig-april-captions.exe" -Encoding ASCII
+          "# Speech recognition unavailable on Windows" | Out-File -FilePath "zig-april-captions-ui\src-tauri\resources\zig-april-captions" -Encoding ASCII
+          Get-ChildItem "zig-april-captions-ui\src-tauri\resources\"
 
       - name: Install frontend dependencies
         shell: bash
         run: |
           cd zig-april-captions-ui
           npm install
+
+      - name: Verify resource files exist (Debug)
+        shell: bash
+        run: |
+          echo "Checking for resource files..."
+          ls -la zig-april-captions-ui/src-tauri/resources/ || echo "Resources directory not found!"
+          pwd
+          find . -name "zig-april-captions*" -type f || echo "No zig-april-captions files found"
 
       - name: Build Tauri App
         uses: tauri-apps/tauri-action@v0
