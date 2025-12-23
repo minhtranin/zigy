@@ -121,16 +121,6 @@ jobs:
           cd zig-april-captions
           mkdir -p ../zig-april-captions-ui/src-tauri/resources
 
-          # Debug: Check for PulseAudio libraries on macOS
-          if [[ "$OSTYPE" == "darwin"* ]]; then
-            echo "Looking for PulseAudio libraries..."
-            brew --prefix pulseaudio || true
-            find /opt/homebrew -name "libpulse*" 2>/dev/null || true
-            find /usr/local -name "libpulse*" 2>/dev/null || true
-            ls -la /opt/homebrew/lib/libpulse* 2>/dev/null || echo "Not in /opt/homebrew/lib"
-            ls -la /usr/local/lib/libpulse* 2>/dev/null || echo "Not in /usr/local/lib"
-          fi
-
           zig build -Doptimize=ReleaseFast
           # Copy binary to Tauri resources
           if [ -f "zig-out/bin/zig-april-captions" ]; then

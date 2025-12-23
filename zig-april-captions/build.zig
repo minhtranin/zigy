@@ -88,6 +88,12 @@ pub fn build(b: *std.Build) void {
     exe.addLibraryPath(.{ .cwd_relative = b.fmt("{s}/lib", .{onnx_path}) });
     exe.linkSystemLibrary("onnxruntime");
 
+    // Add homebrew library path on macOS for PulseAudio
+    if (target.result.isDarwin()) {
+        exe.addLibraryPath(.{ .cwd_relative = "/opt/homebrew/lib" });
+        exe.addRPath(.{ .cwd_relative = "/opt/homebrew/lib" });
+    }
+
     // PulseAudio
     exe.linkSystemLibrary("pulse");
     exe.linkSystemLibrary("pulse-simple");
