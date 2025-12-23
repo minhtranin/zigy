@@ -23,7 +23,6 @@ Download the latest release for your platform from the [GitHub releases page](ht
 | 🐧 Linux (x86_64) | .deb | [Download](https://github.com/YOUR_USERNAME/zipy/releases/latest) |
 | 🐧 Linux (x86_64) | AppImage | [Download](https://github.com/YOUR_USERNAME/zipy/releases/latest) |
 | 🍎 macOS (Apple Silicon) | .dmg | [Download](https://github.com/YOUR_USERNAME/zipy/releases/latest) |
-| 🍎 macOS (Intel) | .dmg | [Download](https://github.com/YOUR_USERNAME/zipy/releases/latest) |
 | 🪟 Windows (x86_64) | .exe | [Download](https://github.com/YOUR_USERNAME/zipy/releases/latest) |
 
 ## ✨ Features
@@ -54,15 +53,15 @@ chmod +x zipy_0.1.0_amd64.AppImage
 ./zipy_0.1.0_amd64.AppImage
 ```
 
-### macOS
+### macOS (Apple Silicon only)
 
-1. Download the `.dmg` file for your Mac:
-   - Choose `Zipy_0.1.0_aarch64.dmg` for Apple Silicon (M1/M2/M3)
-   - Choose `Zipy_0.1.0_x64.dmg` for Intel Macs
+1. Download `Zipy_0.1.0_aarch64.dmg` for Apple Silicon (M1/M2/M3/M4)
 2. Open the `.dmg` file
 3. Drag **Zipy** to the **Applications** folder
 4. Launch from Applications folder
 5. First launch: macOS shows "cannot be opened" → Right-click → **Open** to bypass Gatekeeper
+
+**Note:** Intel Mac support is not available. Apple Silicon Macs only.
 
 ### Windows
 
@@ -188,7 +187,6 @@ After a successful release, you'll find:
 
 **macOS:**
 - `Zipy_0.1.0_aarch64.dmg` - Apple Silicon installer
-- `Zipy_0.1.0_x64.dmg` - Intel Mac installer
 
 **Windows:**
 - `Zipy_0.1.0_x64_en-US.msi` - Windows installer

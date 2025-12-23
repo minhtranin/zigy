@@ -36,7 +36,7 @@ Get the latest release from [GitHub Releases](https://github.com/minhtranin/zipy
 
 **Available platforms:**
 - Linux: `.deb` and `AppImage`
-- macOS: Apple Silicon (M1/M2/M3) and Intel
+- macOS: Apple Silicon only (M1/M2/M3/M4)
 - Windows: `.exe` installer
 
 ## 🏗️ Architecture
