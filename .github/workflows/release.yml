@@ -116,7 +116,9 @@ jobs:
         if: runner.os == 'Windows'
         shell: bash
         run: |
-          curl -L -o onnxruntime-win-x64-1.16.3.zip https://github.com/microsoft/onnxruntime/releases/download/v1.16.3/onnxruntime-win-x64-1.16.3.zip
+          # Use wget with retry and timeout settings
+          wget --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 --tries=3 \
+            https://github.com/microsoft/onnxruntime/releases/download/v1.16.3/onnxruntime-win-x64-1.16.3.zip
           unzip onnxruntime-win-x64-1.16.3.zip
           mkdir -p ~/onnxruntime
           mv onnxruntime-win-x64-1.16.3/* ~/onnxruntime/
