@@ -116,8 +116,8 @@ jobs:
         if: runner.os == 'Windows'
         shell: bash
         run: |
-          # Use wget with retry and timeout settings
-          wget --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 --tries=3 \
+          # Use curl with retry and timeout settings
+          curl --retry 5 --retry-delay 2 --retry-max-time 60 --max-time 120 -L -o onnxruntime-win-x64-1.16.3.zip \
             https://github.com/microsoft/onnxruntime/releases/download/v1.16.3/onnxruntime-win-x64-1.16.3.zip
           unzip onnxruntime-win-x64-1.16.3.zip
           mkdir -p ~/onnxruntime
