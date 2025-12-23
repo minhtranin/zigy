@@ -146,11 +146,14 @@ jobs:
         if: runner.os == 'Windows'
         shell: bash
         run: |
-          mkdir -p zig-april-captions-ui/src-tauri/resources
+          cd zig-april-captions-ui/src-tauri
+          mkdir -p resources
           # Create empty placeholder files for Windows
           # Note: Speech recognition not available on Windows
-          touch zig-april-captions-ui/src-tauri/resources/zig-april-captions.exe
-          touch zig-april-captions-ui/src-tauri/resources/zig-april-captions
+          echo "" > resources/zig-april-captions.exe
+          echo "" > resources/zig-april-captions
+          ls -la resources/
+          cd ../..
 
       - name: Install frontend dependencies
         shell: bash
