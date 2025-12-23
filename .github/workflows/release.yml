@@ -112,18 +112,12 @@ jobs:
           mkdir -p ~/onnxruntime
           mv onnxruntime-osx-universal2-1.16.3/* ~/onnxruntime/
 
-      - name: Install ONNX Runtime (Windows)
-        if: runner.os == 'Windows'
-        shell: bash
-        run: |
-          # Use curl with retry and timeout settings
-          curl --retry 5 --retry-delay 2 --retry-max-time 60 --max-time 120 -L -o onnxruntime-win-x64-1.16.3.zip \
-            https://github.com/microsoft/onnxruntime/releases/download/v1.16.3/onnxruntime-win-x64-1.16.3.zip
-          unzip onnxruntime-win-x64-1.16.3.zip
-          mkdir -p ~/onnxruntime
-          mv onnxruntime-win-x64-1.16.3/* ~/onnxruntime/
+      # Note: Skipping ONNX Runtime on Windows since zig-april-captions
+      # requires PulseAudio (Linux/macOS only). Windows build will have
+      # UI only, without speech recognition functionality.
 
-      - name: Build zig-april-captions binary
+      - name: Build zig-april-captions binary (Unix only)
+        if: runner.os != 'Windows'
         shell: bash
         run: |
           cd zig-april-captions
@@ -145,12 +139,18 @@ jobs:
             cp zig-out/bin/zig-april-captions ../zig-april-captions-ui/src-tauri/resources/
             # Create placeholder for .exe on Unix platforms
             touch ../zig-april-captions-ui/src-tauri/resources/zig-april-captions.exe
-          elif [ -f "zig-out/bin/zig-april-captions.exe" ]; then
-            cp zig-out/bin/zig-april-captions.exe ../zig-april-captions-ui/src-tauri/resources/
-            # Create placeholder for non-exe on Windows
-            touch ../zig-april-captions-ui/src-tauri/resources/zig-april-captions
           fi
           cd ..
+
+      - name: Create placeholder binaries (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          mkdir -p zig-april-captions-ui/src-tauri/resources
+          # Create empty placeholder files for Windows
+          # Note: Speech recognition not available on Windows
+          touch zig-april-captions-ui/src-tauri/resources/zig-april-captions.exe
+          touch zig-april-captions-ui/src-tauri/resources/zig-april-captions
 
       - name: Install frontend dependencies
         shell: bash
