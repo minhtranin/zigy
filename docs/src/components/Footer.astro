@@ -57,21 +57,39 @@ const currentYear = new Date().getFullYear();
   .footer {
     background: #111827;
     color: #F9FAFB;
-    padding: 1.5rem 0 1rem;
+    padding: 1.75rem 0 1.1rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .footer::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent 0%, rgba(139, 92, 246, 0.3) 50%, transparent 100%);
   }
 
   .footer-content {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: 1.25rem;
-    margin-bottom: 1.25rem;
+    gap: 1.35rem;
+    margin-bottom: 1.35rem;
+    position: relative;
+    z-index: 1;
   }
 
   .footer-section h3 {
-    font-size: 1.1rem;
+    font-size: 1.15rem;
     margin-bottom: 0.4rem;
     color: white;
     font-weight: 600;
+    background: linear-gradient(135deg, #ffffff 0%, #A5B4FC 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
 
   .footer-section h4 {
@@ -97,23 +115,25 @@ const currentYear = new Date().getFullYear();
   }
 
   .footer-section a {
-    color: #8B9BE6;
+    color: #A5B4FC;
     text-decoration: none;
-    transition: color 0.2s;
+    transition: all 0.2s ease;
     font-weight: 500;
   }
 
   .footer-section a:hover {
-    color: #A5B4FC;
+    color: #C4B5FD;
     text-decoration: underline;
   }
 
   .footer-bottom {
-    border-top: 1px solid #374151;
-    padding-top: 1rem;
+    border-top: 1px solid rgba(55, 65, 81, 0.8);
+    padding-top: 1.1rem;
     text-align: center;
     color: #9CA3AF;
     font-size: 0.8rem;
+    position: relative;
+    z-index: 1;
   }
 
   .footer-bottom p {
@@ -121,27 +141,29 @@ const currentYear = new Date().getFullYear();
   }
 
   .footer-bottom a {
-    color: #8B9BE6;
+    color: #A5B4FC;
     text-decoration: none;
     font-weight: 500;
+    transition: color 0.2s ease;
   }
 
   .footer-bottom a:hover {
+    color: #C4B5FD;
     text-decoration: underline;
   }
 
   @media (max-width: 768px) {
     .footer {
-      padding: 1.25rem 0 0.85rem;
+      padding: 1.4rem 0 0.9rem;
     }
 
     .footer-content {
       grid-template-columns: 1fr;
-      gap: 1rem;
+      gap: 1.1rem;
     }
 
     .footer-section h3 {
-      font-size: 1rem;
+      font-size: 1.05rem;
     }
 
     .footer-section h4 {

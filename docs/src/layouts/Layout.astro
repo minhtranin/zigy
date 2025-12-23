@@ -51,8 +51,21 @@ const { title, description = "Real-time speech-to-text captions desktop app with
 
   /* Dark background for hero */
   .dark-bg {
-    background: linear-gradient(135deg, #6C5CE7 0%, #5A4BD8 100%);
+    background: #111827;
     color: white;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .dark-bg::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(ellipse at top, rgba(108, 92, 231, 0.15) 0%, transparent 60%);
+    pointer-events: none;
   }
 
   /* Container */

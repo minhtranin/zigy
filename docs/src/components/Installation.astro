@@ -112,11 +112,11 @@
 
   .section-title {
     text-align: center;
-    font-size: 1.3rem;
-    font-weight: 600;
+    font-size: 1.35rem;
+    font-weight: 700;
     margin-bottom: 0.4rem;
     color: #111827;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.02em;
   }
 
   .section-subtitle {
@@ -140,16 +140,17 @@
 
   .step-number {
     flex-shrink: 0;
-    width: 32px;
-    height: 32px;
-    background: linear-gradient(135deg, #6C5CE7 0%, #5A4BD8 100%);
+    width: 34px;
+    height: 34px;
+    background: linear-gradient(135deg, #6C5CE7 0%, #8B5CF6 100%);
     color: white;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.95rem;
+    font-size: 1rem;
     font-weight: 600;
+    box-shadow: 0 4px 12px rgba(108, 92, 231, 0.25);
   }
 
   .step-content {
@@ -173,10 +174,16 @@
 
   .platform-tabs details {
     background: #F9FAFB;
-    padding: 0.85rem;
-    border-radius: 10px;
+    padding: 0.9rem;
+    border-radius: 12px;
     margin-bottom: 0.4rem;
     border: 1px solid #E5E7EB;
+    transition: all 0.2s ease;
+  }
+
+  .platform-tabs details:hover {
+    border-color: #C4B5FD;
+    background: #F5F3FF;
   }
 
   .platform-tabs summary {
@@ -184,6 +191,8 @@
     padding: 0.4rem;
     user-select: none;
     font-size: 0.9rem;
+    font-weight: 500;
+    color: #374151;
   }
 
   .platform-tabs summary:hover {
@@ -206,16 +215,17 @@
     background: #1F2937;
     color: #F9FAFB;
     padding: 0.2rem 0.4rem;
-    border-radius: 5px;
+    border-radius: 6px;
     font-family: 'Courier New', monospace;
     font-size: 0.82rem;
   }
 
   pre {
-    padding: 0.85rem;
+    padding: 0.9rem;
     overflow-x: auto;
     margin: 0.75rem 0;
     border-radius: 10px;
+    border: 1px solid #374151;
   }
 
   pre code {
@@ -232,21 +242,21 @@
 
   .model-link {
     display: inline-block;
-    padding: 0.6rem 1.25rem;
-    background: #6C5CE7;
+    padding: 0.65rem 1.35rem;
+    background: linear-gradient(135deg, #6C5CE7 0%, #8B5CF6 100%);
     color: white;
     text-decoration: none;
     border-radius: 999px;
     margin: 0.75rem 0;
-    transition: all 0.2s ease;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     font-size: 0.85rem;
     font-weight: 500;
+    box-shadow: 0 4px 14px rgba(108, 92, 231, 0.3);
   }
 
   .model-link:hover {
-    background: #5A4BD8;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(108, 92, 231, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(108, 92, 231, 0.4);
   }
 
   .feature-highlights {
@@ -257,18 +267,19 @@
   }
 
   .feature-highlights span {
-    background: #EDEBFF;
+    background: linear-gradient(135deg, #EDEBFF 0%, #E0E7FF 100%);
     color: #6C5CE7;
-    padding: 0.3rem 0.65rem;
+    padding: 0.3rem 0.7rem;
     border-radius: 999px;
     font-size: 0.75rem;
     font-weight: 500;
+    border: 1px solid #C4B5FD;
   }
 
   .help-section {
-    background: #F9FAFB;
-    padding: 1.25rem;
-    border-radius: 12px;
+    background: linear-gradient(135deg, #F9FAFB 0%, #F3F4F6 100%);
+    padding: 1.35rem;
+    border-radius: 14px;
     text-align: center;
     margin-top: 2rem;
     border: 1px solid #E5E7EB;
@@ -290,9 +301,11 @@
     color: #6C5CE7;
     text-decoration: none;
     font-weight: 500;
+    transition: color 0.2s ease;
   }
 
   .help-section a:hover {
+    color: #8B5CF6;
     text-decoration: underline;
   }
 
@@ -304,14 +317,14 @@
     }
 
     .step-number {
-      width: 28px;
-      height: 28px;
-      font-size: 0.85rem;
+      width: 30px;
+      height: 30px;
+      font-size: 0.9rem;
     }
 
     .help-section {
       margin-top: 1.5rem;
-      padding: 1rem;
+      padding: 1.1rem;
     }
   }
 </style>
