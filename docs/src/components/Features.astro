@@ -1,0 +1,130 @@
+---
+// Features showcase component
+const features = [
+  {
+    icon: "🎤",
+    title: "Real-time Speech Recognition",
+    description: "Live transcription as you speak with April ASR. 100% offline, your audio never leaves your device."
+  },
+  {
+    icon: "💬",
+    title: "AI-Powered Assistance",
+    description: "Integrated Gemini AI for summaries, questions, and idea generation from your conversations."
+  },
+  {
+    icon: "🌐",
+    title: "Multi-language Support",
+    description: "Translate captions to multiple languages. Support for various speech recognition models."
+  },
+  {
+    icon: "🎨",
+    title: "Simple Mode",
+    description: "Minimalist view perfect for presentations and focused transcription work."
+  },
+  {
+    icon: "🌓",
+    title: "Dark Mode",
+    description: "Comfortable viewing in any lighting condition with beautiful dark theme."
+  },
+  {
+    icon: "📋",
+    title: "Timeline View",
+    description: "Organized history of all summaries, questions, ideas, and greetings."
+  },
+  {
+    icon: "⚙️",
+    title: "Customizable Settings",
+    description: "Adjust font size, language, AI model, and more to fit your workflow."
+  },
+  {
+    icon: "🔒",
+    title: "Privacy First",
+    description: "Speech recognition runs 100% locally. No cloud processing, complete privacy."
+  }
+];
+---
+
+<section id="features" class="features-section">
+  <div class="container">
+    <h2 class="section-title">Features</h2>
+    <p class="section-subtitle">Everything you need for real-time speech-to-text</p>
+
+    <div class="features-grid">
+      {features.map((feature) => (
+        <div class="feature-card">
+          <div class="feature-icon">{feature.icon}</div>
+          <h3 class="feature-title">{feature.title}</h3>
+          <p class="feature-description">{feature.description}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .features-section {
+    padding: 5rem 0;
+    background: #f8f9fa;
+  }
+
+  .section-title {
+    text-align: center;
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    color: #333;
+  }
+
+  .section-subtitle {
+    text-align: center;
+    font-size: 1.2rem;
+    color: #666;
+    margin-bottom: 3rem;
+  }
+
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 2rem;
+  }
+
+  .feature-card {
+    background: white;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+
+  .feature-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
+  }
+
+  .feature-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+  }
+
+  .feature-title {
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    color: #333;
+  }
+
+  .feature-description {
+    color: #666;
+    line-height: 1.6;
+  }
+
+  @media (max-width: 768px) {
+    .features-section {
+      padding: 3rem 0;
+    }
+
+    .features-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

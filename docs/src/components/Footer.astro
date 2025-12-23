@@ -1,0 +1,133 @@
+---
+// Footer component
+const currentYear = new Date().getFullYear();
+---
+
+<footer class="footer">
+  <div class="container">
+    <div class="footer-content">
+      <div class="footer-section">
+        <h3>Zipy</h3>
+        <p>Real-time speech-to-text captions desktop app</p>
+      </div>
+
+      <div class="footer-section">
+        <h4>Links</h4>
+        <ul>
+          <li><a href="https://github.com/minhtranin/zigy" target="_blank">GitHub Repository</a></li>
+          <li><a href="https://github.com/minhtranin/zigy/releases" target="_blank">Releases</a></li>
+          <li><a href="https://github.com/minhtranin/zigy/issues" target="_blank">Report Issues</a></li>
+          <li><a href="https://github.com/minhtranin/zigy#-installation-guide-for-everyone" target="_blank">Documentation</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-section">
+        <h4>Technology</h4>
+        <ul>
+          <li><a href="https://tauri.app/" target="_blank">Tauri</a></li>
+          <li><a href="https://github.com/abb128/april-asr" target="_blank">April ASR</a></li>
+          <li><a href="https://ai.google.dev/" target="_blank">Google Gemini API</a></li>
+          <li><a href="https://ziglang.org/" target="_blank">Zig</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-section">
+        <h4>Platform Support</h4>
+        <ul>
+          <li>🐧 Linux (Full)</li>
+          <li>🍎 macOS Apple Silicon (Full)</li>
+          <li>🪟 Windows (UI only)</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <p>
+        © {currentYear} Minh Cong Tran.
+        <a href="https://github.com/minhtranin/zigy/blob/main/zig-april-captions-ui/LICENSE" target="_blank">MIT License</a>
+      </p>
+      <p>
+        Built with ❤️ using <a href="https://astro.build" target="_blank">Astro</a>
+      </p>
+    </div>
+  </div>
+</footer>
+
+<style>
+  .footer {
+    background: #2d3748;
+    color: #e2e8f0;
+    padding: 3rem 0 1.5rem;
+  }
+
+  .footer-content {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 2rem;
+    margin-bottom: 2rem;
+  }
+
+  .footer-section h3 {
+    font-size: 1.5rem;
+    margin-bottom: 0.75rem;
+    color: white;
+  }
+
+  .footer-section h4 {
+    font-size: 1.1rem;
+    margin-bottom: 0.75rem;
+    color: #cbd5e0;
+  }
+
+  .footer-section p {
+    color: #a0aec0;
+    line-height: 1.6;
+  }
+
+  .footer-section ul {
+    list-style: none;
+  }
+
+  .footer-section li {
+    margin-bottom: 0.5rem;
+  }
+
+  .footer-section a {
+    color: #90cdf4;
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+
+  .footer-section a:hover {
+    color: #63b3ed;
+    text-decoration: underline;
+  }
+
+  .footer-bottom {
+    border-top: 1px solid #4a5568;
+    padding-top: 1.5rem;
+    text-align: center;
+    color: #a0aec0;
+    font-size: 0.9rem;
+  }
+
+  .footer-bottom p {
+    margin-bottom: 0.5rem;
+  }
+
+  .footer-bottom a {
+    color: #90cdf4;
+    text-decoration: none;
+  }
+
+  .footer-bottom a:hover {
+    text-decoration: underline;
+  }
+
+  @media (max-width: 768px) {
+    .footer-content {
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+    }
+  }
+</style>

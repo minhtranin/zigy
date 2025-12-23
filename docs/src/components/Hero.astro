@@ -1,0 +1,283 @@
+---
+// Hero component with download section
+---
+
+<section class="hero dark-bg">
+  <div class="container">
+    <div class="hero-content">
+      <h1 class="hero-title">Zipy</h1>
+      <p class="hero-subtitle">Real-time Speech-to-Text Captions Desktop App</p>
+      <p class="hero-description">
+        Turn your voice into text instantly with AI-powered speech recognition.
+        Perfect for meetings, lectures, accessibility, and live captions.
+      </p>
+
+      <div class="download-section">
+        <h2>Download Zipy</h2>
+        <p class="version-info">Latest version: <span id="version-number">Loading...</span></p>
+
+        <div class="download-buttons">
+          <a href="#" id="download-windows" class="download-btn windows" style="display:none;">
+            <span class="icon">🪟</span>
+            <div class="btn-text">
+              <strong>Windows</strong>
+              <small>Windows 10/11 (UI only)</small>
+            </div>
+          </a>
+
+          <a href="#" id="download-macos" class="download-btn macos" style="display:none;">
+            <span class="icon">🍎</span>
+            <div class="btn-text">
+              <strong>macOS</strong>
+              <small>Apple Silicon (M1/M2/M3/M4)</small>
+            </div>
+          </a>
+
+          <a href="#" id="download-linux-deb" class="download-btn linux" style="display:none;">
+            <span class="icon">🐧</span>
+            <div class="btn-text">
+              <strong>Linux (Debian)</strong>
+              <small>Ubuntu, Debian, Mint</small>
+            </div>
+          </a>
+
+          <a href="#" id="download-linux-appimage" class="download-btn linux" style="display:none;">
+            <span class="icon">🐧</span>
+            <div class="btn-text">
+              <strong>Linux (AppImage)</strong>
+              <small>Universal Linux</small>
+            </div>
+          </a>
+        </div>
+
+        <p class="download-note">
+          Free and open source • <a href="https://github.com/minhtranin/zigy" target="_blank">View on GitHub</a>
+        </p>
+      </div>
+
+      <div class="quick-features">
+        <div class="feature-badge">🎤 Real-time Speech Recognition</div>
+        <div class="feature-badge">💬 AI-Powered Assistance</div>
+        <div class="feature-badge">🌐 Multi-language Support</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  // Fetch latest release from GitHub API
+  async function loadLatestRelease() {
+    try {
+      const response = await fetch('https://api.github.com/repos/minhtranin/zigy/releases/latest');
+      if (!response.ok) throw new Error('Failed to fetch release');
+
+      const release = await response.json();
+
+      // Update version number
+      const versionEl = document.getElementById('version-number');
+      if (versionEl) versionEl.textContent = release.tag_name;
+
+      // Find download links
+      const assets = release.assets;
+
+      const windowsAsset = assets.find(a => a.name.endsWith('.exe'));
+      const macosAsset = assets.find(a => a.name.endsWith('.dmg'));
+      const debAsset = assets.find(a => a.name.endsWith('.deb'));
+      const appimageAsset = assets.find(a => a.name.endsWith('.AppImage'));
+
+      // Update download buttons
+      if (windowsAsset) {
+        const btn = document.getElementById('download-windows');
+        if (btn) {
+          btn.href = windowsAsset.browser_download_url;
+          btn.style.display = 'flex';
+        }
+      }
+
+      if (macosAsset) {
+        const btn = document.getElementById('download-macos');
+        if (btn) {
+          btn.href = macosAsset.browser_download_url;
+          btn.style.display = 'flex';
+        }
+      }
+
+      if (debAsset) {
+        const btn = document.getElementById('download-linux-deb');
+        if (btn) {
+          btn.href = debAsset.browser_download_url;
+          btn.style.display = 'flex';
+        }
+      }
+
+      if (appimageAsset) {
+        const btn = document.getElementById('download-linux-appimage');
+        if (btn) {
+          btn.href = appimageAsset.browser_download_url;
+          btn.style.display = 'flex';
+        }
+      }
+    } catch (error) {
+      console.error('Error loading releases:', error);
+      // Fallback to releases page
+      const fallbackLink = 'https://github.com/minhtranin/zigy/releases/latest';
+      document.querySelectorAll('.download-btn').forEach(btn => {
+        btn.href = fallbackLink;
+        btn.style.display = 'flex';
+      });
+      const versionEl = document.getElementById('version-number');
+      if (versionEl) versionEl.textContent = 'Check releases';
+    }
+  }
+
+  // Load on page ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', loadLatestRelease);
+  } else {
+    loadLatestRelease();
+  }
+</script>
+
+<style>
+  .hero {
+    padding: 4rem 0;
+    min-height: 70vh;
+    display: flex;
+    align-items: center;
+  }
+
+  .hero-content {
+    text-align: center;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  .hero-title {
+    font-size: 4rem;
+    font-weight: 800;
+    margin-bottom: 1rem;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+  }
+
+  .hero-subtitle {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+    opacity: 0.95;
+  }
+
+  .hero-description {
+    font-size: 1.1rem;
+    margin-bottom: 3rem;
+    opacity: 0.9;
+    max-width: 700px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .download-section {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    padding: 2rem;
+    margin: 3rem 0;
+  }
+
+  .download-section h2 {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .version-info {
+    margin-bottom: 2rem;
+    opacity: 0.9;
+  }
+
+  .download-buttons {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .download-btn {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 1.5rem;
+    background: white;
+    color: #333;
+    text-decoration: none;
+    border-radius: 10px;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  .download-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  .download-btn .icon {
+    font-size: 2.5rem;
+  }
+
+  .btn-text {
+    text-align: left;
+  }
+
+  .btn-text strong {
+    display: block;
+    font-size: 1.1rem;
+    margin-bottom: 0.2rem;
+  }
+
+  .btn-text small {
+    display: block;
+    color: #666;
+    font-size: 0.85rem;
+  }
+
+  .download-note {
+    opacity: 0.9;
+    font-size: 0.9rem;
+  }
+
+  .download-note a {
+    color: white;
+    text-decoration: underline;
+  }
+
+  .quick-features {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 3rem;
+  }
+
+  .feature-badge {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.95rem;
+  }
+
+  @media (max-width: 768px) {
+    .hero-title {
+      font-size: 2.5rem;
+    }
+
+    .hero-subtitle {
+      font-size: 1.2rem;
+    }
+
+    .download-buttons {
+      grid-template-columns: 1fr;
+    }
+
+    .quick-features {
+      flex-direction: column;
+      align-items: center;
+    }
+  }
+</style>

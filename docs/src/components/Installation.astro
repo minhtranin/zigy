@@ -1,0 +1,276 @@
+---
+// Installation guide component
+---
+
+<section id="installation" class="installation-section">
+  <div class="container">
+    <h2 class="section-title">Quick Start Guide</h2>
+    <p class="section-subtitle">Get up and running in 5-10 minutes</p>
+
+    <div class="install-steps">
+      <div class="step">
+        <div class="step-number">1</div>
+        <div class="step-content">
+          <h3>Download Zipy</h3>
+          <p>Get the installer for your operating system from the download section above.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-number">2</div>
+        <div class="step-content">
+          <h3>Install</h3>
+          <div class="platform-tabs">
+            <details>
+              <summary><strong>🪟 Windows</strong></summary>
+              <ol>
+                <li>Double-click the <code>.exe</code> file</li>
+                <li>Click "More info" if Windows Defender appears</li>
+                <li>Click "Run anyway"</li>
+                <li>Follow the installation wizard</li>
+              </ol>
+              <p class="note">Note: Windows version has UI only (no speech recognition)</p>
+            </details>
+
+            <details>
+              <summary><strong>🍎 macOS (Apple Silicon)</strong></summary>
+              <ol>
+                <li>Open the <code>.dmg</code> file</li>
+                <li>Drag Zipy to Applications folder</li>
+                <li><strong>Right-click</strong> Zipy and select "Open" (first time only)</li>
+                <li>Click "Open" in the security dialog</li>
+              </ol>
+              <p class="note">Supported: M1, M2, M3, M4 chips only</p>
+            </details>
+
+            <details>
+              <summary><strong>🐧 Linux (Ubuntu/Debian)</strong></summary>
+              <pre><code>sudo dpkg -i zipy_0.1.0_amd64.deb</code></pre>
+              <p>Then launch from applications menu or run <code>zipy</code> in terminal.</p>
+            </details>
+
+            <details>
+              <summary><strong>🐧 Linux (AppImage)</strong></summary>
+              <pre><code>chmod +x zipy_0.1.0_amd64.AppImage
+./zipy_0.1.0_amd64.AppImage</code></pre>
+            </details>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-number">3</div>
+        <div class="step-content">
+          <h3>Download Voice Model</h3>
+          <p>Download the English speech recognition model (322 MB, one-time):</p>
+          <a href="https://april.sapples.net/" target="_blank" class="model-link">
+            Download april-english-dev-01110_en.april →
+          </a>
+          <p class="note">Save it to Documents folder for easy access</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-number">4</div>
+        <div class="step-content">
+          <h3>Configure Model</h3>
+          <ol>
+            <li>Open Zipy</li>
+            <li>Click Settings (⚙️ gear icon)</li>
+            <li>Click "Browse" next to ASR Model</li>
+            <li>Select the <code>.april</code> file you downloaded</li>
+            <li>Click "Save"</li>
+          </ol>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-number">5</div>
+        <div class="step-content">
+          <h3>Start Using!</h3>
+          <p>Click "Start" and begin speaking. Your words will appear in real-time!</p>
+          <div class="feature-highlights">
+            <span>✓ Speech-to-text</span>
+            <span>✓ AI summaries</span>
+            <span>✓ Export transcripts</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="help-section">
+      <h3>Need Help?</h3>
+      <p>Check out the full documentation on <a href="https://github.com/minhtranin/zigy#-installation-guide-for-everyone" target="_blank">GitHub</a> or <a href="https://github.com/minhtranin/zigy/issues" target="_blank">report an issue</a>.</p>
+    </div>
+  </div>
+</section>
+
+<style>
+  .installation-section {
+    padding: 5rem 0;
+    background: white;
+  }
+
+  .install-steps {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .step {
+    display: flex;
+    gap: 2rem;
+    margin-bottom: 3rem;
+  }
+
+  .step-number {
+    flex-shrink: 0;
+    width: 50px;
+    height: 50px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    font-weight: bold;
+  }
+
+  .step-content {
+    flex: 1;
+  }
+
+  .step-content h3 {
+    font-size: 1.5rem;
+    margin-bottom: 0.75rem;
+    color: #333;
+  }
+
+  .step-content p {
+    color: #666;
+    margin-bottom: 1rem;
+  }
+
+  .platform-tabs details {
+    background: #f8f9fa;
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+  }
+
+  .platform-tabs summary {
+    cursor: pointer;
+    padding: 0.5rem;
+    user-select: none;
+  }
+
+  .platform-tabs summary:hover {
+    background: rgba(102, 126, 234, 0.1);
+    border-radius: 4px;
+  }
+
+  .platform-tabs ol {
+    margin-left: 1.5rem;
+    margin-top: 1rem;
+  }
+
+  .platform-tabs li {
+    margin-bottom: 0.5rem;
+    color: #333;
+  }
+
+  code, pre {
+    background: #2d2d2d;
+    color: #f8f8f2;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+  }
+
+  pre {
+    padding: 1rem;
+    overflow-x: auto;
+    margin: 1rem 0;
+  }
+
+  pre code {
+    background: none;
+    padding: 0;
+  }
+
+  .note {
+    font-size: 0.9rem;
+    color: #666;
+    font-style: italic;
+    margin-top: 0.5rem;
+  }
+
+  .model-link {
+    display: inline-block;
+    padding: 0.75rem 1.5rem;
+    background: #667eea;
+    color: white;
+    text-decoration: none;
+    border-radius: 8px;
+    margin: 1rem 0;
+    transition: background 0.2s;
+  }
+
+  .model-link:hover {
+    background: #764ba2;
+  }
+
+  .feature-highlights {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-top: 1rem;
+  }
+
+  .feature-highlights span {
+    background: #e8f5e9;
+    color: #2e7d32;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.9rem;
+  }
+
+  .help-section {
+    background: #f8f9fa;
+    padding: 2rem;
+    border-radius: 12px;
+    text-align: center;
+    margin-top: 4rem;
+  }
+
+  .help-section h3 {
+    margin-bottom: 1rem;
+    color: #333;
+  }
+
+  .help-section a {
+    color: #667eea;
+    text-decoration: none;
+  }
+
+  .help-section a:hover {
+    text-decoration: underline;
+  }
+
+  @media (max-width: 768px) {
+    .installation-section {
+      padding: 3rem 0;
+    }
+
+    .step {
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .step-number {
+      width: 40px;
+      height: 40px;
+      font-size: 1.2rem;
+    }
+  }
+</style>
