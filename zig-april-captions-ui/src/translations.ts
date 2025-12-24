@@ -343,7 +343,7 @@ export const translations: Record<AppLanguage, Translations> = {
     generateQuestionsBtn: 'Câu hỏi',
 
     // About Panel
-    aboutTitle: 'Về Zipy',
+    aboutTitle: 'Về Zigy',
     contact: 'Liên hệ',
     email: 'Email',
     support: 'Hỗ trợ',

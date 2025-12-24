@@ -284,18 +284,18 @@ jobs:
               console.log('No ONNX Runtime library files found');
             }
 
-            // Use deb.files to install the binary and library directly to /usr/lib/zipy/
+            // Use deb.files to install the binary and library directly to /usr/lib/zigy/
             // The binary uses \$ORIGIN rpath to find the library relative to itself
             const files = {
-              '/usr/lib/zipy/zig-april-captions': 'resources/zig-april-captions'
+              '/usr/lib/zigy/zig-april-captions': 'resources/zig-april-captions'
             };
 
             if (onnxLibFile) {
-              files['/usr/lib/zipy/libonnxruntime.so'] = onnxLibFile;
+              files['/usr/lib/zigy/libonnxruntime.so'] = onnxLibFile;
             }
             if (onnxVersionedFile) {
               const version = onnxVersionedFile.match(/libonnxruntime\\.so\\.(.+)/)[1];
-              files['/usr/lib/zipy/libonnxruntime.so.' + version] = onnxVersionedFile;
+              files['/usr/lib/zigy/libonnxruntime.so.' + version] = onnxVersionedFile;
             }
 
             config.bundle.linux.deb.files = files;
