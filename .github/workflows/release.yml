@@ -155,6 +155,23 @@ jobs:
           pwd
           find . -name "zig-april-captions*" -type f || echo "No zig-april-captions files found"
 
+      - name: Update tauri.conf.json to include resources
+        shell: bash
+        run: |
+          cd zig-april-captions-ui/src-tauri
+          # Use sed or node to update the resources array in tauri.conf.json
+          node -e "
+          const fs = require('fs');
+          const config = JSON.parse(fs.readFileSync('tauri.conf.json', 'utf8'));
+          config.bundle.resources = [
+            'resources/zig-april-captions',
+            'resources/zig-april-captions.exe'
+          ];
+          fs.writeFileSync('tauri.conf.json', JSON.stringify(config, null, 2));
+          console.log('Updated tauri.conf.json with resources');
+          "
+          cat tauri.conf.json
+
       - name: Build Tauri App
         uses: tauri-apps/tauri-action@v0
         env:

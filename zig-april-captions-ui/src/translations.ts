@@ -5,6 +5,7 @@ export interface Translations {
   appName: string;
   captionsTab: string;
   settingsTab: string;
+  aboutTab: string;
 
   // History Display
   history: string;
@@ -106,6 +107,14 @@ export interface Translations {
   ideaTitle: string;
   generateSummaryBtn: string;
   generateQuestionsBtn: string;
+
+  // About Panel
+  aboutTitle: string;
+  contact: string;
+  email: string;
+  support: string;
+  buyMeACoffee: string;
+  githubSupport: string;
 }
 
 export const translations: Record<AppLanguage, Translations> = {
@@ -114,6 +123,7 @@ export const translations: Record<AppLanguage, Translations> = {
     appName: 'Zipy',
     captionsTab: 'Captions',
     settingsTab: 'Settings',
+    aboutTab: 'About',
 
     // History Display
     history: 'History',
@@ -215,12 +225,21 @@ export const translations: Record<AppLanguage, Translations> = {
     ideaTitle: 'Idea',
     generateSummaryBtn: 'Summary',
     generateQuestionsBtn: 'Questions',
+
+    // About Panel
+    aboutTitle: 'About Zipy',
+    contact: 'Contact',
+    email: 'Email',
+    support: 'Support',
+    buyMeACoffee: 'Buy Me a Coffee',
+    githubSupport: 'GitHub Support',
   },
   vi: {
     // App Header
     appName: 'Zipy',
     captionsTab: 'Phụ đề',
     settingsTab: 'Cài đặt',
+    aboutTab: 'Giới thiệu',
 
     // History Display
     history: 'Lịch sử',
@@ -322,6 +341,14 @@ export const translations: Record<AppLanguage, Translations> = {
     ideaTitle: 'Ý tưởng',
     generateSummaryBtn: 'Tóm tắt',
     generateQuestionsBtn: 'Câu hỏi',
+
+    // About Panel
+    aboutTitle: 'Về Zipy',
+    contact: 'Liên hệ',
+    email: 'Email',
+    support: 'Hỗ trợ',
+    buyMeACoffee: 'Mua cho tôi cà phê',
+    githubSupport: 'Hỗ trợ GitHub',
   },
 };
 

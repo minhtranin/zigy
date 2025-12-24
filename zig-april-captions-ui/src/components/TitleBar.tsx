@@ -79,6 +79,16 @@ export function TitleBar({ activeTab, onTabChange, t, simpleMode, onToggleSimple
           >
             {t.settingsTab}
           </button>
+          <button
+            className={`px-2.5 py-0.5 text-xs font-medium rounded-md transition-colors duration-200 ${
+              activeTab === 'about'
+                ? 'bg-indigo-600 text-white'
+                : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+            }`}
+            onClick={() => onTabChange('about')}
+          >
+            {t.aboutTab}
+          </button>
         </div>
       </div>
 

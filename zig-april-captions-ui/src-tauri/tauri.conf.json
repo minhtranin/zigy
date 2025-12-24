@@ -35,9 +35,6 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "resources": [
-      "resources/zig-april-captions",
-      "resources/zig-april-captions.exe"
-    ]
+    "resources": []
   }
 }

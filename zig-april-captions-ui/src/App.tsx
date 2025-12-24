@@ -5,6 +5,7 @@ import { TranscriptionDisplay } from './components/TranscriptionDisplay';
 import { HistoryDisplay } from './components/HistoryDisplay';
 import { AIPanel } from './components/AIPanel';
 import { SettingsPanel } from './components/SettingsPanel';
+import { AboutPanel } from './components/AboutPanel';
 import { ControlBar } from './components/ControlBar';
 import { TitleBar } from './components/TitleBar';
 import { InitMeetingModal } from './components/InitMeetingModal';
@@ -239,6 +240,12 @@ function App() {
     </div>
   );
 
+  const renderAboutContent = () => (
+    <div className="h-full overflow-auto">
+      <AboutPanel t={t} />
+    </div>
+  );
+
   // Simple mode view - only live transcription
   const renderSimpleMode = () => (
     <div className="flex items-center justify-center h-full p-8">
@@ -282,7 +289,11 @@ function App() {
         <div className="flex flex-1 p-2 md:p-3 gap-3 min-h-0">
           {/* Left side: Content - Takes more space */}
           <div className="flex-[2] flex flex-col min-w-0 min-h-0">
-            {activeTab === 'captions' ? renderCaptionsContent() : renderSettingsContent()}
+            {activeTab === 'captions'
+              ? renderCaptionsContent()
+              : activeTab === 'settings'
+                ? renderSettingsContent()
+                : renderAboutContent()}
           </div>
 
         {/* Right side: AI Panel (only shown in captions tab) - Takes less space */}
