@@ -40,7 +40,7 @@ export function TitleBar({ activeTab, onTabChange, t, simpleMode, onToggleSimple
 
   return (
     <div className="h-8 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between select-none">
-      {/* Left side: Logo, Tabs, Simple Mode */}
+      {/* Left side: Logo and Tabs */}
       <div className="flex items-center gap-1 h-full">
         {/* App name - draggable */}
         <div
@@ -85,14 +85,23 @@ export function TitleBar({ activeTab, onTabChange, t, simpleMode, onToggleSimple
             {t.aboutTab}
           </button>
         </div>
+      </div>
+
+      {/* Right side: Draggable space, Simple Mode, Window Controls */}
+      <div className="flex items-center h-full flex-1 justify-end">
+        {/* Empty draggable space */}
+        <div
+          className="flex-1 h-full"
+          data-tauri-drag-region
+        />
 
         {/* Simple Mode button */}
         <button
           onClick={onToggleSimpleMode}
-          className={`h-full px-3 py-0.5 transition-colors flex items-center justify-center gap-1 select-none rounded-md ${
+          className={`h-full px-3 transition-colors flex items-center justify-center gap-1 select-none ${
             simpleMode
               ? 'bg-indigo-600 text-white hover:bg-indigo-700'
-              : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+              : 'hover:bg-gray-200 dark:hover:bg-gray-700'
           }`}
           title={simpleMode ? "Exit Simple Mode" : "Simple Mode - Show only live transcription"}
         >
@@ -101,15 +110,6 @@ export function TitleBar({ activeTab, onTabChange, t, simpleMode, onToggleSimple
             Simple
           </span>
         </button>
-      </div>
-
-      {/* Right side: Draggable space + Window Controls */}
-      <div className="flex items-center h-full flex-1 justify-end">
-        {/* Empty draggable space */}
-        <div
-          className="flex-1 h-full"
-          data-tauri-drag-region
-        />
 
         {/* Window controls */}
         <button
