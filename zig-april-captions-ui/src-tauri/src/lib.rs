@@ -86,7 +86,7 @@ struct CaptionEvent {
 fn get_settings_path() -> std::path::PathBuf {
     let config_dir = dirs::config_dir()
         .unwrap_or_else(|| std::path::PathBuf::from("."))
-        .join("zipy");
+        .join("zigy");
     std::fs::create_dir_all(&config_dir).ok();
     config_dir.join("settings.json")
 }
@@ -94,7 +94,7 @@ fn get_settings_path() -> std::path::PathBuf {
 fn get_knowledge_path() -> std::path::PathBuf {
     let config_dir = dirs::config_dir()
         .unwrap_or_else(|| std::path::PathBuf::from("."))
-        .join("zipy");
+        .join("zigy");
     std::fs::create_dir_all(&config_dir).ok();
     config_dir.join("knowledge.json")
 }
@@ -102,7 +102,7 @@ fn get_knowledge_path() -> std::path::PathBuf {
 fn get_ideas_path() -> std::path::PathBuf {
     let config_dir = dirs::config_dir()
         .unwrap_or_else(|| std::path::PathBuf::from("."))
-        .join("zipy");
+        .join("zigy");
     std::fs::create_dir_all(&config_dir).ok();
     config_dir.join("ideas.json")
 }
@@ -110,7 +110,7 @@ fn get_ideas_path() -> std::path::PathBuf {
 fn get_chat_history_path() -> std::path::PathBuf {
     let config_dir = dirs::config_dir()
         .unwrap_or_else(|| std::path::PathBuf::from("."))
-        .join("zipy");
+        .join("zigy");
     std::fs::create_dir_all(&config_dir).ok();
     config_dir.join("chat_history.json")
 }
@@ -118,7 +118,7 @@ fn get_chat_history_path() -> std::path::PathBuf {
 fn get_context_snapshots_path() -> std::path::PathBuf {
     let config_dir = dirs::config_dir()
         .unwrap_or_else(|| std::path::PathBuf::from("."))
-        .join("zipy");
+        .join("zigy");
     std::fs::create_dir_all(&config_dir).ok();
     config_dir.join("context_snapshots.json")
 }
@@ -226,10 +226,10 @@ fn get_zig_binary_path(app_handle: &AppHandle) -> Result<String, String> {
         }
     }
 
-    // For Linux .deb packages: check /usr/lib/zipy/ (production mode)
+    // For Linux .deb packages: check /usr/lib/zigy/ (production mode)
     #[cfg(target_os = "linux")]
     {
-        let deb_path = Path::new("/usr/lib/zipy").join(&binary_name);
+        let deb_path = Path::new("/usr/lib/zigy").join(&binary_name);
         println!("Checking .deb installation path: {}", deb_path.display());
         if deb_path.exists() {
             println!("Found zig-april-captions at: {}", deb_path.display());
@@ -481,7 +481,7 @@ async fn save_settings(
 #[tauri::command]
 async fn export_captions(captions: Vec<Caption>, file_path: String) -> Result<(), String> {
     let mut content = String::new();
-    content.push_str("# Zipy Export\n\n");
+    content.push_str("# Zigy Export\n\n");
 
     for caption in captions {
         if caption.caption_type == "final" {
@@ -553,7 +553,7 @@ async fn get_binary_debug_info(app_handle: AppHandle) -> Result<String, String> 
 
     #[cfg(target_os = "linux")]
     {
-        let deb_path = Path::new("/usr/lib/zipy").join(&binary_name);
+        let deb_path = Path::new("/usr/lib/zigy").join(&binary_name);
         let exists = deb_path.exists();
         debug_info.push_str(&format!("Linux .deb path: {} [{}]\n", deb_path.display(), if exists { "FOUND" } else { "not found" }));
     }
@@ -589,9 +589,9 @@ async fn get_binary_debug_info(app_handle: AppHandle) -> Result<String, String> 
 
     #[cfg(target_os = "linux")]
     {
-        let lib_dir = Path::new("/usr/lib/zipy");
+        let lib_dir = Path::new("/usr/lib/zigy");
         if lib_dir.exists() {
-            debug_info.push_str("\n=== Contents of /usr/lib/zipy/ ===\n");
+            debug_info.push_str("\n=== Contents of /usr/lib/zigy/ ===\n");
             if let Ok(entries) = std::fs::read_dir(lib_dir) {
                 for entry in entries.flatten() {
                     let name = entry.file_name().into_string().unwrap_or_default();

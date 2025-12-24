@@ -1,4 +1,4 @@
-# Zipy
+# Zigy
 
 <div align="center">
 
@@ -27,7 +27,7 @@ Download the latest release for your platform from the [GitHub releases page](ht
 👉 **[Click here for the Complete Installation Guide](#-quick-start-guide)** 👈
 
 The guide includes:
-- ✅ How to download Zipy for your computer (Windows, Mac, or Linux)
+- ✅ How to download Zigy for your computer (Windows, Mac, or Linux)
 - ✅ Step-by-step installation with screenshots descriptions
 - ✅ How to set up voice recognition (one-time, 5 minutes)
 - ✅ Common problems and how to fix them
@@ -51,14 +51,14 @@ The guide includes:
 
 **Total time:** ~5-10 minutes (includes one-time model download)
 
-### Step 1: Download Zipy
+### Step 1: Download Zigy
 
 Go to the [releases page](https://github.com/minhtranin/zigy/releases/latest) and download the installer for your system:
 
-- **Windows** → `Zipy_x.x.x_x64-setup.exe`
-- **macOS** (M1/M2/M3/M4) → `Zipy_x.x.x_aarch64.dmg`
-- **Linux** (Ubuntu/Debian) → `zipy_x.x.x_amd64.deb`
-- **Linux** (Other) → `zipy_x.x.x_amd64.AppImage`
+- **Windows** → `Zigy_x.x.x_x64-setup.exe`
+- **macOS** (M1/M2/M3/M4) → `Zigy_x.x.x_aarch64.dmg`
+- **Linux** (Ubuntu/Debian) → `zigy_x.x.x_amd64.deb`
+- **Linux** (Other) → `zigy_x.x.x_amd64.AppImage`
 
 ### Step 2: Install
 
@@ -70,7 +70,7 @@ Go to the [releases page](https://github.com/minhtranin/zigy/releases/latest) an
    - Click **More info**
    - Click **Run anyway**
 3. Follow the installation wizard
-4. Launch Zipy from the Start Menu
+4. Launch Zigy from the Start Menu
 
 ⚠️ **Note:** Windows version includes the user interface only. Speech recognition is not available on Windows.
 
@@ -80,10 +80,10 @@ Go to the [releases page](https://github.com/minhtranin/zigy/releases/latest) an
 <summary><b>macOS Installation</b></summary>
 
 1. Double-click the downloaded `.dmg` file
-2. Drag the **Zipy** app to your **Applications** folder
-3. Go to Applications and double-click **Zipy**
+2. Drag the **Zigy** app to your **Applications** folder
+3. Go to Applications and double-click **Zigy**
 4. If you see "cannot be opened because the developer cannot be verified":
-   - Right-click (or Control-click) on **Zipy**
+   - Right-click (or Control-click) on **Zigy**
    - Click **Open**
    - Click **Open** again in the dialog
 
@@ -102,11 +102,11 @@ Go to the [releases page](https://github.com/minhtranin/zigy/releases/latest) an
    ```
 3. Install the package:
    ```bash
-   sudo dpkg -i zipy_0.1.0_amd64.deb
+   sudo dpkg -i zigy_0.1.0_amd64.deb
    ```
 4. Launch from your applications menu or run:
    ```bash
-   zipy
+   zigy
    ```
 
 </details>
@@ -121,18 +121,18 @@ Go to the [releases page](https://github.com/minhtranin/zigy/releases/latest) an
    ```
 3. Make the file executable:
    ```bash
-   chmod +x zipy_0.1.0_amd64.AppImage
+   chmod +x zigy_0.1.0_amd64.AppImage
    ```
 4. Run it:
    ```bash
-   ./zipy_0.1.0_amd64.AppImage
+   ./zigy_0.1.0_amd64.AppImage
    ```
 
 </details>
 
 ### Step 3: Download Voice Recognition Model (One-time)
 
-Zipy needs a voice model to recognize speech. This is a one-time download.
+Zigy needs a voice model to recognize speech. This is a one-time download.
 
 1. **Open this link:** https://april.sapples.net/
 2. **Download the file:** `april-english-dev-01110_en.april` (322 MB)
@@ -145,7 +145,7 @@ Zipy needs a voice model to recognize speech. This is a one-time download.
 
 ### Step 4: First Launch Setup
 
-1. **Open Zipy** (if not already open)
+1. **Open Zigy** (if not already open)
 2. Click the **Settings** icon (⚙️ gear icon in the top-right corner)
 3. Find the **"ASR Model"** section
 4. Click the **"Browse"** button
@@ -155,7 +155,7 @@ Zipy needs a voice model to recognize speech. This is a one-time download.
 
 ✅ **You're done!** This model will be remembered for all future sessions.
 
-### Step 5: Start Using Zipy
+### Step 5: Start Using Zigy
 
 1. Click the **"Start"** button
 2. Start speaking - your words will appear in real-time!
@@ -169,13 +169,13 @@ Zipy needs a voice model to recognize speech. This is a one-time download.
 ## 🔧 Troubleshooting
 
 <details>
-<summary><b>macOS: "Zipy cannot be opened"</b></summary>
+<summary><b>macOS: "Zigy cannot be opened"</b></summary>
 
 This is normal for apps downloaded from the internet.
 
 **Solution:**
 1. Don't double-click the app
-2. Right-click (or Control-click) on Zipy
+2. Right-click (or Control-click) on Zigy
 3. Select **Open**
 4. Click **Open** in the confirmation dialog
 
@@ -201,8 +201,8 @@ You need to make the file executable first.
 
 **Solution:**
 ```bash
-chmod +x zipy_0.1.0_amd64.AppImage
-./zipy_0.1.0_amd64.AppImage
+chmod +x zigy_0.1.0_amd64.AppImage
+./zigy_0.1.0_amd64.AppImage
 ```
 
 </details>
@@ -214,7 +214,7 @@ You haven't set up the voice recognition model yet.
 
 **Solution:**
 1. Download the model from https://april.sapples.net/ (`april-english-dev-01110_en.april`)
-2. In Zipy, go to Settings (⚙️)
+2. In Zigy, go to Settings (⚙️)
 3. Click Browse next to "ASR Model"
 4. Select the downloaded `.april` file
 5. Click Save
@@ -240,7 +240,7 @@ For full features, use Linux or macOS.
 
 ## 🌍 Other Languages
 
-Want to use Zipy with other languages? Download different models from the [April ASR models page](https://github.com/abb128/april-asr#models).
+Want to use Zigy with other languages? Download different models from the [April ASR models page](https://github.com/abb128/april-asr#models).
 
 ---
 
@@ -360,15 +360,15 @@ rm -rf src-tauri/target
 After a successful release, you'll find:
 
 **Linux:**
-- `zipy_0.1.0_amd64.deb` - Debian package
-- `zipy_0.1.0_amd64.AppImage` - Portable Linux app
+- `zigy_0.1.0_amd64.deb` - Debian package
+- `zigy_0.1.0_amd64.AppImage` - Portable Linux app
 
 **macOS:**
-- `Zipy_0.1.0_aarch64.dmg` - Apple Silicon installer
+- `Zigy_0.1.0_aarch64.dmg` - Apple Silicon installer
 
 **Windows:**
-- `Zipy_0.1.0_x64_en-US.msi` - Windows installer
-- `Zipy_0.1.0_x64-setup.exe` - Setup executable
+- `Zigy_0.1.0_x64_en-US.msi` - Windows installer
+- `Zigy_0.1.0_x64-setup.exe` - Setup executable
 
 ## 📄 License
 

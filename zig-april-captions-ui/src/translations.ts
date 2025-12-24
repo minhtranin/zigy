@@ -120,7 +120,7 @@ export interface Translations {
 export const translations: Record<AppLanguage, Translations> = {
   en: {
     // App Header
-    appName: 'Zipy',
+    appName: 'Zigy',
     captionsTab: 'Captions',
     settingsTab: 'Settings',
     aboutTab: 'About',
@@ -227,7 +227,7 @@ export const translations: Record<AppLanguage, Translations> = {
     generateQuestionsBtn: 'Questions',
 
     // About Panel
-    aboutTitle: 'About Zipy',
+    aboutTitle: 'About Zigy',
     contact: 'Contact',
     email: 'Email',
     support: 'Support',
@@ -236,7 +236,7 @@ export const translations: Record<AppLanguage, Translations> = {
   },
   vi: {
     // App Header
-    appName: 'Zipy',
+    appName: 'Zigy',
     captionsTab: 'Phụ đề',
     settingsTab: 'Cài đặt',
     aboutTab: 'Giới thiệu',
