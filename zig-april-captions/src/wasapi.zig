@@ -13,6 +13,13 @@ const kernel32 = std.os.windows.kernel32;
 // Use WINAPI for COM methods (Stdcall on x86, C on x86_64)
 const WINAPI = windows.WINAPI;
 
+// COM CLSCTX constants (not available in std.os.windows)
+const CLSCTX_INPROC_SERVER = 0x1;
+const CLSCTX_INPROC_HANDLER = 0x2;
+const CLSCTX_LOCAL_SERVER = 0x4;
+const CLSCTX_REMOTE_SERVER = 0x10;
+const CLSCTX_ALL = CLSCTX_INPROC_SERVER | CLSCTX_INPROC_HANDLER | CLSCTX_LOCAL_SERVER | CLSCTX_REMOTE_SERVER;
+
 // COM functions from ole32
 extern "ole32" fn CoInitializeEx(pvReserved: ?*anyopaque, dwCoInit: u32) callconv(WINAPI) HRESULT;
 extern "ole32" fn CoCreateInstance(rclsid: *const windows.GUID, pUnkOuter: ?*anyopaque, dwClsContext: u32, riid: *const windows.GUID, ppv: [*]?*anyopaque) callconv(WINAPI) HRESULT;
@@ -135,7 +142,7 @@ pub const AudioCapture = struct {
         const hr_enum = CoCreateInstance(
             &CLSID_MMDeviceEnumerator,
             null,
-            windows.clsctx.ALL,
+            CLSCTX_ALL,
             &IID_IMMDeviceEnumerator,
             @ptrCast(&device_enumerator),
         );
@@ -149,7 +156,7 @@ pub const AudioCapture = struct {
 
         // Call GetDefaultAudioEndpoint through vtable
         const vtable_enum = @as(*const *IMMDeviceEnumeratorVtbl, @alignCast(@ptrCast(device_enumerator.?)));
-        const hr_device = vtable_enum.GetDefaultAudioEndpoint(device_enumerator.?, data_flow, 1, &device);
+        const hr_device = vtable_enum.GetDefaultAudioEndpoint.*(vtable_enum.GetDefaultAudioEndpoint)(device_enumerator.?, data_flow, 1, &device);
 
         if (hr_device != .S_OK or device == null) {
             _ = release(device_enumerator);
@@ -159,7 +166,7 @@ pub const AudioCapture = struct {
         // Activate audio client
         var audio_client: ?*anyopaque = null;
         const vtable_device = @as(*const *IMMDeviceVtbl, @alignCast(@ptrCast(device.?)));
-        const hr_activate = vtable_device.Activate(device.?, &IID_IAudioClient, windows.clsctx.ALL, null, @ptrCast(&audio_client));
+        const hr_activate = vtable_device.Activate.*(vtable_device.Activate)(device.?, &IID_IAudioClient, CLSCTX_ALL, null, @ptrCast(&audio_client));
 
         if (hr_activate != .S_OK or audio_client == null) {
             _ = release(device);
@@ -182,7 +189,7 @@ pub const AudioCapture = struct {
         const vtable_audio = @as(*const *IAudioClientVtbl, @alignCast(@ptrCast(audio_client.?)));
         const stream_flags: u64 = if (source == .monitor) AUDCLNT_STREAMFLAGS_LOOPBACK else 0;
 
-        const hr_init = vtable_audio.Initialize(
+        const hr_init = vtable_audio.Initialize.*(vtable_audio.Initialize)(
             audio_client.?,
             AUDCLNT_SHAREMODE_SHARED,
             stream_flags,
@@ -201,7 +208,7 @@ pub const AudioCapture = struct {
 
         // Get capture client
         var capture_client: ?*anyopaque = null;
-        const hr_service = vtable_audio.GetService(audio_client.?, &IID_IAudioCaptureClient, @ptrCast(&capture_client));
+        const hr_service = vtable_audio.GetService.*(vtable_audio.GetService)(audio_client.?, &IID_IAudioCaptureClient, @ptrCast(&capture_client));
 
         if (hr_service != .S_OK or capture_client == null) {
             _ = release(audio_client);
@@ -221,10 +228,10 @@ pub const AudioCapture = struct {
         }
 
         // Set the event handle
-        _ = vtable_audio.SetEventHandle(audio_client.?, event_handle);
+        _ = vtable_audio.SetEventHandle.*(vtable_audio.SetEventHandle)(audio_client.?, event_handle);
 
         // Start recording
-        const hr_start = vtable_audio.Start(audio_client.?);
+        const hr_start = vtable_audio.Start.*(vtable_audio.Start)(audio_client.?);
         if (hr_start != .S_OK) {
             _ = windows.kernel32.CloseHandle(event_handle);
             _ = release(capture_client);
@@ -264,7 +271,7 @@ pub const AudioCapture = struct {
 
         while (bytes_read < bytes_to_read) {
             var packet_length: u32 = 0;
-            const hr_next = vtable_capture.GetNextPacketSize(self.capture_client.?, &packet_length);
+            const hr_next = vtable_capture.GetNextPacketSize.*(vtable_capture.GetNextPacketSize)(self.capture_client.?, &packet_length);
             if (hr_next != .S_OK) {
                 return WasapiError.ReadFailed;
             }
@@ -275,7 +282,7 @@ pub const AudioCapture = struct {
             var num_frames: u32 = 0;
             var flags: u32 = 0;
 
-            const hr_buffer = vtable_capture.GetBuffer(
+            const hr_buffer = vtable_capture.GetBuffer.*(vtable_capture.GetBuffer)(
                 self.capture_client.?,
                 &data,
                 &num_frames,
@@ -303,7 +310,7 @@ pub const AudioCapture = struct {
 
             bytes_read += to_copy;
 
-            const hr_release = vtable_capture.ReleaseBuffer(self.capture_client.?, num_frames);
+            const hr_release = vtable_capture.ReleaseBuffer.*(vtable_capture.ReleaseBuffer)(self.capture_client.?, num_frames);
             if (hr_release != .S_OK) {
                 return WasapiError.BufferError;
             }
@@ -340,7 +347,7 @@ pub const AudioCapture = struct {
 
         if (self.audio_client) |ac| {
             const vtable = @as(*const *IAudioClientVtbl, @alignCast(@ptrCast(ac)));
-            _ = vtable.Stop(ac);
+            _ = vtable.Stop.*(vtable.Stop)(ac);
         }
 
         if (self.capture_client) |cc| {
