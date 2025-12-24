@@ -49,6 +49,9 @@ pub fn build(b: *std.Build) void {
         // Windows-specific flags
         flags_list.append("-std=c11") catch unreachable;
         flags_list.append("-D_CRT_SECURE_NO_WARNINGS") catch unreachable;
+        // Include ONNX Runtime compatibility header before all other headers
+        flags_list.append("-include") catch unreachable;
+        flags_list.append("libs/april-asr/src/windows/onnxruntime_compat.h") catch unreachable;
     }
 
     const april_c_flags = flags_list.toOwnedSlice() catch unreachable;
