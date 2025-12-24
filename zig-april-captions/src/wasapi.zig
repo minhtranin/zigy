@@ -96,13 +96,18 @@ const IAudioClientVtbl = extern struct {
     QueryInterface: *const fn(*anyopaque, *const windows.GUID, *?*anyopaque) callconv(WINAPI) HRESULT,
     AddRef: *const fn(*anyopaque) callconv(WINAPI) u32,
     Release: *const fn(*anyopaque) callconv(WINAPI) u32,
-    Initialize: *const fn(*anyopaque, u32, u64, u64, *const WAVEFORMATEX, ?*const windows.GUID) callconv(WINAPI) HRESULT,
+    Initialize: *const fn(*anyopaque, u32, u64, u64, u64, *const WAVEFORMATEX, ?*const windows.GUID) callconv(WINAPI) HRESULT,
     GetBufferSize: *const fn(*anyopaque, *u32) callconv(WINAPI) HRESULT,
-    GetService: *const fn(*anyopaque, *const windows.GUID, *?*anyopaque) callconv(WINAPI) HRESULT,
+    GetStreamLatency: *const fn(*anyopaque, *i64) callconv(WINAPI) HRESULT,
+    GetCurrentPadding: *const fn(*anyopaque, *u32) callconv(WINAPI) HRESULT,
+    IsFormatSupported: *const fn(*anyopaque, u32, *const WAVEFORMATEX, *?*WAVEFORMATEX) callconv(WINAPI) HRESULT,
+    GetMixFormat: *const fn(*anyopaque, *?*WAVEFORMATEX) callconv(WINAPI) HRESULT,
+    GetDevicePeriod: *const fn(*anyopaque, ?*i64, ?*i64) callconv(WINAPI) HRESULT,
     Start: *const fn(*anyopaque) callconv(WINAPI) HRESULT,
     Stop: *const fn(*anyopaque) callconv(WINAPI) HRESULT,
     Reset: *const fn(*anyopaque) callconv(WINAPI) HRESULT,
     SetEventHandle: *const fn(*anyopaque, HANDLE) callconv(WINAPI) HRESULT,
+    GetService: *const fn(*anyopaque, *const windows.GUID, *?*anyopaque) callconv(WINAPI) HRESULT,
 };
 
 const IAudioCaptureClientVtbl = extern struct {
@@ -311,7 +316,9 @@ pub const AudioCapture = struct {
             );
 
             if (hr_buffer != @as(HRESULT, @as(c_long, 0))) {
-                if (@intFromEnum(hr_buffer) == AUDCLNT_BUFFER_ERROR) {
+                // Check for buffer error - compare as integers
+                const hr_code: c_ulong = @bitCast(hr_buffer);
+                if (hr_code == AUDCLNT_BUFFER_ERROR) {
                     break;
                 }
                 return WasapiError.BufferError;
