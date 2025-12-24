@@ -28,13 +28,9 @@ pub const AudioCapture = struct {
         if (builtin.os.tag == .windows) {
             // Windows: Always use microphone for now
             // WASAPI implementation will handle the source type internally
-            const wasapi_source = switch (source) {
-                .microphone => .microphone,
-                .monitor => .microphone, // Fall back to mic for monitor on Windows
-            };
             return Self{
                 .pulse_capture = undefined,
-                .wasapi_capture = try wasapi.AudioCapture.init(sample_rate, wasapi_source),
+                .wasapi_capture = try wasapi.AudioCapture.init(sample_rate, .microphone),
                 .is_pulse = false,
             };
         } else {
