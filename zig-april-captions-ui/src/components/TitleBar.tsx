@@ -40,8 +40,8 @@ export function TitleBar({ activeTab, onTabChange, t, simpleMode, onToggleSimple
 
   return (
     <div className="h-8 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between select-none">
-      {/* Left side: Logo (draggable) and Tabs */}
-      <div className="flex items-center gap-2 h-full flex-1">
+      {/* Left side: Logo, Tabs, Simple Mode */}
+      <div className="flex items-center gap-1 h-full">
         {/* App name - draggable */}
         <div
           className="flex items-center h-full px-3 cursor-default"
@@ -51,12 +51,6 @@ export function TitleBar({ activeTab, onTabChange, t, simpleMode, onToggleSimple
             {t.appName}
           </span>
         </div>
-
-        {/* Empty draggable space */}
-        <div
-          className="flex-1 h-full"
-          data-tauri-drag-region
-        />
 
         {/* Tabs */}
         <div className="flex gap-0.5">
@@ -91,16 +85,14 @@ export function TitleBar({ activeTab, onTabChange, t, simpleMode, onToggleSimple
             {t.aboutTab}
           </button>
         </div>
-      </div>
 
-      {/* Right side: Simple Mode + Window Controls */}
-      <div className="flex items-center h-full">
+        {/* Simple Mode button */}
         <button
           onClick={onToggleSimpleMode}
-          className={`h-full px-3 transition-colors flex items-center justify-center gap-1 select-none ${
+          className={`h-full px-3 py-0.5 transition-colors flex items-center justify-center gap-1 select-none rounded-md ${
             simpleMode
               ? 'bg-indigo-600 text-white hover:bg-indigo-700'
-              : 'hover:bg-gray-200 dark:hover:bg-gray-700'
+              : 'hover:bg-gray-100 dark:hover:bg-gray-700'
           }`}
           title={simpleMode ? "Exit Simple Mode" : "Simple Mode - Show only live transcription"}
         >
@@ -109,6 +101,17 @@ export function TitleBar({ activeTab, onTabChange, t, simpleMode, onToggleSimple
             Simple
           </span>
         </button>
+      </div>
+
+      {/* Right side: Draggable space + Window Controls */}
+      <div className="flex items-center h-full flex-1 justify-end">
+        {/* Empty draggable space */}
+        <div
+          className="flex-1 h-full"
+          data-tauri-drag-region
+        />
+
+        {/* Window controls */}
         <button
           onClick={handleMinimize}
           className="h-full px-4 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors flex items-center justify-center select-none"
