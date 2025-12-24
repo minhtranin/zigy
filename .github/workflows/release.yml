@@ -134,45 +134,20 @@ jobs:
           Invoke-WebRequest -Uri "https://github.com/microsoft/onnxruntime/releases/download/v1.16.3/onnxruntime-win-x64-1.16.3.zip" -OutFile "onnxruntime.zip"
           Expand-Archive -Path "onnxruntime.zip" -DestinationPath "onnxruntime-temp"
 
-          # Debug: Show the directory structure
-          Write-Host "ONNX Runtime zip structure:"
-          Get-ChildItem -Path "onnxruntime-temp" -Recurse
+          # The zip extracts to onnxruntime-win-x64-1.16.3 subdirectory
+          $onnxRoot = "onnxruntime-temp\onnxruntime-win-x64-1.16.3"
 
           # Create onnxruntime directory structure
           New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\onnxruntime\include"
           New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\onnxruntime\lib"
 
-          # Copy library files (.lib and .dll) from root
-          Copy-Item -Path "onnxruntime-temp\*.dll" -Destination "$env:USERPROFILE\onnxruntime\lib" -Force
-          Copy-Item -Path "onnxruntime-temp\*.lib" -Destination "$env:USERPROFILE\onnxruntime\lib" -Force
+          # Copy library files (.lib and .dll)
+          Copy-Item -Path "$onnxRoot\lib\*" -Destination "$env:USERPROFILE\onnxruntime\lib" -Force
 
-          # Copy include files - handle both possible structures
-          Write-Host "Copying include files..."
-          $headerFound = $false
+          # Copy include files - header is already named onnxruntime_c_api.h
+          Copy-Item -Path "$onnxRoot\include\onnxruntime_c_api.h" -Destination "$env:USERPROFILE\onnxruntime\include\" -Force
 
-          # Try structure 1: include/onnxruntime/c_api.h
-          if (Test-Path "onnxruntime-temp\include\onnxruntime\c_api.h") {
-            Copy-Item -Path "onnxruntime-temp\include\onnxruntime\c_api.h" -Destination "$env:USERPROFILE\onnxruntime\include\onnxruntime_c_api.h" -Force
-            $headerFound = $true
-            Write-Host "Found header at: include/onnxruntime/c_api.h"
-          }
-          # Try structure 2: include/c_api.h (direct)
-          elseif (Test-Path "onnxruntime-temp\include\c_api.h") {
-            Copy-Item -Path "onnxruntime-temp\include\c_api.h" -Destination "$env:USERPROFILE\onnxruntime\include\onnxruntime_c_api.h" -Force
-            $headerFound = $true
-            Write-Host "Found header at: include/c_api.h"
-          }
-          # Try structure 3: c_api.h in root
-          elseif (Test-Path "onnxruntime-temp\c_api.h") {
-            Copy-Item -Path "onnxruntime-temp\c_api.h" -Destination "$env:USERPROFILE\onnxruntime\include\onnxruntime_c_api.h" -Force
-            $headerFound = $true
-            Write-Host "Found header at: c_api.h (root)"
-          }
-
-          if (-not $headerFound) {
-            Write-Error "Could not find c_api.h in ONNX Runtime package"
-            exit 1
-          }
+          Write-Host "Successfully copied ONNX Runtime files"
 
           # Verify the files
           Write-Host "Include files:"
