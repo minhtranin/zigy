@@ -251,7 +251,7 @@ pub const AudioCapture = struct {
 
         // Set the event handle
         const SetEventHandle_fn = vtable_audio.SetEventHandle;
-        _ = SetEventHandle_fn(audio_client.?, event_handle);
+        _ = SetEventHandle_fn(audio_client.?, event_handle.?);
 
         // Start recording
         const Start_fn = vtable_audio.Start;
