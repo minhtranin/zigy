@@ -38,7 +38,9 @@ export function TitleBar({ activeTab, onTabChange, t, simpleMode, onToggleSimple
     }
   };
 
-  const handleDoubleClick = async () => {
+  const handleDoubleClick = async (e: React.MouseEvent) => {
+    // Only trigger if double-clicking on the title bar, not on buttons
+    if ((e.target as HTMLElement).closest('button')) return;
     try {
       const window = getCurrentWindow();
       await window.toggleMaximize();
@@ -48,58 +50,44 @@ export function TitleBar({ activeTab, onTabChange, t, simpleMode, onToggleSimple
   };
 
   return (
-    <div className="h-8 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between select-none">
-      {/* Left side: Logo (draggable + double-click) and Tabs */}
-      <div className="flex items-center gap-2 h-full flex-1">
-        {/* App name area - draggable and double-clickable for maximize */}
-        <div
-          className="flex items-center h-full px-3 cursor-default"
-          data-tauri-drag-region
-          onDoubleClick={handleDoubleClick}
-        >
-          <span className="text-sm font-semibold text-indigo-600 dark:text-indigo-400">
-            {t.appName}
-          </span>
-        </div>
-
-        {/* Tabs - separate from drag region to avoid interference */}
+    <div
+      className="h-8 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between select-none"
+      data-tauri-drag-region
+      onDoubleClick={handleDoubleClick}
+    >
+      {/* Left side: Logo and Tabs */}
+      <div className="flex items-center gap-2 h-full flex-1 px-3">
+        <span className="text-sm font-semibold text-indigo-600 dark:text-indigo-400 select-none">
+          {t.appName}
+        </span>
         <div className="flex gap-0.5">
           <button
-            className={`px-2.5 py-0.5 text-xs font-medium rounded-md transition-colors duration-200 ${
+            className={`px-2.5 py-0.5 text-xs font-medium rounded-md transition-colors duration-200 select-none ${
               activeTab === 'captions'
                 ? 'bg-indigo-600 text-white'
                 : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
             }`}
-            onClick={(e) => {
-              e.stopPropagation();
-              onTabChange('captions');
-            }}
+            onClick={() => onTabChange('captions')}
           >
             {t.captionsTab}
           </button>
           <button
-            className={`px-2.5 py-0.5 text-xs font-medium rounded-md transition-colors duration-200 ${
+            className={`px-2.5 py-0.5 text-xs font-medium rounded-md transition-colors duration-200 select-none ${
               activeTab === 'settings'
                 ? 'bg-indigo-600 text-white'
                 : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
             }`}
-            onClick={(e) => {
-              e.stopPropagation();
-              onTabChange('settings');
-            }}
+            onClick={() => onTabChange('settings')}
           >
             {t.settingsTab}
           </button>
           <button
-            className={`px-2.5 py-0.5 text-xs font-medium rounded-md transition-colors duration-200 ${
+            className={`px-2.5 py-0.5 text-xs font-medium rounded-md transition-colors duration-200 select-none ${
               activeTab === 'about'
                 ? 'bg-indigo-600 text-white'
                 : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
             }`}
-            onClick={(e) => {
-              e.stopPropagation();
-              onTabChange('about');
-            }}
+            onClick={() => onTabChange('about')}
           >
             {t.aboutTab}
           </button>
@@ -110,7 +98,7 @@ export function TitleBar({ activeTab, onTabChange, t, simpleMode, onToggleSimple
       <div className="flex items-center h-full">
         <button
           onClick={onToggleSimpleMode}
-          className={`h-full px-3 transition-colors flex items-center justify-center gap-1 ${
+          className={`h-full px-3 transition-colors flex items-center justify-center gap-1 select-none ${
             simpleMode
               ? 'bg-indigo-600 text-white hover:bg-indigo-700'
               : 'hover:bg-gray-200 dark:hover:bg-gray-700'
@@ -124,21 +112,21 @@ export function TitleBar({ activeTab, onTabChange, t, simpleMode, onToggleSimple
         </button>
         <button
           onClick={handleMinimize}
-          className="h-full px-4 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors flex items-center justify-center"
+          className="h-full px-4 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors flex items-center justify-center select-none"
           title="Minimize"
         >
           <Minus size={14} className="text-gray-600 dark:text-gray-300" />
         </button>
         <button
           onClick={handleMaximize}
-          className="h-full px-4 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors flex items-center justify-center"
+          className="h-full px-4 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors flex items-center justify-center select-none"
           title="Maximize"
         >
           <Square size={12} className="text-gray-600 dark:text-gray-300" />
         </button>
         <button
           onClick={handleClose}
-          className="h-full px-4 hover:bg-red-600 dark:hover:bg-red-600 hover:text-white transition-colors flex items-center justify-center"
+          className="h-full px-4 hover:bg-red-600 dark:hover:bg-red-600 hover:text-white transition-colors flex items-center justify-center select-none"
           title="Close"
         >
           <X size={16} className="text-gray-600 dark:text-gray-300 hover:text-white" />
