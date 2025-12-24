@@ -135,6 +135,14 @@ jobs:
           Expand-Archive -Path "onnxruntime.zip" -DestinationPath "onnxruntime-temp"
           mkdir -p $env:USERPROFILE\onnxruntime
           Copy-Item -Path "onnxruntime-temp\*" -Destination "$env:USERPROFILE\onnxruntime" -Recurse -Force
+
+          # Copy c_api.h to onnxruntime_c_api.h for April ASR compatibility
+          # April ASR expects onnxruntime_c_api.h but Windows has c_api.h
+          if (Test-Path "$env:USERPROFILE\onnxruntime\include\onnxruntime\c_api.h") {
+            Copy-Item -Path "$env:USERPROFILE\onnxruntime\include\onnxruntime\c_api.h" -Destination "$env:USERPROFILE\onnxruntime\include\onnxruntime_c_api.h"
+            Write-Host "Copied c_api.h to onnxruntime_c_api.h for compatibility"
+          }
+
           # Verify installation
           Get-ChildItem "$env:USERPROFILE\onnxruntime"
 

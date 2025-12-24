@@ -67,6 +67,11 @@ pub fn build(b: *std.Build) void {
     april_lib.addIncludePath(b.path("libs/april-asr/src/sonic"));
     april_lib.addIncludePath(b.path("libs/april-asr/src/tinycthread"));
 
+    // Windows-specific include path for endian.h compatibility
+    if (is_windows) {
+        april_lib.addIncludePath(b.path("libs/april-asr/src/windows"));
+    }
+
     // ONNX Runtime paths (required by April ASR)
     // Try environment variable first, then default to ~/onnxruntime
     const onnx_root = std.process.getEnvVarOwned(b.allocator, "ONNX_ROOT") catch null;
