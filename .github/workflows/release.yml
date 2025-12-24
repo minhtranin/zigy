@@ -110,10 +110,6 @@ jobs:
           mkdir -p ~/onnxruntime
           mv onnxruntime-osx-universal2-1.16.3/* ~/onnxruntime/
 
-      # Note: Skipping ONNX Runtime on Windows since zig-april-captions
-      # requires PulseAudio (Linux/macOS only). Windows build will have
-      # UI only, without speech recognition functionality.
-
       - name: Build zig-april-captions binary (Unix only)
         if: runner.os != 'Windows'
         shell: bash
@@ -130,16 +126,45 @@ jobs:
           fi
           cd ..
 
-      - name: Create placeholder binaries (Windows)
+      - name: Install ONNX Runtime (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Force -Path "zig-april-captions-ui\src-tauri\resources"
-          # Create placeholder files for Windows
-          # Note: Speech recognition not available on Windows
-          "# Speech recognition unavailable on Windows" | Out-File -FilePath "zig-april-captions-ui\src-tauri\resources\zig-april-captions.exe" -Encoding ASCII
-          "# Speech recognition unavailable on Windows" | Out-File -FilePath "zig-april-captions-ui\src-tauri\resources\zig-april-captions" -Encoding ASCII
-          Get-ChildItem "zig-april-captions-ui\src-tauri\resources\"
+          Write-Host "Installing ONNX Runtime for Windows..."
+          Invoke-WebRequest -Uri "https://github.com/microsoft/onnxruntime/releases/download/v1.16.3/onnxruntime-win-x64-1.16.3.zip" -OutFile "onnxruntime.zip"
+          Expand-Archive -Path "onnxruntime.zip" -DestinationPath "onnxruntime-temp"
+          mkdir -p $env:USERPROFILE\onnxruntime
+          Copy-Item -Path "onnxruntime-temp\*" -Destination "$env:USERPROFILE\onnxruntime" -Recurse -Force
+          # Verify installation
+          Get-ChildItem "$env:USERPROFILE\onnxruntime"
+
+      - name: Build zig-april-captions binary (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Write-Host "Building zig-april-captions for Windows with WASAPI support..."
+          cd zig-april-captions
+          New-Item -ItemType Directory -Force -Path "../zig-april-captions-ui/src-tauri/resources"
+
+          zig build -Doptimize=ReleaseFast
+          # Copy .exe to Tauri resources
+          if (Test-Path "zig-out\bin\zig-april-captions.exe") {
+            Copy-Item -Path "zig-out\bin\zig-april-captions.exe" -Destination "..\zig-april-captions-ui\src-tauri\resources\"
+            Write-Host "Successfully built zig-april-captions.exe for Windows"
+          } else {
+            Write-Error "Failed to build zig-april-captions.exe"
+            exit 1
+          }
+
+          # Copy ONNX Runtime DLL to Tauri resources (required for runtime)
+          if (Test-Path "$env:USERPROFILE\onnxruntime\onnxruntime.dll") {
+            Copy-Item -Path "$env:USERPROFILE\onnxruntime\onnxruntime.dll" -Destination "..\zig-april-captions-ui\src-tauri\resources\"
+            Write-Host "Copied onnxruntime.dll to resources"
+          } else {
+            Write-Error "onnxruntime.dll not found in $env:USERPROFILE\onnxruntime"
+            exit 1
+          }
+          cd ..
 
       - name: Install frontend dependencies
         shell: bash
@@ -163,9 +188,11 @@ jobs:
           node -e "
           const fs = require('fs');
           const config = JSON.parse(fs.readFileSync('tauri.conf.json', 'utf8'));
+          // Include all necessary binaries and DLLs for all platforms
           config.bundle.resources = [
-            'resources/zig-april-captions',
-            'resources/zig-april-captions.exe'
+            'resources/zig-april-captions',           // Linux/macOS binary
+            'resources/zig-april-captions.exe',       // Windows binary
+            'resources/onnxruntime.dll'               // Windows ONNX Runtime DLL
           ];
           fs.writeFileSync('tauri.conf.json', JSON.stringify(config, null, 2));
           console.log('Updated tauri.conf.json with resources');

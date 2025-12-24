@@ -12,7 +12,7 @@
 
 const std = @import("std");
 const april = @import("april.zig");
-const pulse = @import("pulse.zig");
+const audio = @import("audio.zig");
 const AsrProcessor = @import("processor.zig").AsrProcessor;
 
 const VERSION = "0.3.0";
@@ -33,7 +33,7 @@ pub fn main() !void {
 
     // Parse arguments
     var model_path: ?[]const u8 = null;
-    var audio_source = pulse.AudioSource.microphone;
+    var audio_source = audio.AudioSource.microphone;
     var output_mode = OutputMode.terminal;
 
     var i: usize = 1;
@@ -47,9 +47,9 @@ pub fn main() !void {
             std.debug.print("zig-april-captions {s}\n", .{VERSION});
             return;
         } else if (std.mem.eql(u8, arg, "--monitor") or std.mem.eql(u8, arg, "-m")) {
-            audio_source = pulse.AudioSource.monitor;
+            audio_source = audio.AudioSource.monitor;
         } else if (std.mem.eql(u8, arg, "--mic")) {
-            audio_source = pulse.AudioSource.microphone;
+            audio_source = audio.AudioSource.microphone;
         } else if (std.mem.eql(u8, arg, "--json") or std.mem.eql(u8, arg, "-j")) {
             output_mode = OutputMode.json;
         } else if (arg[0] != '-') {
@@ -111,18 +111,18 @@ pub fn main() !void {
     };
     defer processor.deinit(allocator);
 
-    // Initialize PulseAudio audio capture
+    // Initialize audio capture
     // Reference: LiveCaptions main.c - create_audio_thread()
     if (output_mode == .terminal) {
         std.debug.print("Initializing {s}...\n", .{source_name});
     }
-    var audio = pulse.AudioCapture.init(@intCast(processor.getSampleRate()), audio_source) catch |err| {
+    var audio_capture = audio.AudioCapture.init(@intCast(processor.getSampleRate()), audio_source) catch |err| {
         if (output_mode == .json) {
             stdout.print("{{\"type\":\"error\",\"message\":\"Failed to open {s}: {}\"}}\n", .{ source_name, err }) catch {};
         } else {
             std.debug.print("Error: Failed to open {s} - {}\n", .{ source_name, err });
             std.debug.print("\nMake sure:\n", .{});
-            std.debug.print("  1. PulseAudio is running\n", .{});
+            std.debug.print("  1. Audio subsystem is available\n", .{});
             if (audio_source == .microphone) {
                 std.debug.print("  2. A microphone is connected\n", .{});
             } else {
@@ -131,10 +131,10 @@ pub fn main() !void {
         }
         return;
     };
-    defer audio.deinit();
+    defer audio_capture.deinit();
 
     // Setup signal handler for graceful exit
-    setupSignalHandler(&audio);
+    setupSignalHandler(&audio_capture);
 
     if (output_mode == .terminal) {
         std.debug.print("\n", .{});
@@ -148,7 +148,7 @@ pub fn main() !void {
 
     // Audio buffer - 50ms chunks
     // Reference: LiveCaptions audiocap-pa.c - 50ms fragment size
-    const chunk_samples = pulse.samplesForMs(@intCast(processor.getSampleRate()), 50);
+    const chunk_samples = audio.samplesForMs(@intCast(processor.getSampleRate()), 50);
     var audio_buffer: [4096]i16 = undefined;
     const buffer_slice = audio_buffer[0..chunk_samples];
 
@@ -159,10 +159,10 @@ pub fn main() !void {
 
     // Main loop
     // Reference: LiveCaptions - audio capture → ASR processing → display
-    while (audio.isRunning()) {
+    while (audio_capture.isRunning()) {
         // Read audio
-        const samples = audio.read(buffer_slice) catch |err| {
-            if (err == pulse.PulseError.Terminated) break;
+        const samples = audio_capture.read(buffer_slice) catch |err| {
+            if (err == error.Terminated) break;
             if (output_mode == .terminal) {
                 std.debug.print("Audio error: {}\n", .{err});
             }
@@ -264,10 +264,10 @@ fn printUsage(program: []const u8) void {
 }
 
 // Global reference for signal handler
-var global_audio: ?*pulse.AudioCapture = null;
+var global_audio: ?*audio.AudioCapture = null;
 
-fn setupSignalHandler(audio: *pulse.AudioCapture) void {
-    global_audio = audio;
+fn setupSignalHandler(capture: *audio.AudioCapture) void {
+    global_audio = capture;
 
     const handler = struct {
         fn handle(_: c_int) callconv(.C) void {

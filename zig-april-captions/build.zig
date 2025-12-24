@@ -4,6 +4,8 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
+    const is_windows = target.result.os.tag == .windows;
+
     // =========================================
     // Build April ASR library from source
     // =========================================
@@ -29,18 +31,32 @@ pub fn build(b: *std.Build) void {
         "libs/april-asr/src/tinycthread/tinycthread.c",
     };
 
-    const april_c_flags = [_][]const u8{
-        "-std=gnu11", // Use GNU extensions for le32toh, ssize_t, etc.
-        "-fPIC",
-        "-DNDEBUG",
-        "-D_GNU_SOURCE",
-        "-D_POSIX_C_SOURCE=200809L",
-        "-DUSE_TINYCTHREAD", // Use tinycthread instead of C11 threads
-    };
+    // Build C flags based on platform
+    var flags_list = std.ArrayList([]const u8).init(b.allocator);
+    defer flags_list.deinit();
+
+    // Common flags
+    flags_list.append("-fPIC") catch unreachable;
+    flags_list.append("-DNDEBUG") catch unreachable;
+    flags_list.append("-DUSE_TINYCTHREAD") catch unreachable;
+
+    if (!is_windows) {
+        // POSIX-specific flags
+        flags_list.append("-std=gnu11") catch unreachable;
+        flags_list.append("-D_GNU_SOURCE") catch unreachable;
+        flags_list.append("-D_POSIX_C_SOURCE=200809L") catch unreachable;
+    } else {
+        // Windows-specific flags
+        flags_list.append("-std=c11") catch unreachable;
+        flags_list.append("-D_CRT_SECURE_NO_WARNINGS") catch unreachable;
+    }
+
+    const april_c_flags = flags_list.toOwnedSlice() catch unreachable;
+    defer b.allocator.free(april_c_flags);
 
     april_lib.addCSourceFiles(.{
         .files = &april_sources,
-        .flags = &april_c_flags,
+        .flags = april_c_flags,
     });
 
     // April ASR include paths
@@ -63,9 +79,11 @@ pub fn build(b: *std.Build) void {
     april_lib.addIncludePath(.{ .cwd_relative = b.fmt("{s}/include", .{onnx_path}) });
     april_lib.addLibraryPath(.{ .cwd_relative = b.fmt("{s}/lib", .{onnx_path}) });
 
-    // Link pthread for tinycthread
-    april_lib.linkSystemLibrary("pthread");
-    april_lib.linkSystemLibrary("m");
+    // Platform-specific linking for April ASR
+    if (!is_windows) {
+        april_lib.linkSystemLibrary("pthread");
+        april_lib.linkSystemLibrary("m");
+    }
     april_lib.linkLibC();
 
     // =========================================
@@ -88,20 +106,28 @@ pub fn build(b: *std.Build) void {
     exe.addLibraryPath(.{ .cwd_relative = b.fmt("{s}/lib", .{onnx_path}) });
     exe.linkSystemLibrary("onnxruntime");
 
-    // Add homebrew paths on macOS for PulseAudio
-    if (target.result.isDarwin()) {
-        exe.addIncludePath(.{ .cwd_relative = "/opt/homebrew/include" });
-        exe.addLibraryPath(.{ .cwd_relative = "/opt/homebrew/lib" });
-        exe.addRPath(.{ .cwd_relative = "/opt/homebrew/lib" });
+    // Platform-specific audio libraries
+    if (is_windows) {
+        // Windows: WASAPI libraries
+        exe.linkSystemLibrary("ole32");
+        exe.linkSystemLibrary("ksuser");
+    } else {
+        // macOS/Linux: PulseAudio
+        exe.linkSystemLibrary("pulse");
+        exe.linkSystemLibrary("pulse-simple");
+
+        // Add homebrew paths on macOS for PulseAudio
+        if (target.result.isDarwin()) {
+            exe.addIncludePath(.{ .cwd_relative = "/opt/homebrew/include" });
+            exe.addLibraryPath(.{ .cwd_relative = "/opt/homebrew/lib" });
+            exe.addRPath(.{ .cwd_relative = "/opt/homebrew/lib" });
+        }
+
+        // Standard POSIX libraries
+        exe.linkSystemLibrary("pthread");
+        exe.linkSystemLibrary("m");
     }
 
-    // PulseAudio
-    exe.linkSystemLibrary("pulse");
-    exe.linkSystemLibrary("pulse-simple");
-
-    // Standard libraries
-    exe.linkSystemLibrary("pthread");
-    exe.linkSystemLibrary("m");
     exe.linkLibC();
 
     // Add rpath so it finds onnxruntime at runtime
