@@ -155,8 +155,9 @@ pub const AudioCapture = struct {
         const data_flow: i32 = if (source == .microphone) 1 else 0; // eCapture = 1, eRender = 0
 
         // Call GetDefaultAudioEndpoint through vtable
-        const vtable_enum = @as(*const *IMMDeviceEnumeratorVtbl, @alignCast(@ptrCast(device_enumerator.?)));
-        const GetDefaultAudioEndpoint_fn = @as(*const fn(*anyopaque, i32, i32, [*]?*anyopaque) callconv(WINAPI) HRESULT, @ptrCast(&vtable_enum[3]));
+        const vtable_enum_ptr = @as(*const *IMMDeviceEnumeratorVtbl, @alignCast(@ptrCast(device_enumerator.?)));
+        const vtable_enum = vtable_enum_ptr.*;
+        const GetDefaultAudioEndpoint_fn = vtable_enum.GetDefaultAudioEndpoint;
         const hr_device = GetDefaultAudioEndpoint_fn(device_enumerator.?, data_flow, 1, &device);
 
         if (hr_device != @as(HRESULT, @as(c_long, 0)) or device == null) {
@@ -166,8 +167,9 @@ pub const AudioCapture = struct {
 
         // Activate audio client
         var audio_client: ?*anyopaque = null;
-        const vtable_device = @as(*const *IMMDeviceVtbl, @alignCast(@ptrCast(device.?)));
-        const Activate_fn = @as(*const fn(*anyopaque, *const windows.GUID, u32, ?*anyopaque, [*]?*anyopaque) callconv(WINAPI) HRESULT, @ptrCast(&vtable_device[3]));
+        const vtable_device_ptr = @as(*const *IMMDeviceVtbl, @alignCast(@ptrCast(device.?)));
+        const vtable_device = vtable_device_ptr.*;
+        const Activate_fn = vtable_device.Activate;
         const hr_activate = Activate_fn(device.?, &IID_IAudioClient, CLSCTX_ALL, null, @ptrCast(&audio_client));
 
         if (hr_activate != @as(HRESULT, @as(c_long, 0)) or audio_client == null) {
@@ -188,10 +190,11 @@ pub const AudioCapture = struct {
         };
 
         // Initialize audio client
-        const vtable_audio = @as(*const *IAudioClientVtbl, @alignCast(@ptrCast(audio_client.?)));
+        const vtable_audio_ptr = @as(*const *IAudioClientVtbl, @alignCast(@ptrCast(audio_client.?)));
+        const vtable_audio = vtable_audio_ptr.*;
         const stream_flags: u64 = if (source == .monitor) AUDCLNT_STREAMFLAGS_LOOPBACK else 0;
 
-        const Initialize_fn = @as(*const fn(*anyopaque, u32, u64, u64, *const WAVEFORMATEX, [*]const windows.GUID) callconv(WINAPI) HRESULT, @ptrCast(&vtable_audio[3]));
+        const Initialize_fn = vtable_audio.Initialize;
         const hr_init = Initialize_fn(
             audio_client.?,
             AUDCLNT_SHAREMODE_SHARED,
@@ -211,7 +214,7 @@ pub const AudioCapture = struct {
 
         // Get capture client
         var capture_client: ?*anyopaque = null;
-        const GetService_fn = @as(*const fn(*anyopaque, *const windows.GUID, [*]?*anyopaque) callconv(WINAPI) HRESULT, @ptrCast(&vtable_audio[5]));
+        const GetService_fn = vtable_audio.GetService;
         const hr_service = GetService_fn(audio_client.?, &IID_IAudioCaptureClient, @ptrCast(&capture_client));
 
         if (hr_service != @as(HRESULT, @as(c_long, 0))) {
@@ -239,11 +242,11 @@ pub const AudioCapture = struct {
         }
 
         // Set the event handle
-        const SetEventHandle_fn = @as(*const fn(*anyopaque, HANDLE) callconv(WINAPI) HRESULT, @ptrCast(&vtable_audio[8]));
+        const SetEventHandle_fn = vtable_audio.SetEventHandle;
         _ = SetEventHandle_fn(audio_client.?, event_handle);
 
         // Start recording
-        const Start_fn = @as(*const fn(*anyopaque) callconv(WINAPI) HRESULT, @ptrCast(&vtable_audio[6]));
+        const Start_fn = vtable_audio.Start;
         const hr_start = Start_fn(audio_client.?);
         if (hr_start != @as(HRESULT, @as(c_long, 0))) {
             _ = windows.kernel32.CloseHandle(event_handle);
@@ -280,11 +283,12 @@ pub const AudioCapture = struct {
             return buffer[0..0];
         }
 
-        const vtable_capture = @as(*const *IAudioCaptureClientVtbl, @alignCast(@ptrCast(self.capture_client.?)));
+        const vtable_capture_ptr = @as(*const *IAudioCaptureClientVtbl, @alignCast(@ptrCast(self.capture_client.?)));
+        const vtable_capture = vtable_capture_ptr.*;
 
         while (bytes_read < bytes_to_read) {
             var packet_length: u32 = 0;
-            const GetNextPacketSize_fn = @as(*const fn(*anyopaque, [*]u32) callconv(WINAPI) HRESULT, @ptrCast(&vtable_capture[5]));
+            const GetNextPacketSize_fn = vtable_capture.GetNextPacketSize;
             const hr_next = GetNextPacketSize_fn(self.capture_client.?, &packet_length);
             if (hr_next != @as(HRESULT, @as(c_long, 0))) {
                 return WasapiError.ReadFailed;
@@ -296,7 +300,7 @@ pub const AudioCapture = struct {
             var num_frames: u32 = 0;
             var flags: u32 = 0;
 
-            const GetBuffer_fn = @as(*const fn(*anyopaque, [*][*]u8, [*]u32, [*]u32, [*]u64, [*]u64) callconv(WINAPI) HRESULT, @ptrCast(&vtable_capture[3]));
+            const GetBuffer_fn = vtable_capture.GetBuffer;
             const hr_buffer = GetBuffer_fn(
                 self.capture_client.?,
                 &data,
@@ -325,7 +329,7 @@ pub const AudioCapture = struct {
 
             bytes_read += to_copy;
 
-            const ReleaseBuffer_fn = @as(*const fn(*anyopaque, u32) callconv(WINAPI) HRESULT, @ptrCast(&vtable_capture[4]));
+            const ReleaseBuffer_fn = vtable_capture.ReleaseBuffer;
             const hr_release = ReleaseBuffer_fn(self.capture_client.?, num_frames);
             if (hr_release != @as(HRESULT, @as(c_long, 0))) {
                 return WasapiError.BufferError;
@@ -362,8 +366,9 @@ pub const AudioCapture = struct {
         self.running.store(false, .release);
 
         if (self.audio_client) |ac| {
-            const vtable = @as(*const *IAudioClientVtbl, @alignCast(@ptrCast(ac)));
-            const Stop_fn = @as(*const fn(*anyopaque) callconv(WINAPI) HRESULT, @ptrCast(&vtable[7]));
+            const vtable_ptr = @as(*const *IAudioClientVtbl, @alignCast(@ptrCast(ac)));
+            const vtable = vtable_ptr.*;
+            const Stop_fn = vtable.Stop;
             _ = Stop_fn(ac);
         }
 
@@ -385,11 +390,19 @@ pub const AudioCapture = struct {
     }
 };
 
+// Generic COM vtable for Release (common to all COM objects)
+const GenericCOMVtbl = extern struct {
+    QueryInterface: *const fn(*anyopaque, *const windows.GUID, [*]?*anyopaque) callconv(WINAPI) HRESULT,
+    AddRef: *const fn(*anyopaque) callconv(WINAPI) u32,
+    Release: *const fn(*anyopaque) callconv(WINAPI) u32,
+};
+
 /// Helper function to release COM objects
 fn release(obj: ?*anyopaque) u32 {
     if (obj) |o| {
-        const vtable = @as(*const [*]const fn(*anyopaque) callconv(WINAPI) u32, @alignCast(@ptrCast(o)));
-        return vtable[1](o); // Release is always the second method (index 1)
+        const vtable_ptr = @as(*const *GenericCOMVtbl, @alignCast(@ptrCast(o)));
+        const vtable = vtable_ptr.*;
+        return vtable.Release(o);
     }
     return 0;
 }
