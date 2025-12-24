@@ -150,6 +150,40 @@ jobs:
           fi
           cd ..
 
+      - name: Build zig-april-captions binary (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          cd zig-april-captions
+          mkdir -p ../zig-april-captions-ui/src-tauri/resources
+
+          zig build -Doptimize=ReleaseFast
+          # Copy binary to Tauri resources and ensure it's executable
+          if [ -f "zig-out/bin/zig-april-captions" ]; then
+            cp zig-out/bin/zig-april-captions ../zig-april-captions-ui/src-tauri/resources/
+            chmod +x ../zig-april-captions-ui/src-tauri/resources/zig-april-captions
+            echo "Binary copied and made executable"
+          fi
+
+          # Copy ONNX Runtime shared library to resources for macOS
+          ONNX_LIB=$(find ~/onnxruntime -name "libonnxruntime.dylib" | grep -v "\.1\." | head -1)
+          if [ -n "$ONNX_LIB" ]; then
+            echo "Found ONNX Runtime library: $ONNX_LIB"
+            cp "$ONNX_LIB" ../zig-april-captions-ui/src-tauri/resources/
+            # Get the versioned library
+            ONNX_VERSIONED=$(find ~/onnxruntime -name "libonnxruntime.1.16.3.dylib" | head -1)
+            if [ -n "$ONNX_VERSIONED" ]; then
+              cp "$ONNX_VERSIONED" ../zig-april-captions-ui/src-tauri/resources/
+              echo "Copied ONNX Runtime library to resources"
+              # Fix rpath to use @loader_path so library is found relative to binary
+              install_name_tool -add_rpath @loader_path ../zig-april-captions-ui/src-tauri/resources/zig-april-captions 2>/dev/null || echo "Note: rpath modification skipped"
+              echo "Fixed rpath to @loader_path"
+            fi
+          else
+            echo "Warning: ONNX Runtime library not found"
+          fi
+          cd ..
+
       - name: Install ONNX Runtime (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
@@ -283,15 +317,31 @@ jobs:
             console.log('Updated tauri.conf.json with Windows resources');
             "
           else
-            # macOS: use resources
+            # macOS: use resources with dylib
             node -e "
             const fs = require('fs');
             const config = JSON.parse(fs.readFileSync('tauri.conf.json', 'utf8'));
+
+            // Find the ONNX Runtime library file names
+            const { execSync } = require('child_process');
+            let onnxLibFiles = [];
+
+            try {
+              const files = execSync('ls resources/libonnxruntime*.dylib 2>/dev/null', { encoding: 'utf8' }).trim().split('\\n');
+              onnxLibFiles = files.filter(f => f.match(/libonnxruntime.*\\.dylib$/));
+            } catch (e) {
+              console.log('No ONNX Runtime library files found');
+            }
+
+            // Include executable and all dylib files
             config.bundle.resources = [
-              'resources/zig-april-captions'
+              'resources/zig-april-captions',
+              ...onnxLibFiles
             ];
+
             fs.writeFileSync('tauri.conf.json', JSON.stringify(config, null, 2));
-            console.log('Updated tauri.conf.json with macOS resources');
+            console.log('Updated tauri.conf.json with macOS resources including dylib');
+            console.log('Resources:', config.bundle.resources);
             "
           fi
           cat tauri.conf.json

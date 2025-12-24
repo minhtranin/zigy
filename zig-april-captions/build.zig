@@ -139,9 +139,18 @@ pub fn build(b: *std.Build) void {
     exe.linkLibC();
 
     // Add rpath so it finds onnxruntime at runtime
-    // For production: use $ORIGIN to find libraries relative to the executable
+    // For production: use platform-specific relative paths
+    // Linux: $ORIGIN (finds libraries relative to executable)
+    // macOS: @loader_path (finds libraries relative to executable)
     // Note: We need to escape the $ for Zig's build system
-    exe.addRPath(.{ .cwd_relative = "$$$ORIGIN" });
+    if (target.result.isDarwin()) {
+        // macOS uses @loader_path
+        exe.addRPath(.{ .cwd_relative = "@loader_path" });
+    } else {
+        // Linux and others use $ORIGIN
+        exe.addRPath(.{ .cwd_relative = "$$$ORIGIN" });
+    }
+    // Development: also check the build location
     exe.addRPath(.{ .cwd_relative = b.fmt("{s}/lib", .{onnx_path}) });
 
     b.installArtifact(exe);
