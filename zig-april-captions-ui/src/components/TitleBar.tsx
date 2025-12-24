@@ -49,15 +49,20 @@ export function TitleBar({ activeTab, onTabChange, t, simpleMode, onToggleSimple
 
   return (
     <div className="h-8 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between select-none">
-      {/* Left side: Logo and Tabs */}
-      <div
-        className="flex items-center gap-2 h-full flex-1 px-3"
-        data-tauri-drag-region
-        onDoubleClick={handleDoubleClick}
-      >
-        <span className="text-sm font-semibold text-indigo-600 dark:text-indigo-400">
-          {t.appName}
-        </span>
+      {/* Left side: Logo (draggable + double-click) and Tabs */}
+      <div className="flex items-center gap-2 h-full flex-1">
+        {/* App name area - draggable and double-clickable for maximize */}
+        <div
+          className="flex items-center h-full px-3 cursor-default"
+          data-tauri-drag-region
+          onDoubleClick={handleDoubleClick}
+        >
+          <span className="text-sm font-semibold text-indigo-600 dark:text-indigo-400">
+            {t.appName}
+          </span>
+        </div>
+
+        {/* Tabs - separate from drag region to avoid interference */}
         <div className="flex gap-0.5">
           <button
             className={`px-2.5 py-0.5 text-xs font-medium rounded-md transition-colors duration-200 ${
@@ -65,7 +70,10 @@ export function TitleBar({ activeTab, onTabChange, t, simpleMode, onToggleSimple
                 ? 'bg-indigo-600 text-white'
                 : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
             }`}
-            onClick={() => onTabChange('captions')}
+            onClick={(e) => {
+              e.stopPropagation();
+              onTabChange('captions');
+            }}
           >
             {t.captionsTab}
           </button>
@@ -75,7 +83,10 @@ export function TitleBar({ activeTab, onTabChange, t, simpleMode, onToggleSimple
                 ? 'bg-indigo-600 text-white'
                 : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
             }`}
-            onClick={() => onTabChange('settings')}
+            onClick={(e) => {
+              e.stopPropagation();
+              onTabChange('settings');
+            }}
           >
             {t.settingsTab}
           </button>
@@ -85,7 +96,10 @@ export function TitleBar({ activeTab, onTabChange, t, simpleMode, onToggleSimple
                 ? 'bg-indigo-600 text-white'
                 : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
             }`}
-            onClick={() => onTabChange('about')}
+            onClick={(e) => {
+              e.stopPropagation();
+              onTabChange('about');
+            }}
           >
             {t.aboutTab}
           </button>
