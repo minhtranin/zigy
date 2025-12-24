@@ -291,6 +291,7 @@ async fn start_captions(
     }
 
     // Spawn the process
+    println!("Spawning process: {} {:?}", binary_path, args);
     let mut child = Command::new(&binary_path)
         .args(&args)
         .stdout(Stdio::piped())
@@ -298,10 +299,17 @@ async fn start_captions(
         .spawn()
         .map_err(|e| format!("Failed to start zig-april-captions at {}: {}", binary_path, e))?;
 
+    println!("Process spawned successfully, PID: {:?}", child.id());
+
     let stdout = child
         .stdout
         .take()
         .ok_or_else(|| "Failed to capture stdout".to_string())?;
+
+    let stderr = child
+        .stderr
+        .take()
+        .ok_or_else(|| "Failed to capture stderr".to_string())?;
 
     // Store the process
     {
@@ -319,6 +327,7 @@ async fn start_captions(
                     if json_line.is_empty() {
                         continue;
                     }
+                    println!("stdout: {}", json_line);
                     // Parse JSON and emit to frontend
                     match serde_json::from_str::<CaptionEvent>(&json_line) {
                         Ok(event) => {
@@ -348,6 +357,24 @@ async fn start_captions(
                 source: None,
             },
         );
+    });
+
+    // Spawn a thread to read stderr for debugging
+    std::thread::spawn(move || {
+        let reader = BufReader::new(stderr);
+        for line in reader.lines() {
+            match line {
+                Ok(stderr_line) => {
+                    if !stderr_line.is_empty() {
+                        eprintln!("stderr: {}", stderr_line);
+                    }
+                }
+                Err(e) => {
+                    eprintln!("Error reading stderr: {}", e);
+                    break;
+                }
+            }
+        }
     });
 
     Ok(())
@@ -446,6 +473,90 @@ async fn check_binary_exists(app_handle: AppHandle) -> Result<bool, String> {
 #[tauri::command]
 async fn get_binary_path(app_handle: AppHandle) -> Result<String, String> {
     get_zig_binary_path(&app_handle)
+}
+
+#[tauri::command]
+async fn get_binary_debug_info(app_handle: AppHandle) -> Result<String, String> {
+    #[cfg(target_os = "windows")]
+    let binary_name = "zig-april-captions.exe";
+    #[cfg(not(target_os = "windows"))]
+    let binary_name = "zig-april-captions";
+
+    let exe_path = std::env::current_exe()
+        .map_err(|e| format!("Failed to get executable path: {}", e))?;
+
+    let exe_dir = exe_path.parent().unwrap_or_else(|| Path::new(""));
+
+    let mut debug_info = String::new();
+    debug_info.push_str(&format!("=== Binary Debug Info ===\n"));
+    debug_info.push_str(&format!("Current executable: {}\n", exe_path.display()));
+    debug_info.push_str(&format!("Executable directory: {}\n", exe_dir.display()));
+    debug_info.push_str(&format!("Looking for binary: {}\n\n", binary_name));
+
+    debug_info.push_str("=== Candidate Paths ===\n");
+
+    let candidates = vec![
+        ("Same dir as exe", exe_dir.join(binary_name)),
+        ("resources/ subdirectory", exe_dir.join("resources").join(&binary_name)),
+        ("../resources/", exe_dir.join("..").join("resources").join(&binary_name)),
+    ];
+
+    for (desc, path) in &candidates {
+        let exists = path.exists();
+        debug_info.push_str(&format!("{}: {} [{}]\n", desc, path.display(), if exists { "FOUND" } else { "not found" }));
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        let deb_path = Path::new("/usr/lib/zipy").join(&binary_name);
+        let exists = deb_path.exists();
+        debug_info.push_str(&format!("Linux .deb path: {} [{}]\n", deb_path.display(), if exists { "FOUND" } else { "not found" }));
+    }
+
+    if let Ok(resource_path) = app_handle
+        .path()
+        .resolve(&binary_name, tauri::path::BaseDirectory::Resource)
+    {
+        let exists = resource_path.exists();
+        debug_info.push_str(&format!("Tauri resource path: {} [{}]\n", resource_path.display(), if exists { "FOUND" } else { "not found" }));
+    }
+
+    // List directory contents of exe_dir
+    debug_info.push_str("\n=== Contents of executable directory ===\n");
+    if let Ok(entries) = std::fs::read_dir(exe_dir) {
+        for entry in entries.flatten() {
+            let name = entry.file_name().into_string().unwrap_or_default();
+            debug_info.push_str(&format!("  {}\n", name));
+        }
+    }
+
+    // List resources directory if it exists
+    let resources_dir = exe_dir.join("resources");
+    if resources_dir.exists() {
+        debug_info.push_str("\n=== Contents of resources/ directory ===\n");
+        if let Ok(entries) = std::fs::read_dir(&resources_dir) {
+            for entry in entries.flatten() {
+                let name = entry.file_name().into_string().unwrap_or_default();
+                debug_info.push_str(&format!("  {}\n", name));
+            }
+        }
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        let lib_dir = Path::new("/usr/lib/zipy");
+        if lib_dir.exists() {
+            debug_info.push_str("\n=== Contents of /usr/lib/zipy/ ===\n");
+            if let Ok(entries) = std::fs::read_dir(lib_dir) {
+                for entry in entries.flatten() {
+                    let name = entry.file_name().into_string().unwrap_or_default();
+                    debug_info.push_str(&format!("  {}\n", name));
+                }
+            }
+        }
+    }
+
+    Ok(debug_info)
 }
 
 #[tauri::command]
@@ -869,6 +980,7 @@ pub fn run() {
             select_model_file,
             check_binary_exists,
             get_binary_path,
+            get_binary_debug_info,
             get_transcript,
             add_transcript_line,
             clear_transcript,
