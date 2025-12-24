@@ -133,18 +133,33 @@ jobs:
           Write-Host "Installing ONNX Runtime for Windows..."
           Invoke-WebRequest -Uri "https://github.com/microsoft/onnxruntime/releases/download/v1.16.3/onnxruntime-win-x64-1.16.3.zip" -OutFile "onnxruntime.zip"
           Expand-Archive -Path "onnxruntime.zip" -DestinationPath "onnxruntime-temp"
-          mkdir -p $env:USERPROFILE\onnxruntime
-          Copy-Item -Path "onnxruntime-temp\*" -Destination "$env:USERPROFILE\onnxruntime" -Recurse -Force
 
-          # Copy c_api.h to onnxruntime_c_api.h for April ASR compatibility
-          # April ASR expects onnxruntime_c_api.h but Windows has c_api.h
-          if (Test-Path "$env:USERPROFILE\onnxruntime\include\onnxruntime\c_api.h") {
-            Copy-Item -Path "$env:USERPROFILE\onnxruntime\include\onnxruntime\c_api.h" -Destination "$env:USERPROFILE\onnxruntime\include\onnxruntime_c_api.h"
-            Write-Host "Copied c_api.h to onnxruntime_c_api.h for compatibility"
+          # Create onnxruntime directory structure
+          New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\onnxruntime\include"
+          New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\onnxruntime\lib"
+
+          # Copy library files (.lib and .dll)
+          Copy-Item -Path "onnxruntime-temp\*.dll" -Destination "$env:USERPROFILE\onnxruntime\lib" -Force
+          Copy-Item -Path "onnxruntime-temp\*.lib" -Destination "$env:USERPROFILE\onnxruntime\lib" -Force
+
+          # Copy include files from the onnxruntime subdirectory
+          Write-Host "Copying include files..."
+          if (Test-Path "onnxruntime-temp\include\onnxruntime\c_api.h") {
+            # Copy the header and create a symlink/alias with expected name
+            Copy-Item -Path "onnxruntime-temp\include\onnxruntime\c_api.h" -Destination "$env:USERPROFILE\onnxruntime\include\c_api.h" -Force
+            Copy-Item -Path "onnxruntime-temp\include\onnxruntime\c_api.h" -Destination "$env:USERPROFILE\onnxruntime\include\onnxruntime_c_api.h" -Force
+            Write-Host "Copied c_api.h and created onnxruntime_c_api.h alias"
+          } else {
+            Write-Error "c_api.h not found in onnxruntime-temp\include\onnxruntime\"
+            Get-ChildItem -Path "onnxruntime-temp" -Recurse
+            exit 1
           }
 
-          # Verify installation
-          Get-ChildItem "$env:USERPROFILE\onnxruntime"
+          # Verify the files
+          Write-Host "Include files:"
+          Get-ChildItem -Path "$env:USERPROFILE\onnxruntime\include"
+          Write-Host "Lib files:"
+          Get-ChildItem -Path "$env:USERPROFILE\onnxruntime\lib"
 
       - name: Build zig-april-captions binary (Windows)
         if: runner.os == 'Windows'
@@ -165,11 +180,11 @@ jobs:
           }
 
           # Copy ONNX Runtime DLL to Tauri resources (required for runtime)
-          if (Test-Path "$env:USERPROFILE\onnxruntime\onnxruntime.dll") {
-            Copy-Item -Path "$env:USERPROFILE\onnxruntime\onnxruntime.dll" -Destination "..\zig-april-captions-ui\src-tauri\resources\"
+          if (Test-Path "$env:USERPROFILE\onnxruntime\lib\onnxruntime.dll") {
+            Copy-Item -Path "$env:USERPROFILE\onnxruntime\lib\onnxruntime.dll" -Destination "..\zig-april-captions-ui\src-tauri\resources\"
             Write-Host "Copied onnxruntime.dll to resources"
           } else {
-            Write-Error "onnxruntime.dll not found in $env:USERPROFILE\onnxruntime"
+            Write-Error "onnxruntime.dll not found in $env:USERPROFILE\onnxruntime\lib"
             exit 1
           }
           cd ..
@@ -193,18 +208,31 @@ jobs:
         run: |
           cd zig-april-captions-ui/src-tauri
           # Use sed or node to update the resources array in tauri.conf.json
-          node -e "
-          const fs = require('fs');
-          const config = JSON.parse(fs.readFileSync('tauri.conf.json', 'utf8'));
-          // Include all necessary binaries and DLLs for all platforms
-          config.bundle.resources = [
-            'resources/zig-april-captions',           // Linux/macOS binary
-            'resources/zig-april-captions.exe',       // Windows binary
-            'resources/onnxruntime.dll'               // Windows ONNX Runtime DLL
-          ];
-          fs.writeFileSync('tauri.conf.json', JSON.stringify(config, null, 2));
-          console.log('Updated tauri.conf.json with resources');
-          "
+          # Platform-specific resources
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            # Windows: include .exe and .dll
+            node -e "
+            const fs = require('fs');
+            const config = JSON.parse(fs.readFileSync('tauri.conf.json', 'utf8'));
+            config.bundle.resources = [
+              'resources/zig-april-captions.exe',
+              'resources/onnxruntime.dll'
+            ];
+            fs.writeFileSync('tauri.conf.json', JSON.stringify(config, null, 2));
+            console.log('Updated tauri.conf.json with Windows resources');
+            "
+          else
+            # Linux/macOS: include Unix binary only
+            node -e "
+            const fs = require('fs');
+            const config = JSON.parse(fs.readFileSync('tauri.conf.json', 'utf8'));
+            config.bundle.resources = [
+              'resources/zig-april-captions'
+            ];
+            fs.writeFileSync('tauri.conf.json', JSON.stringify(config, null, 2));
+            console.log('Updated tauri.conf.json with Unix resources');
+            "
+          fi
           cat tauri.conf.json
 
       - name: Build Tauri App
