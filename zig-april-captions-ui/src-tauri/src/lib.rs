@@ -3,7 +3,7 @@ use std::io::{BufRead, BufReader};
 use std::path::Path;
 use std::process::{Child, Command, Stdio};
 use std::sync::{Arc, Mutex};
-use tauri::{AppHandle, Emitter};
+use tauri::{AppHandle, Emitter, Manager};
 
 // Global state to manage the child process and transcript history
 struct AppState {
@@ -163,10 +163,10 @@ pub struct ContextSnapshot {
     pub compressed_token_count: i64, // Estimated tokens after compression
 }
 
-fn get_zig_binary_path() -> String {
+fn get_zig_binary_path(app_handle: &AppHandle) -> Result<String, String> {
     // Try to find the zig-april-captions binary
     // Priority order:
-    // 1. Bundled resources (production)
+    // 1. Bundled resources (production) - via Tauri resource resolver
     // 2. Dev mode build
     // 3. User's workspace
     // 4. In PATH
@@ -176,8 +176,21 @@ fn get_zig_binary_path() -> String {
     #[cfg(not(target_os = "windows"))]
     let binary_name = "zig-april-captions";
 
+    // Try Tauri's resource resolver first (for production bundles)
+    let resource_path = app_handle
+        .path()
+        .resolve(format!("resources/{}", binary_name), tauri::path::BaseDirectory::Resource);
+
+    if let Ok(path) = resource_path {
+        if path.exists() {
+            println!("Found zig-april-captions in bundled resources at: {}", path.display());
+            return Ok(path.to_string_lossy().to_string());
+        }
+    }
+
+    // Fallback to manual search
     let candidates = vec![
-        // Bundled resources - relative to executable (production)
+        // Bundled resources - relative to executable (alternative locations)
         format!("./resources/{}", binary_name),
         format!("../resources/{}", binary_name),
         // In the same parent directory (dev mode)
@@ -190,20 +203,18 @@ fn get_zig_binary_path() -> String {
                 .unwrap_or_default(),
             binary_name
         ),
-        // In PATH
-        binary_name.to_string(),
     ];
 
-    for candidate in candidates {
-        if Path::new(&candidate).exists() || candidate == binary_name {
+    for candidate in &candidates {
+        if Path::new(&candidate).exists() {
             println!("Found zig-april-captions at: {}", candidate);
-            return candidate;
+            return Ok(candidate.to_string());
         }
     }
 
-    // Default to bundled resource
-    println!("Warning: zig-april-captions not found in any location, trying bundled path");
-    format!("./resources/{}", binary_name)
+    // Try in PATH as last resort
+    println!("Warning: zig-april-captions not found in any location, trying system PATH");
+    Ok(binary_name.to_string())
 }
 
 #[tauri::command]
@@ -216,7 +227,7 @@ async fn start_captions(
     // Stop any existing process first
     stop_captions_internal(&state)?;
 
-    let binary_path = get_zig_binary_path();
+    let binary_path = get_zig_binary_path(&app_handle)?;
 
     // Build command arguments
     let mut args = vec!["--json".to_string()];
@@ -227,13 +238,35 @@ async fn start_captions(
 
     println!("Starting: {} {:?}", binary_path, args);
 
+    // Check if binary exists and is executable
+    let binary_path_obj = Path::new(&binary_path);
+    if !binary_path_obj.exists() {
+        return Err(format!("Binary not found at path: {}", binary_path));
+    }
+
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let metadata = std::fs::metadata(&binary_path)
+            .map_err(|e| format!("Failed to get binary metadata: {}", e))?;
+        let permissions = metadata.permissions();
+        let mode = permissions.mode();
+        println!("Binary permissions: {:o}", mode);
+
+        if mode & 0o111 == 0 {
+            println!("Warning: Binary is not executable, attempting to set +x");
+            std::fs::set_permissions(&binary_path, std::fs::Permissions::from_mode(mode | 0o111))
+                .map_err(|e| format!("Failed to make binary executable: {}", e))?;
+        }
+    }
+
     // Spawn the process
     let mut child = Command::new(&binary_path)
         .args(&args)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
-        .map_err(|e| format!("Failed to start zig-april-captions: {}", e))?;
+        .map_err(|e| format!("Failed to start zig-april-captions at {}: {}", binary_path, e))?;
 
     let stdout = child
         .stdout
@@ -375,14 +408,14 @@ async fn select_model_file() -> Result<Option<String>, String> {
 }
 
 #[tauri::command]
-async fn check_binary_exists() -> Result<bool, String> {
-    let path = get_zig_binary_path();
-    Ok(std::path::Path::new(&path).exists() || path == "zig-april-captions")
+async fn check_binary_exists(app_handle: AppHandle) -> Result<bool, String> {
+    let path = get_zig_binary_path(&app_handle)?;
+    Ok(std::path::Path::new(&path).exists() || path == "zig-april-captions" || path == "zig-april-captions.exe")
 }
 
 #[tauri::command]
-async fn get_binary_path() -> Result<String, String> {
-    Ok(get_zig_binary_path())
+async fn get_binary_path(app_handle: AppHandle) -> Result<String, String> {
+    get_zig_binary_path(&app_handle)
 }
 
 #[tauri::command]

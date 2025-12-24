@@ -118,9 +118,11 @@ jobs:
           mkdir -p ../zig-april-captions-ui/src-tauri/resources
 
           zig build -Doptimize=ReleaseFast
-          # Copy binary to Tauri resources
+          # Copy binary to Tauri resources and ensure it's executable
           if [ -f "zig-out/bin/zig-april-captions" ]; then
             cp zig-out/bin/zig-april-captions ../zig-april-captions-ui/src-tauri/resources/
+            chmod +x ../zig-april-captions-ui/src-tauri/resources/zig-april-captions
+            echo "Binary copied and made executable"
             # Create placeholder for .exe on Unix platforms
             touch ../zig-april-captions-ui/src-tauri/resources/zig-april-captions.exe
           fi
