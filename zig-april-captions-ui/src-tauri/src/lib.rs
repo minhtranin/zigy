@@ -196,6 +196,18 @@ fn get_zig_binary_path(app_handle: &AppHandle) -> Result<String, String> {
         }
     }
 
+    // For Linux .deb packages: check /usr/lib/zipy/
+    // This is where deb.files installs the binary
+    #[cfg(target_os = "linux")]
+    {
+        let deb_path = Path::new("/usr/lib/zipy").join(&binary_name);
+        println!("Checking .deb installation path: {}", deb_path.display());
+        if deb_path.exists() {
+            println!("Found zig-april-captions at: {}", deb_path.display());
+            return Ok(deb_path.to_string_lossy().to_string());
+        }
+    }
+
     // Try Tauri's resource resolver (for some bundle formats)
     if let Ok(resource_path) = app_handle
         .path()
