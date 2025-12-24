@@ -300,21 +300,29 @@ jobs:
 
             config.bundle.linux.deb.files = files;
 
-            // Also set resources for AppImage (needs files bundled differently)
-            config.bundle.resources = [
+            // Also set resources for AppImage (CRITICAL for AppImage to work)
+            const resources = [
               'resources/zig-april-captions',
               'resources/libonnxruntime.so'
             ];
             // Add versioned library if exists
             if (onnxVersionedFile) {
-              config.bundle.resources.push(onnxVersionedFile);
+              resources.push(onnxVersionedFile);
             }
 
+            config.bundle.resources = resources;
+
             fs.writeFileSync('tauri.conf.json', JSON.stringify(config, null, 2));
-            console.log('Updated tauri.conf.json with Linux deb.files and resources for AppImage');
-            console.log(JSON.stringify(config.bundle.linux.deb, null, 2));
-            console.log('Resources:', config.bundle.resources);
+            console.log('=== Updated tauri.conf.json ===');
+            console.log('deb.files:', JSON.stringify(config.bundle.linux.deb.files, null, 2));
+            console.log('resources:', config.bundle.resources);
             "
+
+            # Verify files exist
+            echo "=== Verifying resource files exist ==="
+            ls -la resources/zig-april-captions || echo "ERROR: zig-april-captions not found!"
+            ls -la resources/libonnxruntime.so* || echo "ERROR: libonnxruntime.so not found!"
+
           elif [ "$RUNNER_OS" = "Windows" ]; then
             # Windows: use resources
             node -e "
