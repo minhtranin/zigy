@@ -252,11 +252,11 @@ function App() {
       <div className="w-full max-w-4xl">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 border-2 border-indigo-500">
           <div className="text-center">
-            <div className="text-sm font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-4">
-              Live Transcription
+            <div className="text-sm font-semibold text-indigo-600 dark:text-indigo-400 tracking-wider mb-4">
+              Live transcription
             </div>
             <div
-              className="text-gray-800 dark:text-gray-200 leading-relaxed min-h-[100px] whitespace-pre-wrap"
+              className="text-gray-800 dark:text-gray-200 leading-relaxed min-h-[100px] whitespace-pre-wrap lowercase"
               style={{ fontSize: `${settings.font_size * 1.2}px` }}
             >
               {currentText || (
