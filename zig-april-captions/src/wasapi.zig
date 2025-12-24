@@ -8,6 +8,11 @@ const std = @import("std");
 const windows = std.os.windows;
 const HRESULT = windows.HRESULT;
 const HANDLE = windows.HANDLE;
+const kernel32 = std.os.windows.kernel32;
+
+// COM functions from ole32
+extern "ole32" fn CoInitializeEx(pvReserved: ?*anyopaque, dwCoInit: u32) callconv(.Stdcall) HRESULT;
+extern "ole32" fn CoCreateInstance(rclsid: *const windows.GUID, pUnkOuter: ?*anyopaque, dwClsContext: u32, riid: *const windows.GUID, ppv: [*]?*anyopaque) callconv(.Stdcall) HRESULT;
 
 // COM Interface GUIDs
 const IID_IMMDeviceEnumerator = windows.GUID{ .data1 = 0xa95664d2, .data2 = 0x9614, .data3 = 0x4f9f, .data4 = .{ 0xb9, 0x3a, 0x6a, 0x93, 0x52, 0x49, 0x13, 0x04 } };
@@ -31,6 +36,7 @@ pub const WasapiError = error{
     GetServiceFailed,
     ReadFailed,
     BufferError,
+    NullHandle,
 };
 
 /// Audio source type
@@ -122,15 +128,15 @@ pub const AudioCapture = struct {
         };
 
         // Initialize COM
-        _ = windows.CoInitializeEx(null, .MULTITHREADED);
+        _ = CoInitializeEx(null, 0); // COINIT_MULTITHREADED = 0
 
         // Get device enumerator
         var device_enumerator: ?*anyopaque = null;
-        const hr_enum = windows.CoCreateInstance(
-            CLSID_MMDeviceEnumerator,
+        const hr_enum = CoCreateInstance(
+            &CLSID_MMDeviceEnumerator,
             null,
-            .CLSCTX_ALL,
-            IID_IMMDeviceEnumerator,
+            windows.clsctx.ALL,
+            &IID_IMMDeviceEnumerator,
             @ptrCast(&device_enumerator),
         );
         if (hr_enum != .S_OK or device_enumerator == null) {
@@ -142,7 +148,7 @@ pub const AudioCapture = struct {
         const data_flow: i32 = if (source == .microphone) 1 else 0; // eCapture = 1, eRender = 0
 
         // Call GetDefaultAudioEndpoint through vtable
-        const vtable_enum = @as(*const *IMMDeviceEnumeratorVtbl, @ptrCast(device_enumerator.?));
+        const vtable_enum = @as(*const *IMMDeviceEnumeratorVtbl, @alignCast(@ptrCast(device_enumerator.?)));
         const hr_device = vtable_enum.GetDefaultAudioEndpoint(device_enumerator.?, data_flow, 1, &device);
 
         if (hr_device != .S_OK or device == null) {
@@ -152,7 +158,7 @@ pub const AudioCapture = struct {
 
         // Activate audio client
         var audio_client: ?*anyopaque = null;
-        const vtable_device = @as(*const *IMMDeviceVtbl, @ptrCast(device.?));
+        const vtable_device = @as(*const *IMMDeviceVtbl, @alignCast(@ptrCast(device.?)));
         const hr_activate = vtable_device.Activate(device.?, IID_IAudioClient, windows.clsctx.ALL, null, @ptrCast(&audio_client));
 
         if (hr_activate != .S_OK or audio_client == null) {
@@ -173,7 +179,7 @@ pub const AudioCapture = struct {
         };
 
         // Initialize audio client
-        const vtable_audio = @as(*const *IAudioClientVtbl, @ptrCast(audio_client.?));
+        const vtable_audio = @as(*const *IAudioClientVtbl, @alignCast(@ptrCast(audio_client.?)));
         const stream_flags: u64 = if (source == .monitor) AUDCLNT_STREAMFLAGS_LOOPBACK else 0;
 
         const hr_init = vtable_audio.Initialize(
@@ -220,7 +226,7 @@ pub const AudioCapture = struct {
         // Start recording
         const hr_start = vtable_audio.Start(audio_client.?);
         if (hr_start != .S_OK) {
-            _ = windows.CloseHandle(event_handle);
+            _ = windows.kernel32.CloseHandle(event_handle);
             _ = release(capture_client);
             _ = release(audio_client);
             _ = release(device);
@@ -249,12 +255,12 @@ pub const AudioCapture = struct {
         var bytes_read: usize = 0;
 
         // Wait for audio data
-        const wait_result = windows.WaitForSingleObject(self.event_handle orelse return error.NullHandle, 1000);
+        const wait_result = windows.kernel32.WaitForSingleObject(self.event_handle orelse return error.NullHandle, 1000);
         if (wait_result != .WAIT_OBJECT_0) {
             return buffer[0..0];
         }
 
-        const vtable_capture = @as(*const *IAudioCaptureClientVtbl, @ptrCast(self.capture_client.?));
+        const vtable_capture = @as(*const *IAudioCaptureClientVtbl, @alignCast(@ptrCast(self.capture_client.?)));
 
         while (bytes_read < bytes_to_read) {
             var packet_length: u32 = 0;
@@ -333,7 +339,7 @@ pub const AudioCapture = struct {
         self.running.store(false, .release);
 
         if (self.audio_client) |ac| {
-            const vtable = @as(*const *IAudioClientVtbl, @ptrCast(ac));
+            const vtable = @as(*const *IAudioClientVtbl, @alignCast(@ptrCast(ac)));
             _ = vtable.Stop(ac);
         }
 
@@ -350,7 +356,7 @@ pub const AudioCapture = struct {
         }
 
         if (self.event_handle) |h| {
-            _ = windows.CloseHandle(h);
+            _ = windows.kernel32.CloseHandle(h);
         }
     }
 };
@@ -358,7 +364,7 @@ pub const AudioCapture = struct {
 /// Helper function to release COM objects
 fn release(obj: ?*anyopaque) u32 {
     if (obj) |o| {
-        const vtable = @as(*const [*]const fn(*anyopaque) callconv(.Stdcall) u32, @ptrCast(o));
+        const vtable = @as(*const [*]const fn(*anyopaque) callconv(.Stdcall) u32, @alignCast(@ptrCast(o)));
         return vtable[1](o); // Release is always the second method (index 1)
     }
     return 0;
