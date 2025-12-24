@@ -11,6 +11,7 @@
 //! Press Ctrl+C to exit
 
 const std = @import("std");
+const builtin = @import("builtin");
 const april = @import("april.zig");
 const audio = @import("audio.zig");
 const AsrProcessor = @import("processor.zig").AsrProcessor;
@@ -269,20 +270,36 @@ var global_audio: ?*audio.AudioCapture = null;
 fn setupSignalHandler(capture: *audio.AudioCapture) void {
     global_audio = capture;
 
-    const handler = struct {
-        fn handle(_: c_int) callconv(.C) void {
-            if (global_audio) |a| {
-                a.stop();
+    if (builtin.os.tag == .windows) {
+        // Windows: Use SetConsoleCtrlHandler
+        const windows = std.os.windows;
+        const handler = struct {
+            fn handle(ctrl_type: windows.DWORD) callconv(windows.WINAPI) windows.BOOL {
+                _ = ctrl_type;
+                if (global_audio) |a| {
+                    a.stop();
+                }
+                return windows.TRUE;
             }
-        }
-    }.handle;
+        }.handle;
+        _ = windows.kernel32.SetConsoleCtrlHandler(handler, windows.TRUE);
+    } else {
+        // POSIX: Use sigaction
+        const handler = struct {
+            fn handle(_: c_int) callconv(.C) void {
+                if (global_audio) |a| {
+                    a.stop();
+                }
+            }
+        }.handle;
 
-    const act = std.posix.Sigaction{
-        .handler = .{ .handler = handler },
-        .mask = std.posix.empty_sigset,
-        .flags = 0,
-    };
+        const act = std.posix.Sigaction{
+            .handler = .{ .handler = handler },
+            .mask = std.posix.empty_sigset,
+            .flags = 0,
+        };
 
-    std.posix.sigaction(std.posix.SIG.INT, &act, null) catch {};
-    std.posix.sigaction(std.posix.SIG.TERM, &act, null) catch {};
+        std.posix.sigaction(std.posix.SIG.INT, &act, null) catch {};
+        std.posix.sigaction(std.posix.SIG.TERM, &act, null) catch {};
+    }
 }

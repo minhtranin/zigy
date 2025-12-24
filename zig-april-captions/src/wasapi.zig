@@ -22,7 +22,7 @@ const CLSCTX_ALL = CLSCTX_INPROC_SERVER | CLSCTX_INPROC_HANDLER | CLSCTX_LOCAL_S
 
 // COM functions from ole32
 extern "ole32" fn CoInitializeEx(pvReserved: ?*anyopaque, dwCoInit: u32) callconv(WINAPI) HRESULT;
-extern "ole32" fn CoCreateInstance(rclsid: *const windows.GUID, pUnkOuter: ?*anyopaque, dwClsContext: u32, riid: *const windows.GUID, ppv: [*]?*anyopaque) callconv(WINAPI) HRESULT;
+extern "ole32" fn CoCreateInstance(rclsid: *const windows.GUID, pUnkOuter: ?*anyopaque, dwClsContext: u32, riid: *const windows.GUID, ppv: *?*anyopaque) callconv(WINAPI) HRESULT;
 
 // COM Interface GUIDs
 const IID_IMMDeviceEnumerator = windows.GUID{ .Data1 = 0xa95664d2, .Data2 = 0x9614, .Data3 = 0x4f9f, .Data4 = .{ 0xb9, 0x3a, 0x6a, 0x93, 0x52, 0x49, 0x13, 0x04 } };
@@ -79,26 +79,26 @@ const WAVEFORMATEX = extern struct {
 
 // COM vtable definitions
 const IMMDeviceEnumeratorVtbl = extern struct {
-    QueryInterface: *const fn(*anyopaque, *const windows.GUID, [*]?*anyopaque) callconv(WINAPI) HRESULT,
+    QueryInterface: *const fn(*anyopaque, *const windows.GUID, *?*anyopaque) callconv(WINAPI) HRESULT,
     AddRef: *const fn(*anyopaque) callconv(WINAPI) u32,
     Release: *const fn(*anyopaque) callconv(WINAPI) u32,
-    GetDefaultAudioEndpoint: *const fn(*anyopaque, i32, i32, [*]?*anyopaque) callconv(WINAPI) HRESULT,
+    GetDefaultAudioEndpoint: *const fn(*anyopaque, i32, i32, *?*anyopaque) callconv(WINAPI) HRESULT,
 };
 
 const IMMDeviceVtbl = extern struct {
-    QueryInterface: *const fn(*anyopaque, *const windows.GUID, [*]?*anyopaque) callconv(WINAPI) HRESULT,
+    QueryInterface: *const fn(*anyopaque, *const windows.GUID, *?*anyopaque) callconv(WINAPI) HRESULT,
     AddRef: *const fn(*anyopaque) callconv(WINAPI) u32,
     Release: *const fn(*anyopaque) callconv(WINAPI) u32,
-    Activate: *const fn(*anyopaque, *const windows.GUID, u32, ?*anyopaque, [*]?*anyopaque) callconv(WINAPI) HRESULT,
+    Activate: *const fn(*anyopaque, *const windows.GUID, u32, ?*anyopaque, *?*anyopaque) callconv(WINAPI) HRESULT,
 };
 
 const IAudioClientVtbl = extern struct {
-    QueryInterface: *const fn(*anyopaque, *const windows.GUID, [*]?*anyopaque) callconv(WINAPI) HRESULT,
+    QueryInterface: *const fn(*anyopaque, *const windows.GUID, *?*anyopaque) callconv(WINAPI) HRESULT,
     AddRef: *const fn(*anyopaque) callconv(WINAPI) u32,
     Release: *const fn(*anyopaque) callconv(WINAPI) u32,
-    Initialize: *const fn(*anyopaque, u32, u64, u64, *const WAVEFORMATEX, [*]const windows.GUID) callconv(WINAPI) HRESULT,
-    GetBufferSize: *const fn(*anyopaque, [*]u32) callconv(WINAPI) HRESULT,
-    GetService: *const fn(*anyopaque, *const windows.GUID, [*]?*anyopaque) callconv(WINAPI) HRESULT,
+    Initialize: *const fn(*anyopaque, u32, u64, u64, *const WAVEFORMATEX, ?*const windows.GUID) callconv(WINAPI) HRESULT,
+    GetBufferSize: *const fn(*anyopaque, *u32) callconv(WINAPI) HRESULT,
+    GetService: *const fn(*anyopaque, *const windows.GUID, *?*anyopaque) callconv(WINAPI) HRESULT,
     Start: *const fn(*anyopaque) callconv(WINAPI) HRESULT,
     Stop: *const fn(*anyopaque) callconv(WINAPI) HRESULT,
     Reset: *const fn(*anyopaque) callconv(WINAPI) HRESULT,
@@ -106,12 +106,12 @@ const IAudioClientVtbl = extern struct {
 };
 
 const IAudioCaptureClientVtbl = extern struct {
-    QueryInterface: *const fn(*anyopaque, *const windows.GUID, [*]?*anyopaque) callconv(WINAPI) HRESULT,
+    QueryInterface: *const fn(*anyopaque, *const windows.GUID, *?*anyopaque) callconv(WINAPI) HRESULT,
     AddRef: *const fn(*anyopaque) callconv(WINAPI) u32,
     Release: *const fn(*anyopaque) callconv(WINAPI) u32,
-    GetBuffer: *const fn(*anyopaque, [*][*]u8, [*]u32, [*]u32, [*]u64, [*]u64) callconv(WINAPI) HRESULT,
+    GetBuffer: *const fn(*anyopaque, *[*]u8, *u32, *u32, ?*u64, ?*u64) callconv(WINAPI) HRESULT,
     ReleaseBuffer: *const fn(*anyopaque, u32) callconv(WINAPI) HRESULT,
-    GetNextPacketSize: *const fn(*anyopaque, [*]u32) callconv(WINAPI) HRESULT,
+    GetNextPacketSize: *const fn(*anyopaque, *u32) callconv(WINAPI) HRESULT,
 };
 
 /// WASAPI audio capture
@@ -392,7 +392,7 @@ pub const AudioCapture = struct {
 
 // Generic COM vtable for Release (common to all COM objects)
 const GenericCOMVtbl = extern struct {
-    QueryInterface: *const fn(*anyopaque, *const windows.GUID, [*]?*anyopaque) callconv(WINAPI) HRESULT,
+    QueryInterface: *const fn(*anyopaque, *const windows.GUID, *?*anyopaque) callconv(WINAPI) HRESULT,
     AddRef: *const fn(*anyopaque) callconv(WINAPI) u32,
     Release: *const fn(*anyopaque) callconv(WINAPI) u32,
 };
