@@ -176,27 +176,33 @@ fn get_zig_binary_path(app_handle: &AppHandle) -> Result<String, String> {
     println!("Executable path: {}", exe_path.display());
     println!("Executable parent: {}", exe_path.parent().unwrap_or_else(|| Path::new("")).display());
 
-    // For Linux .deb packages: check /usr/lib/zipy/ FIRST
-    // This is where deb.files installs the binary
-    #[cfg(target_os = "linux")]
-    {
-        let deb_path = Path::new("/usr/lib/zipy").join(&binary_name);
-        println!("Checking .deb installation path: {}", deb_path.display());
-        if deb_path.exists() {
-            println!("Found zig-april-captions at: {}", deb_path.display());
+    // Check if we're in development mode (debug build)
+    let is_dev_mode = exe_path.to_string_lossy().contains("/target/debug/") ||
+                      exe_path.to_string_lossy().contains("\\target\\debug\\");
 
-            // Make sure it's executable
-            use std::os::unix::fs::PermissionsExt;
-            if let Ok(metadata) = std::fs::metadata(&deb_path) {
-                let mode = metadata.permissions().mode();
-                println!("Binary permissions: {:o}", mode);
-                if mode & 0o111 == 0 {
-                    println!("Binary is not executable, attempting to set +x");
-                    let _ = std::fs::set_permissions(&deb_path, std::fs::Permissions::from_mode(mode | 0o111));
-                }
+    // Dev mode: check local build first
+    if is_dev_mode {
+        println!("Running in development mode, checking dev builds first");
+
+        // In the same parent directory (dev mode)
+        let dev_candidates = vec![
+            format!("../zig-april-captions/zig-out/bin/{}", binary_name),
+            // Absolute path to user's build
+            format!(
+                "{}/workspace/local/zig/zig-april-captions/zig-out/bin/{}",
+                dirs::home_dir()
+                    .map(|p| p.to_string_lossy().to_string())
+                    .unwrap_or_default(),
+                binary_name
+            ),
+        ];
+
+        for candidate in &dev_candidates {
+            println!("Checking dev path: {}", candidate);
+            if Path::new(&candidate).exists() {
+                println!("Found zig-april-captions at: {}", candidate);
+                return Ok(candidate.to_string());
             }
-
-            return Ok(deb_path.to_string_lossy().to_string());
         }
     }
 
@@ -220,6 +226,29 @@ fn get_zig_binary_path(app_handle: &AppHandle) -> Result<String, String> {
         }
     }
 
+    // For Linux .deb packages: check /usr/lib/zipy/ (production mode)
+    #[cfg(target_os = "linux")]
+    {
+        let deb_path = Path::new("/usr/lib/zipy").join(&binary_name);
+        println!("Checking .deb installation path: {}", deb_path.display());
+        if deb_path.exists() {
+            println!("Found zig-april-captions at: {}", deb_path.display());
+
+            // Make sure it's executable
+            use std::os::unix::fs::PermissionsExt;
+            if let Ok(metadata) = std::fs::metadata(&deb_path) {
+                let mode = metadata.permissions().mode();
+                println!("Binary permissions: {:o}", mode);
+                if mode & 0o111 == 0 {
+                    println!("Binary is not executable, attempting to set +x");
+                    let _ = std::fs::set_permissions(&deb_path, std::fs::Permissions::from_mode(mode | 0o111));
+                }
+            }
+
+            return Ok(deb_path.to_string_lossy().to_string());
+        }
+    }
+
     // Try Tauri's resource resolver (for some bundle formats)
     if let Ok(resource_path) = app_handle
         .path()
@@ -229,28 +258,6 @@ fn get_zig_binary_path(app_handle: &AppHandle) -> Result<String, String> {
         if resource_path.exists() {
             println!("Found zig-april-captions in Tauri resources at: {}", resource_path.display());
             return Ok(resource_path.to_string_lossy().to_string());
-        }
-    }
-
-    // Dev mode fallbacks
-    let dev_candidates = vec![
-        // In the same parent directory (dev mode)
-        format!("../zig-april-captions/zig-out/bin/{}", binary_name),
-        // Absolute path to user's build
-        format!(
-            "{}/workspace/local/zig/zig-april-captions/zig-out/bin/{}",
-            dirs::home_dir()
-                .map(|p| p.to_string_lossy().to_string())
-                .unwrap_or_default(),
-            binary_name
-        ),
-    ];
-
-    for candidate in &dev_candidates {
-        println!("Checking dev path: {}", candidate);
-        if Path::new(&candidate).exists() {
-            println!("Found zig-april-captions at: {}", candidate);
-            return Ok(candidate.to_string());
         }
     }
 
