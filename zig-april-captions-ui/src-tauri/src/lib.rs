@@ -176,6 +176,30 @@ fn get_zig_binary_path(app_handle: &AppHandle) -> Result<String, String> {
     println!("Executable path: {}", exe_path.display());
     println!("Executable parent: {}", exe_path.parent().unwrap_or_else(|| Path::new("")).display());
 
+    // For Linux .deb packages: check /usr/lib/zipy/ FIRST
+    // This is where deb.files installs the binary
+    #[cfg(target_os = "linux")]
+    {
+        let deb_path = Path::new("/usr/lib/zipy").join(&binary_name);
+        println!("Checking .deb installation path: {}", deb_path.display());
+        if deb_path.exists() {
+            println!("Found zig-april-captions at: {}", deb_path.display());
+
+            // Make sure it's executable
+            use std::os::unix::fs::PermissionsExt;
+            if let Ok(metadata) = std::fs::metadata(&deb_path) {
+                let mode = metadata.permissions().mode();
+                println!("Binary permissions: {:o}", mode);
+                if mode & 0o111 == 0 {
+                    println!("Binary is not executable, attempting to set +x");
+                    let _ = std::fs::set_permissions(&deb_path, std::fs::Permissions::from_mode(mode | 0o111));
+                }
+            }
+
+            return Ok(deb_path.to_string_lossy().to_string());
+        }
+    }
+
     // Try multiple locations relative to the executable
     let exe_dir = exe_path.parent().unwrap_or_else(|| Path::new(""));
 
@@ -193,18 +217,6 @@ fn get_zig_binary_path(app_handle: &AppHandle) -> Result<String, String> {
         if candidate.exists() {
             println!("Found zig-april-captions at: {}", candidate.display());
             return Ok(candidate.to_string_lossy().to_string());
-        }
-    }
-
-    // For Linux .deb packages: check /usr/lib/zipy/
-    // This is where deb.files installs the binary
-    #[cfg(target_os = "linux")]
-    {
-        let deb_path = Path::new("/usr/lib/zipy").join(&binary_name);
-        println!("Checking .deb installation path: {}", deb_path.display());
-        if deb_path.exists() {
-            println!("Found zig-april-captions at: {}", deb_path.display());
-            return Ok(deb_path.to_string_lossy().to_string());
         }
     }
 
