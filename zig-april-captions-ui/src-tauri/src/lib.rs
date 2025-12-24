@@ -164,35 +164,52 @@ pub struct ContextSnapshot {
 }
 
 fn get_zig_binary_path(app_handle: &AppHandle) -> Result<String, String> {
-    // Try to find the zig-april-captions binary
-    // Priority order:
-    // 1. Bundled resources (production) - via Tauri resource resolver
-    // 2. Dev mode build
-    // 3. User's workspace
-    // 4. In PATH
-
     #[cfg(target_os = "windows")]
     let binary_name = "zig-april-captions.exe";
     #[cfg(not(target_os = "windows"))]
     let binary_name = "zig-april-captions";
 
-    // Try Tauri's resource resolver first (for production bundles)
-    let resource_path = app_handle
-        .path()
-        .resolve(format!("resources/{}", binary_name), tauri::path::BaseDirectory::Resource);
+    // Get the current executable path as the base for all searches
+    let exe_path = std::env::current_exe()
+        .map_err(|e| format!("Failed to get executable path: {}", e))?;
 
-    if let Ok(path) = resource_path {
-        if path.exists() {
-            println!("Found zig-april-captions in bundled resources at: {}", path.display());
-            return Ok(path.to_string_lossy().to_string());
+    println!("Executable path: {}", exe_path.display());
+    println!("Executable parent: {}", exe_path.parent().unwrap_or_else(|| Path::new("")).display());
+
+    // Try multiple locations relative to the executable
+    let exe_dir = exe_path.parent().unwrap_or_else(|| Path::new(""));
+
+    let candidates = vec![
+        // Same directory as executable (common for AppImage, Windows)
+        exe_dir.join(binary_name),
+        // resources/ subdirectory next to executable
+        exe_dir.join("resources").join(&binary_name),
+        // ../resources/ (for some bundle formats)
+        exe_dir.join("..").join("resources").join(&binary_name),
+    ];
+
+    for candidate in &candidates {
+        println!("Checking: {}", candidate.display());
+        if candidate.exists() {
+            println!("Found zig-april-captions at: {}", candidate.display());
+            return Ok(candidate.to_string_lossy().to_string());
         }
     }
 
-    // Fallback to manual search
-    let candidates = vec![
-        // Bundled resources - relative to executable (alternative locations)
-        format!("./resources/{}", binary_name),
-        format!("../resources/{}", binary_name),
+    // Try Tauri's resource resolver (for some bundle formats)
+    if let Ok(resource_path) = app_handle
+        .path()
+        .resolve(&binary_name, tauri::path::BaseDirectory::Resource)
+    {
+        println!("Checking Tauri resource path: {}", resource_path.display());
+        if resource_path.exists() {
+            println!("Found zig-april-captions in Tauri resources at: {}", resource_path.display());
+            return Ok(resource_path.to_string_lossy().to_string());
+        }
+    }
+
+    // Dev mode fallbacks
+    let dev_candidates = vec![
         // In the same parent directory (dev mode)
         format!("../zig-april-captions/zig-out/bin/{}", binary_name),
         // Absolute path to user's build
@@ -205,7 +222,8 @@ fn get_zig_binary_path(app_handle: &AppHandle) -> Result<String, String> {
         ),
     ];
 
-    for candidate in &candidates {
+    for candidate in &dev_candidates {
+        println!("Checking dev path: {}", candidate);
         if Path::new(&candidate).exists() {
             println!("Found zig-april-captions at: {}", candidate);
             return Ok(candidate.to_string());
