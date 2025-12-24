@@ -139,6 +139,9 @@ pub fn build(b: *std.Build) void {
     exe.linkLibC();
 
     // Add rpath so it finds onnxruntime at runtime
+    // For production: use $ORIGIN to find libraries relative to the executable
+    // Note: We need to escape the $ for Zig's build system
+    exe.addRPath(.{ .cwd_relative = "$$$ORIGIN" });
     exe.addRPath(.{ .cwd_relative = b.fmt("{s}/lib", .{onnx_path}) });
 
     b.installArtifact(exe);

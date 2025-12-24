@@ -126,6 +126,28 @@ jobs:
             # Create placeholder for .exe on Unix platforms
             touch ../zig-april-captions-ui/src-tauri/resources/zig-april-captions.exe
           fi
+
+          # Copy ONNX Runtime shared library to resources for Linux
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            # Find and copy libonnxruntime.so
+            ONNX_LIB=$(find ~/onnxruntime -name "libonnxruntime.so*" | grep -v "\.1\." | head -1)
+            if [ -n "$ONNX_LIB" ]; then
+              echo "Found ONNX Runtime library: $ONNX_LIB"
+              cp "$ONNX_LIB" ../zig-april-captions-ui/src-tauri/resources/
+              # Get the versioned library
+              ONNX_VERSIONED=$(find ~/onnxruntime -name "libonnxruntime.so.[0-9]*" | head -1)
+              if [ -n "$ONNX_VERSIONED" ]; then
+                cp "$ONNX_VERSIONED" ../zig-april-captions-ui/src-tauri/resources/
+                echo "Copied ONNX Runtime library to resources"
+                # Fix rpath to use $ORIGIN so library is found relative to binary
+                sudo apt-get install -y patchelf
+                patchelf --set-rpath '$ORIGIN' ../zig-april-captions-ui/src-tauri/resources/zig-april-captions
+                echo "Fixed rpath to \$ORIGIN"
+              fi
+            else
+              echo "Warning: ONNX Runtime library not found"
+            fi
+          fi
           cd ..
 
       - name: Install ONNX Runtime (Windows)
@@ -215,11 +237,34 @@ jobs:
             if (!config.bundle.linux) config.bundle.linux = {};
             if (!config.bundle.linux.deb) config.bundle.linux.deb = {};
 
-            // Use deb.files to install the binary directly to /usr/lib/zipy/
-            // This is more reliable than using resources on Linux
-            config.bundle.linux.deb.files = {
+            // Find the ONNX Runtime library file names
+            const { execSync } = require('child_process');
+            let onnxLibFile = null;
+            let onnxVersionedFile = null;
+
+            try {
+              const files = execSync('ls resources/libonnxruntime.so* 2>/dev/null', { encoding: 'utf8' }).trim().split('\\n');
+              onnxLibFile = files.find(f => f.match(/libonnxruntime\\.so$/));
+              onnxVersionedFile = files.find(f => f.match(/libonnxruntime\\.so\\./));
+            } catch (e) {
+              console.log('No ONNX Runtime library files found');
+            }
+
+            // Use deb.files to install the binary and library directly to /usr/lib/zipy/
+            // The binary uses \$ORIGIN rpath to find the library relative to itself
+            const files = {
               '/usr/lib/zipy/zig-april-captions': 'resources/zig-april-captions'
             };
+
+            if (onnxLibFile) {
+              files['/usr/lib/zipy/libonnxruntime.so'] = onnxLibFile;
+            }
+            if (onnxVersionedFile) {
+              const version = onnxVersionedFile.match(/libonnxruntime\\.so\\.(.+)/)[1];
+              files['/usr/lib/zipy/libonnxruntime.so.' + version] = onnxVersionedFile;
+            }
+
+            config.bundle.linux.deb.files = files;
 
             fs.writeFileSync('tauri.conf.json', JSON.stringify(config, null, 2));
             console.log('Updated tauri.conf.json with Linux deb.files configuration');
