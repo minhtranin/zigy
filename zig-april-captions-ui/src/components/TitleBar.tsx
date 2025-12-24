@@ -38,9 +38,7 @@ export function TitleBar({ activeTab, onTabChange, t, simpleMode, onToggleSimple
     }
   };
 
-  const handleDoubleClick = async (e: React.MouseEvent) => {
-    // Only trigger if double-clicking on the title bar, not on buttons
-    if ((e.target as HTMLElement).closest('button')) return;
+  const handleDoubleClick = async () => {
     try {
       const window = getCurrentWindow();
       await window.toggleMaximize();
@@ -50,16 +48,28 @@ export function TitleBar({ activeTab, onTabChange, t, simpleMode, onToggleSimple
   };
 
   return (
-    <div
-      className="h-8 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between select-none"
-      data-tauri-drag-region
-      onDoubleClick={handleDoubleClick}
-    >
-      {/* Left side: Logo and Tabs */}
-      <div className="flex items-center gap-2 h-full flex-1 px-3">
-        <span className="text-sm font-semibold text-indigo-600 dark:text-indigo-400 select-none">
-          {t.appName}
-        </span>
+    <div className="h-8 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between select-none">
+      {/* Left side: Logo (draggable) and Tabs */}
+      <div className="flex items-center gap-2 h-full flex-1">
+        {/* App name - draggable and double-clickable */}
+        <div
+          className="flex items-center h-full px-3 cursor-default"
+          data-tauri-drag-region
+          onDoubleClick={handleDoubleClick}
+        >
+          <span className="text-sm font-semibold text-indigo-600 dark:text-indigo-400">
+            {t.appName}
+          </span>
+        </div>
+
+        {/* Empty draggable space */}
+        <div
+          className="flex-1 h-full min-w-[20px]"
+          data-tauri-drag-region
+          onDoubleClick={handleDoubleClick}
+        />
+
+        {/* Tabs - not draggable, clickable */}
         <div className="flex gap-0.5">
           <button
             className={`px-2.5 py-0.5 text-xs font-medium rounded-md transition-colors duration-200 select-none ${
