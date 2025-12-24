@@ -53,6 +53,23 @@
               <summary><strong>🐧 Linux (AppImage)</strong></summary>
               <pre><code>chmod +x zigy_0.1.0_amd64.AppImage
 ./zigy_0.1.0_amd64.AppImage</code></pre>
+              <p class="note">Universal format that works on most Linux distributions</p>
+            </details>
+
+            <details>
+              <summary><strong>🐧 Linux (Arch Linux)</strong></summary>
+              <p><strong>Option 1: AppImage (Recommended)</strong></p>
+              <pre><code>chmod +x zigy_0.1.0_amd64.AppImage
+./zigy_0.1.0_amd64.AppImage</code></pre>
+
+              <p><strong>Option 2: If AppImage doesn't work</strong></p>
+              <p>Extract and run directly:</p>
+              <pre><code>./zigy_0.1.0_amd64.AppImage --appimage-extract
+./squashfs-root/zig-april-captions-ui</code></pre>
+
+              <p><strong>Option 3: Build from AUR (Coming Soon)</strong></p>
+              <pre><code>yay -S zigy</code></pre>
+              <p class="note">Arch users may need to install additional dependencies: <code>webkit2gtk</code>, <code>gtk3</code></p>
             </details>
           </div>
         </div>
