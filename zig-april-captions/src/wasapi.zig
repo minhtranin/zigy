@@ -24,6 +24,9 @@ const CLSCTX_ALL = CLSCTX_INPROC_SERVER | CLSCTX_INPROC_HANDLER | CLSCTX_LOCAL_S
 extern "ole32" fn CoInitializeEx(pvReserved: ?*anyopaque, dwCoInit: u32) callconv(WINAPI) HRESULT;
 extern "ole32" fn CoCreateInstance(rclsid: *const windows.GUID, pUnkOuter: ?*anyopaque, dwClsContext: u32, riid: *const windows.GUID, ppv: *?*anyopaque) callconv(WINAPI) HRESULT;
 
+// Kernel32 functions not in std.os.windows.kernel32
+extern "kernel32" fn CreateEventA(lpEventAttributes: ?*anyopaque, bManualReset: i32, bInitialState: i32, lpName: ?[*:0]const u8) callconv(WINAPI) ?HANDLE;
+
 // COM Interface GUIDs
 const IID_IMMDeviceEnumerator = windows.GUID{ .Data1 = 0xa95664d2, .Data2 = 0x9614, .Data3 = 0x4f9f, .Data4 = .{ 0xb9, 0x3a, 0x6a, 0x93, 0x52, 0x49, 0x13, 0x04 } };
 const CLSID_MMDeviceEnumerator = windows.GUID{ .Data1 = 0xbcde0395, .Data2 = 0xe52f, .Data3 = 0x467c, .Data4 = .{ 0x8e, 0x3d, 0xc6, 0x22, 0x34, 0xf4, 0x8c, 0x39 } };
@@ -237,7 +240,7 @@ pub const AudioCapture = struct {
         }
 
         // Create event handle for synchronization
-        const event_handle = windows.kernel32.CreateEventA(null, 0, 0, null);
+        const event_handle = CreateEventA(null, 0, 0, null);
         if (event_handle == null) {
             _ = release(capture_client);
             _ = release(audio_client);
@@ -331,7 +334,7 @@ pub const AudioCapture = struct {
 
             const dest_start = bytes_read / 2;
             const copy_samples = to_copy / 2;
-            const src_data = @as([*]i16, @ptrCast(data))[0..copy_samples];
+            const src_data = @as([*]i16, @ptrCast(@alignCast(data)))[0..copy_samples];
             @memcpy(buffer[dest_start..][0..copy_samples], src_data);
 
             bytes_read += to_copy;
