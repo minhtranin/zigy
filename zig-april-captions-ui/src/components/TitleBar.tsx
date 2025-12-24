@@ -98,7 +98,7 @@ export function TitleBar({ activeTab, onTabChange, t, simpleMode, onToggleSimple
         {/* Simple Mode button */}
         <button
           onClick={onToggleSimpleMode}
-          className={`h-full px-3 transition-colors flex items-center justify-center gap-1 select-none ${
+          className={`h-full px-3 transition-colors flex items-center justify-center select-none ${
             simpleMode
               ? 'bg-indigo-600 text-white hover:bg-indigo-700'
               : 'hover:bg-gray-200 dark:hover:bg-gray-700'
@@ -106,9 +106,6 @@ export function TitleBar({ activeTab, onTabChange, t, simpleMode, onToggleSimple
           title={simpleMode ? "Exit Simple Mode" : "Simple Mode - Show only live transcription"}
         >
           <Maximize2 size={14} className={simpleMode ? 'text-white' : 'text-gray-600 dark:text-gray-300'} />
-          <span className={`text-xs font-medium ${simpleMode ? 'text-white' : 'text-gray-600 dark:text-gray-300'}`}>
-            Simple
-          </span>
         </button>
 
         {/* Window controls */}
