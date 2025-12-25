@@ -145,10 +145,8 @@ jobs:
               if [ -n "$ONNX_VERSIONED" ]; then
                 cp "$ONNX_VERSIONED" ../zig-april-captions-ui/src-tauri/resources/
                 echo "Copied ONNX Runtime library to resources"
-                # Fix rpath to use $ORIGIN so library is found relative to binary
-                sudo apt-get install -y patchelf
-                patchelf --set-rpath '$ORIGIN' ../zig-april-captions-ui/src-tauri/resources/zig-april-captions
-                echo "Fixed rpath to \$ORIGIN"
+                # Note: rpath is already set to $ORIGIN by Zig build.zig (line 151)
+                # No need to use patchelf - it was corrupting the binary!
               fi
             else
               echo "Warning: ONNX Runtime library not found"
@@ -181,9 +179,8 @@ jobs:
             if [ -n "$ONNX_VERSIONED" ]; then
               cp "$ONNX_VERSIONED" ../zig-april-captions-ui/src-tauri/resources/
               echo "Copied ONNX Runtime library to resources"
-              # Fix rpath to use @loader_path so library is found relative to binary
-              install_name_tool -add_rpath @loader_path ../zig-april-captions-ui/src-tauri/resources/zig-april-captions 2>/dev/null || echo "Note: rpath modification skipped"
-              echo "Fixed rpath to @loader_path"
+              # Note: rpath is already set to @loader_path by Zig build.zig (line 148)
+              # No need to use install_name_tool
             fi
           else
             echo "Warning: ONNX Runtime library not found"
