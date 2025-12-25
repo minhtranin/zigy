@@ -35,11 +35,9 @@ Zipy is a desktop application that provides:
 Get the latest release from [GitHub Releases](https://github.com/minhtranin/zigy/releases/latest)
 
 **Available platforms:**
-- 🐧 Linux: `.deb` (recommended for Ubuntu/Debian)
+- 🐧 Linux: `.deb` and `AppImage`
 - 🍎 macOS: Apple Silicon only (M1/M2/M3/M4)
 - 🪟 Windows: `.exe` installer (UI only, no speech recognition)
-
-> **Note:** AppImage is currently not supported due to Tauri bundling limitations with external binaries. Use the `.deb` package for Ubuntu/Debian systems.
 
 ---
 
@@ -64,11 +62,12 @@ Get the latest release from [GitHub Releases](https://github.com/minhtranin/zigy
 | 🪟 Windows 10/11 | `Zipy_0.1.0_x64-setup.exe` | ~35 MB |
 | 🍎 Mac with Apple Silicon (M1/M2/M3/M4) | `Zipy_0.1.0_aarch64.dmg` | ~25 MB |
 | 🐧 Linux Ubuntu/Debian | `zipy_0.1.0_amd64.deb` | ~30 MB |
+| 🐧 Linux (Other distros) | `zipy_0.1.0_amd64.AppImage` | ~30 MB |
 
 **Don't know which one?**
 - Windows: Look at your Start menu - if you have Windows 10 or 11, get the `.exe` file
 - Mac: Click the Apple logo → About This Mac → If it says "M1", "M2", "M3", or "M4", get the `.dmg` file
-- Linux: Get the `.deb` file if you use Ubuntu, Debian, or Linux Mint
+- Linux: Get the `.deb` file if you use Ubuntu/Debian/Mint, or `.AppImage` for other distros
 
 ⚠️ **Important:** Windows version does NOT include speech recognition (Windows doesn't support the audio library we use). You'll get the UI and AI features only.
 
@@ -153,6 +152,30 @@ Get the latest release from [GitHub Releases](https://github.com/minhtranin/zigy
    ```bash
    zipy
    ```
+
+---
+
+### Linux Installation (AppImage - All Distros)
+
+1. **Open Terminal:**
+   - Press `Ctrl + Alt + T`
+
+2. **Go to Downloads:**
+   ```bash
+   cd ~/Downloads
+   ```
+
+3. **Make it executable:**
+   ```bash
+   chmod +x zipy_0.1.0_amd64.AppImage
+   ```
+
+4. **Run it:**
+   ```bash
+   ./zipy_0.1.0_amd64.AppImage
+   ```
+
+**Optional:** To add it to your applications menu, right-click the AppImage → "Integrate and run"
 
 </details>
 

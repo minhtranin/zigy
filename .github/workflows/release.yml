@@ -52,10 +52,16 @@ jobs:
         include:
           - platform: 'ubuntu-22.04'
             target: 'x86_64-unknown-linux-gnu'
+            bundle: 'deb'
+          - platform: 'ubuntu-22.04'
+            target: 'x86_64-unknown-linux-gnu'
+            bundle: 'appimage'
           - platform: 'macos-latest'
             target: 'aarch64-apple-darwin'
+            bundle: 'dmg'
           - platform: 'windows-latest'
             target: 'x86_64-pc-windows-msvc'
+            bundle: 'nsis,msi'
 
     runs-on: ${{ matrix.platform }}
     steps:
@@ -260,9 +266,10 @@ jobs:
         run: |
           cd zig-april-captions-ui/src-tauri
           # Use node to update tauri.conf.json
-          # For Linux: use deb.files to directly install binary to known path
-          # This avoids Tauri's resource resolution bug on Linux (see issue #9111)
-          if [ "$RUNNER_OS" = "Linux" ]; then
+          # Different strategies for deb vs AppImage vs other platforms
+          if [ "$RUNNER_OS" = "Linux" ] && [ "${{ matrix.bundle }}" = "deb" ]; then
+            # For .deb: use deb.files to install binary to /usr/lib/zigy/
+            # Keep resources empty to avoid conflicts
             node -e "
             const fs = require('fs');
             const config = JSON.parse(fs.readFileSync('tauri.conf.json', 'utf8'));
@@ -286,23 +293,62 @@ jobs:
 
             // Use deb.files to install the binary and library directly to /usr/lib/zigy/
             // The binary uses \$ORIGIN rpath to find the library relative to itself
-            const files = {
+            const debFiles = {
               '/usr/lib/zigy/zig-april-captions': 'resources/zig-april-captions'
             };
 
             if (onnxLibFile) {
-              files['/usr/lib/zigy/libonnxruntime.so'] = onnxLibFile;
+              debFiles['/usr/lib/zigy/libonnxruntime.so'] = onnxLibFile;
             }
             if (onnxVersionedFile) {
               const version = onnxVersionedFile.match(/libonnxruntime\\.so\\.(.+)/)[1];
-              files['/usr/lib/zigy/libonnxruntime.so.' + version] = onnxVersionedFile;
+              debFiles['/usr/lib/zigy/libonnxruntime.so.' + version] = onnxVersionedFile;
             }
 
-            config.bundle.linux.deb.files = files;
+            config.bundle.linux.deb.files = debFiles;
+            // Keep resources empty for deb to avoid conflicts
+            config.bundle.resources = [];
 
             fs.writeFileSync('tauri.conf.json', JSON.stringify(config, null, 2));
-            console.log('Updated tauri.conf.json with Linux deb.files configuration');
-            console.log(JSON.stringify(config.bundle.linux.deb, null, 2));
+            console.log('Updated tauri.conf.json for DEB build');
+            console.log('- deb.files:', JSON.stringify(config.bundle.linux.deb, null, 2));
+            console.log('- resources: []');
+            "
+          elif [ "$RUNNER_OS" = "Linux" ] && [ "${{ matrix.bundle }}" = "appimage" ]; then
+            # For AppImage: use resources to bundle binary
+            # Don't use deb.files
+            node -e "
+            const fs = require('fs');
+            const config = JSON.parse(fs.readFileSync('tauri.conf.json', 'utf8'));
+
+            // Find the ONNX Runtime library file names
+            const { execSync } = require('child_process');
+            let onnxLibFile = null;
+            let onnxVersionedFile = null;
+
+            try {
+              const files = execSync('ls resources/libonnxruntime.so* 2>/dev/null', { encoding: 'utf8' }).trim().split('\\n');
+              onnxLibFile = files.find(f => f.match(/libonnxruntime\\.so$/));
+              onnxVersionedFile = files.find(f => f.match(/libonnxruntime\\.so\\./));
+            } catch (e) {
+              console.log('No ONNX Runtime library files found');
+            }
+
+            // Use resources to bundle everything into AppImage
+            const resourceFiles = ['resources/zig-april-captions'];
+
+            if (onnxLibFile) {
+              resourceFiles.push(onnxLibFile);
+            }
+            if (onnxVersionedFile) {
+              resourceFiles.push(onnxVersionedFile);
+            }
+
+            config.bundle.resources = resourceFiles;
+
+            fs.writeFileSync('tauri.conf.json', JSON.stringify(config, null, 2));
+            console.log('Updated tauri.conf.json for APPIMAGE build');
+            console.log('- resources:', JSON.stringify(config.bundle.resources, null, 2));
             "
           elif [ "$RUNNER_OS" = "Windows" ]; then
             # Windows: use resources
@@ -352,7 +398,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           releaseId: ${{ needs.create-release.outputs.release_id }}
-          args: --target ${{ matrix.target }}
+          args: --target ${{ matrix.target }} --bundles ${{ matrix.bundle }}
           projectPath: zig-april-captions-ui
 
   publish-release:
