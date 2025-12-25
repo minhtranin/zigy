@@ -146,20 +146,16 @@ jobs:
                 cp "$ONNX_VERSIONED" ../zig-april-captions-ui/src-tauri/resources/
                 echo "Copied ONNX Runtime library to resources"
 
-                # Ensure rpath is set correctly for deb installation
-                # Tauri's deb.files may strip rpath, so we verify and fix if needed
+                # Fix rpath for deb installation
+                # Zig sets absolute build paths in rpath, we need to replace with $ORIGIN
                 sudo apt-get install -y patchelf
                 CURRENT_RPATH=$(patchelf --print-rpath ../zig-april-captions-ui/src-tauri/resources/zig-april-captions || echo "")
-                echo "Current RPATH: $CURRENT_RPATH"
+                echo "Current RPATH from Zig build: $CURRENT_RPATH"
 
-                # Only set rpath if it's missing or doesn't contain $ORIGIN
-                if [[ ! "$CURRENT_RPATH" =~ \$ORIGIN ]]; then
-                  echo "RPATH missing \$ORIGIN, setting it..."
-                  patchelf --set-rpath '$ORIGIN' ../zig-april-captions-ui/src-tauri/resources/zig-april-captions
-                  echo "RPATH set to: \$ORIGIN"
-                else
-                  echo "RPATH already contains \$ORIGIN, no change needed"
-                fi
+                # Always set rpath to $ORIGIN for deb (removes absolute build paths)
+                patchelf --set-rpath '$ORIGIN' ../zig-april-captions-ui/src-tauri/resources/zig-april-captions
+                NEW_RPATH=$(patchelf --print-rpath ../zig-april-captions-ui/src-tauri/resources/zig-april-captions || echo "")
+                echo "Fixed RPATH to: $NEW_RPATH"
               fi
             else
               echo "Warning: ONNX Runtime library not found"
