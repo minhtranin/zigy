@@ -80,6 +80,18 @@ Get the latest release from [GitHub Releases](https://github.com/minhtranin/zigy
 
 ### Windows Installation
 
+**⚠️ Prerequisites:**
+
+Before installing Zipy on Windows, you need to install the **Microsoft Visual C++ Redistributable**:
+
+1. Download: https://aka.ms/vs/17/release/vc_redist.x64.exe
+2. Run the installer
+3. This is required by the ONNX Runtime library (common for many Windows apps)
+
+*Note: You may already have this installed if you use other Windows software. If Zipy starts without errors, you can skip this step.*
+
+---
+
 1. **Find the downloaded file:**
    - Open File Explorer
    - Go to your Downloads folder (`C:\Users\YourName\Downloads\`)
@@ -840,6 +852,40 @@ Releases are fully automated via GitHub Actions:
    - Builds UI app with bundled binary
    - Creates GitHub release with installers
    - Takes ~15 minutes
+
+## 🔧 Troubleshooting
+
+### Windows: "msvcp140.dll was not found"
+
+**Problem:** The app won't start and shows this error.
+
+**Solution:** Install the [Microsoft Visual C++ Redistributable](https://aka.ms/vs/17/release/vc_redist.x64.exe). This is required by the ONNX Runtime library used for speech recognition.
+
+### Linux: AppImage shows gio/gvfs warnings
+
+**Problem:** You see warnings like `undefined symbol: g_task_set_static_name` when running AppImage.
+
+**Solution:** These are harmless warnings. The app will work normally. This is caused by library version mismatches between the AppImage and your system.
+
+### Speech recognition not working
+
+**Problem:** Captions don't appear when you press Start.
+
+**Solution:** Make sure you've:
+1. Downloaded a voice model (see Step 3 above)
+2. Selected the model file in the app settings
+3. Granted microphone permissions to the app
+
+### App crashes on startup (Linux)
+
+**Problem:** The app crashes immediately after launching.
+
+**Solution:** Check if you're using the correct installer:
+- Ubuntu/Debian/Mint: Use `.deb` package
+- Other distros: Use `.AppImage`
+- Make sure your system has PulseAudio installed
+
+---
 
 ## 📄 License
 
