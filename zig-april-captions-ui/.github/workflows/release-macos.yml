@@ -1,0 +1,78 @@
+name: macOS Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Checkout zig-april-captions
+        run: |
+          cd ..
+          if [ ! -d "zig-april-captions" ]; then
+            git clone https://github.com/${{ github.repository_owner }}/zig-april-captions.git
+          fi
+
+      - name: Setup Zig
+        uses: goto-bus-stop/setup-zig@v2
+        with:
+          version: 0.13.0
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build Zig binary
+        run: |
+          cd ../zig-april-captions
+          zig build
+          cd ../zig-april-captions-ui
+
+      - name: Build Tauri App (Unsigned)
+        run: npm run tauri build -- --target universal-apple-darwin
+
+      - name: Upload DMG
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-dmg-unsigned
+          path: src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg
+
+      - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg
+          body: |
+            ## Installation on macOS
+
+            ⚠️ This app is not signed with an Apple Developer certificate.
+
+            **After installing, run this command to allow the app to open:**
+            ```bash
+            sudo xattr -rd com.apple.quarantine /Applications/Zigy.app
+            ```
+
+            See [INSTALLATION_MACOS.md](INSTALLATION_MACOS.md) for detailed instructions.
+
+            ## What's Changed
+            <!-- Add your release notes here -->
+          draft: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

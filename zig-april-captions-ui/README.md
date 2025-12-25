@@ -56,7 +56,7 @@ The guide includes:
 Go to the [releases page](https://github.com/minhtranin/zigy/releases/latest) and download the installer for your system:
 
 - **Windows** → `Zigy_x.x.x_x64-setup.exe`
-- **macOS** (M1/M2/M3/M4) → `Zigy_x.x.x_aarch64.dmg`
+- **macOS** (Intel & Apple Silicon) → `Zigy_x.x.x_universal.dmg`
 - **Linux** (Ubuntu/Debian) → `zigy_x.x.x_amd64.deb`
 - **Linux** (Other) → `zigy_x.x.x_amd64.AppImage`
 
@@ -81,14 +81,17 @@ Go to the [releases page](https://github.com/minhtranin/zigy/releases/latest) an
 
 1. Double-click the downloaded `.dmg` file
 2. Drag the **Zigy** app to your **Applications** folder
-3. Go to Applications and double-click **Zigy**
-4. If you see "cannot be opened because the developer cannot be verified":
-   - Right-click (or Control-click) on **Zigy**
-   - Click **Open**
-   - Click **Open** again in the dialog
+3. **Open Terminal** (press `Cmd + Space`, type "Terminal", press Enter)
+4. **Copy and paste this command**, then press Enter:
+   ```bash
+   sudo xattr -rd com.apple.quarantine /Applications/Zigy.app
+   ```
+5. Enter your password (you won't see it as you type)
+6. Go to Applications and double-click **Zigy** - it will open normally! ✅
 
-✅ **Supported:** Apple Silicon only (M1, M2, M3, M4 chips)
-❌ **Not supported:** Intel Macs
+⚠️ **One-time step:** You only need to run this command once. After that, Zigy opens like any other app.
+
+✅ **Supported:** All Macs (Intel & Apple Silicon: M1, M2, M3, M4)
 
 </details>
 
@@ -169,15 +172,23 @@ Zigy needs a voice model to recognize speech. This is a one-time download.
 ## 🔧 Troubleshooting
 
 <details>
-<summary><b>macOS: "Zigy cannot be opened"</b></summary>
+<summary><b>macOS: "Zigy cannot be opened" or "is damaged"</b></summary>
 
-This is normal for apps downloaded from the internet.
+This happens because Zigy is not signed with an Apple Developer certificate (signing costs $99/year).
 
 **Solution:**
-1. Don't double-click the app
-2. Right-click (or Control-click) on Zigy
-3. Select **Open**
-4. Click **Open** in the confirmation dialog
+```bash
+sudo xattr -rd com.apple.quarantine /Applications/Zigy.app
+```
+
+Then try opening Zigy again. You only need to do this once!
+
+**Alternative method** (if above doesn't work):
+1. Go to **System Settings → Privacy & Security**
+2. Look for "Zigy was blocked from use"
+3. Click **"Open Anyway"** (if available)
+
+The app is safe - you can review the [source code](https://github.com/minhtranin/zigy).
 
 </details>
 
@@ -364,7 +375,7 @@ After a successful release, you'll find:
 - `zigy_0.1.0_amd64.AppImage` - Portable Linux app
 
 **macOS:**
-- `Zigy_0.1.0_aarch64.dmg` - Apple Silicon installer
+- `Zigy_0.1.0_universal.dmg` - Universal installer (Intel + Apple Silicon)
 
 **Windows:**
 - `Zigy_0.1.0_x64_en-US.msi` - Windows installer

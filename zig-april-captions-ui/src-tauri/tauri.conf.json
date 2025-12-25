@@ -35,6 +35,14 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "resources": []
+    "resources": [
+      "resources/*"
+    ],
+    "macOS": {
+      "minimumSystemVersion": "10.13",
+      "signingIdentity": null,
+      "hardenedRuntime": true,
+      "entitlements": "entitlements.plist"
+    }
   }
 }
