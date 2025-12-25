@@ -123,7 +123,9 @@ jobs:
           cd zig-april-captions
           mkdir -p ../zig-april-captions-ui/src-tauri/resources
 
-          zig build -Doptimize=ReleaseFast
+          # Build with baseline CPU features for compatibility
+          # -Dcpu=baseline ensures it works on all x86_64 CPUs, not just the build machine
+          zig build -Doptimize=ReleaseFast -Dcpu=baseline
           # Copy binary to Tauri resources and ensure it's executable
           if [ -f "zig-out/bin/zig-april-captions" ]; then
             cp zig-out/bin/zig-april-captions ../zig-april-captions-ui/src-tauri/resources/
@@ -170,7 +172,8 @@ jobs:
           cd zig-april-captions
           mkdir -p ../zig-april-captions-ui/src-tauri/resources
 
-          zig build -Doptimize=ReleaseFast
+          # Build with baseline CPU features for compatibility
+          zig build -Doptimize=ReleaseFast -Dcpu=baseline
           # Copy binary to Tauri resources and ensure it's executable
           if [ -f "zig-out/bin/zig-april-captions" ]; then
             cp zig-out/bin/zig-april-captions ../zig-april-captions-ui/src-tauri/resources/
@@ -233,7 +236,8 @@ jobs:
           cd zig-april-captions
           New-Item -ItemType Directory -Force -Path "../zig-april-captions-ui/src-tauri/resources"
 
-          zig build -Doptimize=ReleaseFast
+          # Build with baseline CPU features for compatibility
+          zig build -Doptimize=ReleaseFast -Dcpu=baseline
           # Copy .exe to Tauri resources
           if (Test-Path "zig-out\bin\zig-april-captions.exe") {
             Copy-Item -Path "zig-out\bin\zig-april-captions.exe" -Destination "..\zig-april-captions-ui\src-tauri\resources\"
