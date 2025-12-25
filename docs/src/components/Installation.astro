@@ -23,13 +23,15 @@
           <div class="platform-tabs">
             <details>
               <summary><strong>🪟 Windows</strong></summary>
+              <p class="warning"><strong>⚠️ Prerequisites:</strong> Install <a href="https://aka.ms/vs/17/release/vc_redist.x64.exe" target="_blank" style="color: #A5B4FC;">Microsoft Visual C++ Redistributable</a> first (required by ONNX Runtime)</p>
               <ol>
-                <li>Double-click the <code>.exe</code> file</li>
+                <li>Download and install VC++ Redistributable (one-time)</li>
+                <li>Double-click the <code>Zipy_0.1.0_x64-setup.exe</code> file</li>
                 <li>Click "More info" if Windows Defender appears</li>
                 <li>Click "Run anyway"</li>
                 <li>Follow the installation wizard</li>
               </ol>
-              <p class="note">Note: Full support including speech recognition with WASAPI</p>
+              <p class="note">Note: Windows version includes UI and AI features only (no speech recognition)</p>
             </details>
 
             <details>
@@ -118,6 +120,38 @@
     <div class="help-section">
       <h3>Need Help?</h3>
       <p>Check out the full documentation on <a href="https://github.com/minhtranin/zigy#-installation-guide-for-everyone" target="_blank">GitHub</a> or <a href="https://github.com/minhtranin/zigy/issues" target="_blank">report an issue</a>.</p>
+    </div>
+
+    <div class="troubleshooting-section">
+      <h3>🔧 Common Issues & Solutions</h3>
+
+      <div class="troubleshooting-item">
+        <h4>Windows: "msvcp140.dll was not found"</h4>
+        <p>Install the <a href="https://aka.ms/vs/17/release/vc_redist.x64.exe" target="_blank">Microsoft Visual C++ Redistributable</a> and restart the app.</p>
+      </div>
+
+      <div class="troubleshooting-item">
+        <h4>Linux AppImage: gio/gvfs warnings</h4>
+        <p>These are harmless warnings. The app will work normally. Safe to ignore.</p>
+      </div>
+
+      <div class="troubleshooting-item">
+        <h4>Speech recognition not working</h4>
+        <ul>
+          <li>Make sure you downloaded a voice model (Step 3 above)</li>
+          <li>Verify the model file is selected in Settings</li>
+          <li>Check microphone permissions in system settings</li>
+        </ul>
+      </div>
+
+      <div class="troubleshooting-item">
+        <h4>App crashes on Linux startup</h4>
+        <ul>
+          <li>Ubuntu/Debian/Mint: Use <code>.deb</code> package</li>
+          <li>Other distros: Use <code>.AppImage</code></li>
+          <li>Ensure PulseAudio is installed: <code>sudo apt install pulseaudio</code></li>
+        </ul>
+      </div>
     </div>
   </div>
 </section>
@@ -273,6 +307,29 @@
     margin-top: 0.4rem;
   }
 
+  .warning {
+    font-size: 0.85rem;
+    color: #FCD34D;
+    background: rgba(252, 211, 77, 0.1);
+    border: 1px solid rgba(252, 211, 77, 0.3);
+    padding: 0.6rem 0.9rem;
+    border-radius: 8px;
+    margin-bottom: 0.6rem;
+  }
+
+  .warning strong {
+    color: #FBBF24;
+  }
+
+  .warning a {
+    color: #A5B4FC;
+    text-decoration: underline;
+  }
+
+  .warning a:hover {
+    color: #C4B5FD;
+  }
+
   .model-link {
     display: inline-block;
     padding: 0.65rem 1.35rem;
@@ -339,6 +396,75 @@
   }
 
   .help-section a:hover {
+    color: #C4B5FD;
+    text-decoration: underline;
+  }
+
+  .troubleshooting-section {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(10px);
+    padding: 1.5rem;
+    border-radius: 14px;
+    margin-top: 1.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .troubleshooting-section h3 {
+    color: #F9FAFB;
+    font-weight: 600;
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
+    text-align: center;
+  }
+
+  .troubleshooting-item {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    padding: 0.9rem 1.1rem;
+    margin-bottom: 0.75rem;
+    transition: all 0.2s ease;
+  }
+
+  .troubleshooting-item:hover {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(139, 92, 246, 0.2);
+  }
+
+  .troubleshooting-item h4 {
+    color: #E0E7FF;
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 0.4rem;
+    letter-spacing: -0.01em;
+  }
+
+  .troubleshooting-item p {
+    color: #9CA3AF;
+    font-size: 0.85rem;
+    line-height: 1.4;
+    margin-bottom: 0;
+  }
+
+  .troubleshooting-item ul {
+    margin: 0.4rem 0 0;
+    padding-left: 1.25rem;
+  }
+
+  .troubleshooting-item li {
+    color: #9CA3AF;
+    font-size: 0.85rem;
+    line-height: 1.4;
+    margin-bottom: 0.25rem;
+  }
+
+  .troubleshooting-item a {
+    color: #A5B4FC;
+    text-decoration: none;
+    font-weight: 500;
+  }
+
+  .troubleshooting-item a:hover {
     color: #C4B5FD;
     text-decoration: underline;
   }
