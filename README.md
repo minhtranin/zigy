@@ -35,11 +35,9 @@ Zipy is a desktop application that provides:
 Get the latest release from [GitHub Releases](https://github.com/minhtranin/zigy/releases/latest)
 
 **Available platforms:**
-- 🐧 Linux: `.deb` (recommended) and `AppImage` (fixed in next release)
+- 🐧 Linux: `.deb` and `AppImage`
 - 🍎 macOS: Apple Silicon only (M1/M2/M3/M4)
 - 🪟 Windows: `.exe` installer (UI only, no speech recognition)
-
-> **Note for Linux users:** The `.deb` installer is recommended for Ubuntu/Debian-based distributions. AppImage support has been fixed in the latest code and will work properly in the next release (v0.1.1+).
 
 ---
 
@@ -158,8 +156,6 @@ Get the latest release from [GitHub Releases](https://github.com/minhtranin/zigy
 ---
 
 ### Linux Installation (AppImage - All Distros)
-
-> ⚠️ **Known Issue (v0.1.0):** The AppImage in v0.1.0 has a bundling issue and won't work properly. This has been fixed and will work in the next release (v0.1.1+). For now, please use the `.deb` installer if you're on Ubuntu/Debian.
 
 1. **Open Terminal:**
    - Press `Ctrl + Alt + T`
