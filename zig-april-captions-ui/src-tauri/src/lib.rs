@@ -220,7 +220,35 @@ fn get_zig_binary_path(app_handle: &AppHandle) -> Result<String, String> {
         }
     }
 
-    // For Linux .deb packages: check /usr/lib/zigy/ (production mode)
+    // Try Tauri's resource resolver FIRST (for AppImage and proper bundles)
+    // This should be checked before system paths to prefer bundled binaries
+    if let Ok(resource_path) = app_handle
+        .path()
+        .resolve(&binary_name, tauri::path::BaseDirectory::Resource)
+    {
+        println!("Checking Tauri resource path: {}", resource_path.display());
+        if resource_path.exists() {
+            println!("Found zig-april-captions in Tauri resources at: {}", resource_path.display());
+
+            #[cfg(unix)]
+            {
+                // Make sure it's executable
+                use std::os::unix::fs::PermissionsExt;
+                if let Ok(metadata) = std::fs::metadata(&resource_path) {
+                    let mode = metadata.permissions().mode();
+                    println!("Binary permissions: {:o}", mode);
+                    if mode & 0o111 == 0 {
+                        println!("Binary is not executable, attempting to set +x");
+                        let _ = std::fs::set_permissions(&resource_path, std::fs::Permissions::from_mode(mode | 0o111));
+                    }
+                }
+            }
+
+            return Ok(resource_path.to_string_lossy().to_string());
+        }
+    }
+
+    // For Linux .deb packages: check /usr/lib/zigy/ (fallback for system installations)
     #[cfg(target_os = "linux")]
     {
         let deb_path = Path::new("/usr/lib/zigy").join(&binary_name);
@@ -266,18 +294,6 @@ fn get_zig_binary_path(app_handle: &AppHandle) -> Result<String, String> {
         if resources_relative.exists() {
             println!("Found zig-april-captions at: {}", resources_relative.display());
             return Ok(resources_relative.to_string_lossy().to_string());
-        }
-    }
-
-    // Try Tauri's resource resolver (for some bundle formats)
-    if let Ok(resource_path) = app_handle
-        .path()
-        .resolve(&binary_name, tauri::path::BaseDirectory::Resource)
-    {
-        println!("Checking Tauri resource path: {}", resource_path.display());
-        if resource_path.exists() {
-            println!("Found zig-april-captions in Tauri resources at: {}", resource_path.display());
-            return Ok(resource_path.to_string_lossy().to_string());
         }
     }
 
@@ -331,11 +347,31 @@ async fn start_captions(
 
     // Spawn the process
     println!("Spawning process: {} {:?}", binary_path, args);
-    let mut child = Command::new(&binary_path)
-        .args(&args)
+
+    // Set LD_LIBRARY_PATH to include the binary's directory (for libonnxruntime.so)
+    let binary_dir = binary_path_obj.parent()
+        .map(|p| p.to_string_lossy().to_string())
+        .unwrap_or_default();
+
+    let mut cmd = Command::new(&binary_path);
+    cmd.args(&args)
         .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
+        .stderr(Stdio::piped());
+
+    // On Linux, set LD_LIBRARY_PATH so the binary can find libonnxruntime.so
+    #[cfg(target_os = "linux")]
+    {
+        let current_ld_path = std::env::var("LD_LIBRARY_PATH").unwrap_or_default();
+        let new_ld_path = if current_ld_path.is_empty() {
+            binary_dir.clone()
+        } else {
+            format!("{}:{}", binary_dir, current_ld_path)
+        };
+        println!("Setting LD_LIBRARY_PATH: {}", new_ld_path);
+        cmd.env("LD_LIBRARY_PATH", new_ld_path);
+    }
+
+    let mut child = cmd.spawn()
         .map_err(|e| format!("Failed to start zig-april-captions at {}: {}", binary_path, e))?;
 
     println!("Process spawned successfully, PID: {:?}", child.id());
