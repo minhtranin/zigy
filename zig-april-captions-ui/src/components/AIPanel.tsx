@@ -24,6 +24,9 @@ interface Props {
   onSettingsChange: (settings: Settings) => void;
   externalCommand?: { command: string; text: string } | null;
   onExternalCommandProcessed?: () => void;
+  // Auto-summary for chat
+  autoSummaryForChat?: string | null;
+  onAutoSummaryProcessed?: () => void;
 }
 
 export function AIPanel({
@@ -44,6 +47,8 @@ export function AIPanel({
   onSettingsChange,
   externalCommand,
   onExternalCommandProcessed,
+  autoSummaryForChat,
+  onAutoSummaryProcessed,
 }: Props) {
   // Use stable session ID from localStorage to persist across tab switches
   const [chatSessionId] = useState(() => {
@@ -403,6 +408,8 @@ export function AIPanel({
           t={t}
           externalCommand={externalCommand}
           onExternalCommandProcessed={onExternalCommandProcessed}
+          autoSummaryForChat={autoSummaryForChat}
+          onAutoSummaryProcessed={onAutoSummaryProcessed}
         />
       </div>
     </div>

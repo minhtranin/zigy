@@ -10,6 +10,10 @@ let globalHistory: string[] = [];  // All finalized sentences
 let lastText = '';                 // Last text shown (to detect replacement)
 let listenerRegistered = false;
 let silenceTimer: ReturnType<typeof setTimeout> | null = null;  // Timer for auto-move to history
+let autoSummaryInProgress = false;  // Prevent multiple auto-summary triggers
+
+// Auto-summary threshold (in words)
+const AUTO_SUMMARY_WORD_THRESHOLD = 1000;
 
 export function useCaptions() {
   // Current live transcription (replaceable, accurate)
@@ -39,6 +43,9 @@ export function useCaptions() {
   // Chat history stats for context monitoring
   const [chatHistoryStats, setChatHistoryStats] = useState<ChatHistoryStats | null>(null);
   const [useContextOptimization, setUseContextOptimization] = useState(true);
+
+  // Auto-summary message to be shown in chat
+  const [autoSummaryForChat, setAutoSummaryForChat] = useState<string | null>(null);
 
   const [isRunning, setIsRunning] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -302,28 +309,29 @@ export function useCaptions() {
 
   const clearCaptions = useCallback(async () => {
     try {
-      // Create a session snapshot before clearing if we have content and API key
+      // Create a session snapshot in background (don't block UI)
       if (globalHistory.length > 0 && settings.ai?.api_key) {
-        try {
-          await createSessionSnapshot(
-            settings.ai.api_key,
-            settings.ai.model || 'gemini-2.5-flash'
-          );
-          console.log('Created session snapshot before clearing');
-        } catch (e) {
+        createSessionSnapshot(
+          settings.ai.api_key,
+          settings.ai.model || 'gemini-2.5-flash'
+        ).then(() => {
+          console.log('Created session snapshot');
+        }).catch((e) => {
           console.error('Failed to create session snapshot:', e);
-          // Continue with clear even if snapshot fails
-        }
+        });
       }
 
-      await invoke('clear_transcript');
-      // Clear chat history as well (but snapshots are preserved)
-      await invoke('clear_chat_history');
-
+      // Clear UI immediately
       globalHistory = [];
       lastText = '';
       setHistory([]);
       setCurrentText('');
+
+      // Clear backend (must await to prevent old data from reappearing)
+      await Promise.all([
+        invoke('clear_transcript'),
+        invoke('clear_chat_history'),
+      ]);
       // Also clear summary and questions
       setSummary({
         content: null,
@@ -516,49 +524,36 @@ export function useCaptions() {
     }
   }, []);
 
-  // Generate summary and add to timeline (with optional context optimization)
+  // Generate summary and add to timeline (always uses context - same as auto-summary)
   const generateSummaryToTimeline = useCallback(async () => {
     if (!settings.ai?.api_key) {
       setError('Please configure your Gemini API key in Settings');
       return;
     }
 
-    const historyText = globalHistory.join(' ');
-    if (!historyText.trim()) {
-      setError('No transcript to summarize');
-      return;
-    }
-
     setIsSummaryLoading(true);
 
     try {
-      let content: string;
+      // Always use context-aware version (includes old summaries via snapshot)
+      const content = await generateSummaryWithContext(
+        settings.ai.api_key,
+        settings.ai.model || 'gemini-2.5-flash'
+      );
 
-      if (useContextOptimization) {
-        // Use context-aware version (token optimized)
-        content = await generateSummaryWithContext(
-          settings.ai.api_key,
-          settings.ai.model || 'gemini-2.5-flash'
-        );
-      } else {
-        // Use original version (full transcript)
-        content = await generateSummary(
-          historyText,
-          settings.ai.api_key,
-          settings.ai.model || 'gemini-2.5-flash'
-        );
-        // Save to chat history manually since original doesn't do it
-        await addChatEntry('summary', content);
-      }
+      const summaryContent = `[Manual] ${content}`;
 
       const summaryItem: TimelineItem = {
         id: `summary-${Date.now()}`,
         timestamp: Date.now(),
         type: 'summary',
-        content,
+        content: summaryContent,
       };
 
       setTimeline(prev => [summaryItem, ...prev]);
+
+      // Send to chat so user can ask questions about it
+      await addChatEntry('summary', summaryContent);
+      setAutoSummaryForChat(summaryContent);
 
       // Update chat history stats
       const stats = await getChatHistoryStats();
@@ -568,7 +563,7 @@ export function useCaptions() {
     } finally {
       setIsSummaryLoading(false);
     }
-  }, [settings.ai, useContextOptimization]);
+  }, [settings.ai]);
 
   // Generate questions and add to timeline (with optional context optimization)
   const generateQuestionsToTimeline = useCallback(async () => {
@@ -682,6 +677,69 @@ export function useCaptions() {
   const historyText = history.join('\n');
   const wordCount = historyText.trim() ? historyText.trim().split(/\s+/).length : 0;
 
+  // Auto-summary when word count exceeds threshold
+  useEffect(() => {
+    const triggerAutoSummary = async () => {
+      if (
+        wordCount >= AUTO_SUMMARY_WORD_THRESHOLD &&
+        !autoSummaryInProgress &&
+        settings.ai?.api_key &&
+        globalHistory.length > 0
+      ) {
+        autoSummaryInProgress = true;
+        console.log(`Auto-summary triggered at ${wordCount} words`);
+
+        try {
+          // Generate summary to timeline
+          const content = await generateSummaryWithContext(
+            settings.ai.api_key,
+            settings.ai.model || 'gemini-2.5-flash'
+          );
+
+          const summaryContent = `[Auto] ${content}`;
+
+          const summaryItem: TimelineItem = {
+            id: `auto-summary-${Date.now()}`,
+            timestamp: Date.now(),
+            type: 'summary',
+            content: summaryContent,
+          };
+
+          setTimeline(prev => [summaryItem, ...prev]);
+
+          // Send summary to chat so user can ask questions about it
+          await addChatEntry('summary', summaryContent);
+          setAutoSummaryForChat(summaryContent);
+
+          // Create snapshot and clear (reuse clearCaptions logic but without the snapshot call since we just created one)
+          await createSessionSnapshot(
+            settings.ai.api_key,
+            settings.ai.model || 'gemini-2.5-flash'
+          );
+
+          // Clear UI and backend
+          globalHistory = [];
+          lastText = '';
+          setHistory([]);
+          setCurrentText('');
+
+          await Promise.all([
+            invoke('clear_transcript'),
+            invoke('clear_chat_history'),
+          ]);
+
+          console.log('Auto-summary completed and transcript cleared');
+        } catch (e) {
+          console.error('Auto-summary failed:', e);
+        } finally {
+          autoSummaryInProgress = false;
+        }
+      }
+    };
+
+    triggerAutoSummary();
+  }, [wordCount, settings.ai?.api_key, settings.ai?.model]);
+
   return {
     // Current live transcription (accurate, replaceable)
     currentText,
@@ -716,6 +774,9 @@ export function useCaptions() {
     chatHistoryStats,
     useContextOptimization,
     setUseContextOptimization,
+    // Auto-summary for chat
+    autoSummaryForChat,
+    clearAutoSummaryForChat: () => setAutoSummaryForChat(null),
     // Actions
     startCaptions,
     stopCaptions,

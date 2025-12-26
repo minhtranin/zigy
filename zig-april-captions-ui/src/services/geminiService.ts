@@ -744,9 +744,9 @@ export async function generateSummaryWithContext(
     throw new Error('API key is required');
   }
 
-  // Build compressed context from chat history
+  // Build compressed context from chat history (exclude knowledge for summary)
   const context = await buildCompressedContext(apiKey, model);
-  const contextStr = buildContextString(context);
+  const contextStr = buildContextString(context, false);
 
   if (!contextStr.trim()) {
     throw new Error('No context available to summarize');
@@ -1200,34 +1200,33 @@ export async function generateMeetingGreeting(
 
   const url = `${GEMINI_API_BASE}/${model}:generateContent?key=${apiKey}`;
 
-  const prompt = `You are a friendly conversation coach helping someone make small talk before a meeting or interview starts.
+  const prompt = `You are a conversation coach helping someone make small talk before a meeting or interview.
 
-Generate 4-5 simple ice-breaker questions.
+Generate 4-5 simple ice-breaker questions or conversation starters.
 
 Requirements:
-- Topics: home, family, friends, weather, weekend plans, hobbies
-- Each question must be simple and direct - NO "or" combinations
-- NO multiple questions in one line
-- Keep each question to ONE short sentence
-- Sound natural and friendly
+- Topics: weekend plans, work projects, weather, travel, hobbies, family, local events
+- Keep it simple and warm
+- Can be questions or short statements
+- Not too casual, not too formal
 
 Examples:
 1. How was your weekend?
-2. How is your family doing?
-3. What are your plans for the holidays?
-4. Do you have any hobbies?
-5. How is the weather there?
+2. How's your project going?
+3. I heard the weather's been nice there lately.
+4. Any plans for the long weekend?
+5. Been anywhere nice lately?
 
-Generate 4-5 numbered questions ONLY.
+Generate 4-5 numbered items ONLY.
 
 Format:
 TITLE: Ice-Breaker Questions
 SCRIPT:
-1. [simple question]
-2. [simple question]
-3. [simple question]
-4. [simple question]
-5. [simple question]`;
+1. [simple question or statement]
+2. [simple question or statement]
+3. [simple question or statement]
+4. [simple question or statement]
+5. [simple question or statement]`;
 
   const requestBody = {
     contents: [

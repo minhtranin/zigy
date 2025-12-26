@@ -172,8 +172,8 @@ export function SettingsPanel({
             onChange={(e) => handleModelChange(e.target.value as GeminiModel)}
             className="w-full px-3 py-2 text-sm bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none"
           >
-            <option value="gemini-2.5-flash">Gemini 2.5 Flash (Recommended)</option>
-            <option value="gemini-2.0-flash">Gemini 2.0 Flash (Fast)</option>
+            <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+            <option value="gemini-2.0-flash">Gemini 2.0 Flash (Recommended)</option>
             <option value="gemini-2.5-pro">Gemini 2.5 Pro (Best Quality)</option>
             <option value="gemini-1.5-pro">Gemini 1.5 Pro (Stable)</option>
           </select>

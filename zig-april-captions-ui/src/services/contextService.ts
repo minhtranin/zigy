@@ -111,7 +111,19 @@ export async function buildCompressedContext(
   // Adjust available tokens for context
   const availableForHistory = targetTokenLimit - knowledgeTokens - 500; // Reserve 500 for prompt overhead
 
+  // Check for saved snapshot (preserves context across clears)
+  const latestSnapshot = await invoke<ContextSnapshot | null>('get_latest_snapshot');
+
   if (allEntries.length === 0) {
+    // No current history - use saved snapshot if available
+    if (latestSnapshot) {
+      return {
+        sessionSummary: latestSnapshot.summary,
+        knowledgeBase,
+        recentHistory: '',
+        estimatedTokens: knowledgeTokens + latestSnapshot.compressed_token_count,
+      };
+    }
     return {
       sessionSummary: '',
       knowledgeBase,
@@ -120,7 +132,7 @@ export async function buildCompressedContext(
     };
   }
 
-  // If we have few entries, just return all of them
+  // If we have few entries, combine with snapshot if available
   if (allEntries.length <= recentMessageCount) {
     const recentHistory = allEntries
       .map(e => `[${e.entry_type}] ${e.content}`)
@@ -128,10 +140,10 @@ export async function buildCompressedContext(
     const historyTokens = estimateTokens(recentHistory);
 
     return {
-      sessionSummary: '',
+      sessionSummary: latestSnapshot?.summary || '',
       knowledgeBase,
       recentHistory,
-      estimatedTokens: knowledgeTokens + historyTokens,
+      estimatedTokens: knowledgeTokens + historyTokens + (latestSnapshot?.compressed_token_count || 0),
     };
   }
 
@@ -160,7 +172,6 @@ export async function buildCompressedContext(
   }
 
   // Need compression - check if we have a valid snapshot
-  const latestSnapshot = await invoke<ContextSnapshot | null>('get_latest_snapshot');
   const oldestOldEntry = oldEntries[0];
 
   if (latestSnapshot && oldestOldEntry && latestSnapshot.covered_until >= oldestOldEntry.timestamp) {
@@ -283,14 +294,14 @@ export async function createSessionSnapshot(
 }
 
 // Build context string for Gemini API calls
-export function buildContextString(context: CompressedContext): string {
+export function buildContextString(context: CompressedContext, includeKnowledge: boolean = true): string {
   let contextStr = '';
 
   if (context.sessionSummary) {
     contextStr += `Previous Session Context:\n${context.sessionSummary}\n\n`;
   }
 
-  if (context.knowledgeBase) {
+  if (includeKnowledge && context.knowledgeBase) {
     contextStr += `User Knowledge Base:\n${context.knowledgeBase}\n\n`;
   }
 

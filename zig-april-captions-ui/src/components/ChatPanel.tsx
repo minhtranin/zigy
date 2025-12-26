@@ -39,6 +39,8 @@ interface ChatPanelProps {
   t: Translations;
   externalCommand?: { command: string; text: string } | null;
   onExternalCommandProcessed?: () => void;
+  autoSummaryForChat?: string | null;
+  onAutoSummaryProcessed?: () => void;
 }
 
 interface ChatSession {
@@ -266,7 +268,7 @@ const RESPONSE_SUGGESTIONS: PromptSuggestion[] = [
   { label: 'Add details', prompt: 'Add more details to that response', icon: '➕' },
 ];
 
-export function ChatPanel({ settings, sessionId, fontSize, t, externalCommand, onExternalCommandProcessed }: ChatPanelProps) {
+export function ChatPanel({ settings, sessionId, fontSize, t, externalCommand, onExternalCommandProcessed, autoSummaryForChat, onAutoSummaryProcessed }: ChatPanelProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [summary, setSummary] = useState<string>('');
   const [inputText, setInputText] = useState('');
@@ -345,6 +347,29 @@ export function ChatPanel({ settings, sessionId, fontSize, t, externalCommand, o
     }
   }, [externalCommand, onExternalCommandProcessed, isLoading]);
 
+  // Handle auto-summary message from transcript
+  useEffect(() => {
+    if (autoSummaryForChat) {
+      // Detect if it's auto or manual summary
+      const isManual = autoSummaryForChat.startsWith('[Manual]');
+      const summaryType = isManual ? 'Summary' : 'Auto Summary';
+
+      // Remove [Auto] or [Manual] prefix and markdown formatting
+      const cleanContent = autoSummaryForChat
+        .replace(/^\[(Auto|Manual)\]\s*/, '')  // Remove [Auto] or [Manual] prefix
+        .replace(/\*\*/g, '');                   // Remove all ** markdown bold
+
+      const summaryMessage: ChatMessage = {
+        id: `summary-${Date.now()}`,
+        role: 'assistant',
+        content: `📋 ${summaryType}\n\n${cleanContent}`,
+        timestamp: Date.now(),
+      };
+      setMessages(prev => [...prev, summaryMessage]);
+      onAutoSummaryProcessed?.();
+    }
+  }, [autoSummaryForChat, onAutoSummaryProcessed]);
+
   useEffect(() => {
     if (pendingCommandRef.current && inputText && !isLoading) {
       const cmd = pendingCommandRef.current;
@@ -404,7 +429,8 @@ export function ChatPanel({ settings, sessionId, fontSize, t, externalCommand, o
   };
 
   const parseCommand = (text: string): { command: ChatCommandType | undefined, args: string } => {
-    const match = text.match(/^\/(ask|answer|talk|translate|greeting|summary|questions)\s*(.*)$/is);
+    // Match longer commands first to avoid partial matches (ask-about-line before ask)
+    const match = text.match(/^\/(ask-about-line|talk-suggestions|translate|greeting|summary|questions|answer|talk|ask)(?:\s+(.*))?$/is);
     if (match) {
       return { command: `/${match[1].toLowerCase()}` as ChatCommandType, args: match[2] || '' };
     }
@@ -474,13 +500,32 @@ export function ChatPanel({ settings, sessionId, fontSize, t, externalCommand, o
             prompt = `Translate to natural English I can say: "${args}"`;
             break;
           case '/greeting':
-            prompt = 'Generate 4-5 simple ice-breaker questions. Topics: home, family, friends, weather, weekend plans, hobbies. Each question must be simple and direct - NO "or" combinations, NO multiple questions in one. Keep each question to ONE short sentence.\n\nFormat:\n1. [simple question]\n2. [simple question]\n3. [simple question]\n4. [simple question]\n5. [simple question]\n\nStart directly with numbered list.';
+            prompt = 'Generate 4-5 simple ice-breaker questions or conversation starters. Topics: weekend plans, work projects, weather, travel, hobbies, family, local events. Keep it simple and warm. Can be questions or short statements. Not too casual, not too formal.\n\nFormat:\n1. [simple question or statement]\n2. [simple question or statement]\n3. [simple question or statement]\n4. [simple question or statement]\n5. [simple question or statement]\n\nStart directly with numbered list.';
             break;
           case '/summary':
             prompt = 'Summarize the current meeting discussion. Focus on key points and decisions.';
             break;
           case '/questions':
             prompt = 'Suggest 3-5 smart questions I could ask in this meeting. Format as:\n1. [question]\n2. [question]\n3. [question]\nStart directly with the numbered list, no intro text.';
+            break;
+          case '/talk-suggestions':
+            prompt = 'Based on the recent discussion and context, give me 3 short talking points I could say. Keep each point 1-2 sentences max. Format as:\n1. [short talking point]\n2. [short talking point]\n3. [short talking point]\nStart directly with the numbered list.';
+            break;
+          case '/ask-about-line':
+            prompt = `Generate 5-7 questions I can ask about this statement. Include different types:
+- Simple clarification questions
+- Follow-up questions to understand better
+- Questions to dig deeper into details
+- Related questions to expand the topic
+
+Statement: "${args}"
+
+Format:
+1. [question?]
+2. [question?]
+...
+
+Generate questions I can ASK them:`;
             break;
         }
       } else if (talkMode) {
@@ -655,7 +700,14 @@ export function ChatPanel({ settings, sessionId, fontSize, t, externalCommand, o
       {!isLoading && transcriptText && (
         <div className="px-3 py-2 border-t border-gray-100 dark:border-gray-800 bg-indigo-50/50 dark:bg-indigo-900/10">
           <div className="flex items-center gap-2 mb-1.5">
-            <span className="text-xs text-indigo-600 dark:text-indigo-400 font-medium">{t.contextSuggestions}</span>
+            <button
+              onClick={loadDynamicSuggestions}
+              disabled={isLoadingDynamic || !apiKey}
+              className="text-xs text-indigo-600 dark:text-indigo-400 font-medium hover:text-indigo-800 dark:hover:text-indigo-300 disabled:opacity-50"
+              title="Refresh suggestions"
+            >
+              {t.contextSuggestions}
+            </button>
             <button
               onClick={loadDynamicSuggestions}
               disabled={isLoadingDynamic || !apiKey}

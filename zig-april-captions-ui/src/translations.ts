@@ -13,6 +13,7 @@ export interface Translations {
   edit: string;
   delete: string;
   ask: string;
+  clarify: string;
   answer: string;
   talk: string;
   translate: string;
@@ -170,6 +171,7 @@ export const translations: Record<AppLanguage, Translations> = {
     edit: 'Edit',
     delete: 'Delete',
     ask: 'Ask',
+    clarify: 'Clarify',
     answer: 'Answer',
     talk: 'Talk',
     translate: 'Translate',
@@ -325,6 +327,7 @@ export const translations: Record<AppLanguage, Translations> = {
     edit: 'Sửa',
     delete: 'Xóa',
     ask: 'Hỏi',
+    clarify: 'Làm rõ',
     answer: 'Trả lời',
     talk: 'Nói',
     translate: 'Dịch',

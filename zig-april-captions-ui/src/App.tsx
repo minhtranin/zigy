@@ -39,6 +39,9 @@ function App() {
     chatHistoryStats,
     useContextOptimization,
     setUseContextOptimization,
+    // Auto-summary for chat
+    autoSummaryForChat,
+    clearAutoSummaryForChat,
     // Actions
     startCaptions,
     stopCaptions,
@@ -211,7 +214,6 @@ function App() {
           text={historyText}
           wordCount={captionsCount}
           fontSize={settings.font_size}
-          onUpdateHistory={updateHistory}
           apiKey={settings.ai?.api_key}
           model={settings.ai?.model}
           onIdeaAdded={() => setIdeaGenerationTrigger(prev => prev + 1)}
@@ -351,6 +353,8 @@ function App() {
               onSettingsChange={saveSettings}
               externalCommand={externalCommand}
               onExternalCommandProcessed={() => setExternalCommand(null)}
+              autoSummaryForChat={autoSummaryForChat}
+              onAutoSummaryProcessed={clearAutoSummaryForChat}
             />
           </div>
         )}

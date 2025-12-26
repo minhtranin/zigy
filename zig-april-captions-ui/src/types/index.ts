@@ -227,7 +227,7 @@ export interface ChatMessage {
 }
 
 // Chat commands for action buttons
-export type ChatCommandType = '/ask' | '/answer' | '/talk' | '/translate' | '/greeting' | '/summary' | '/questions';
+export type ChatCommandType = '/ask' | '/answer' | '/talk' | '/translate' | '/greeting' | '/summary' | '/questions' | '/talk-suggestions' | '/ask-about-line';
 
 // Chat session
 export interface ChatSession {

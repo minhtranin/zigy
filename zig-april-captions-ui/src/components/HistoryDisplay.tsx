@@ -4,7 +4,6 @@ import {
   MessageSquare,
   Mic,
   Languages,
-  Minimize2,
   Loader2,
 } from 'lucide-react';
 import type { GeminiModel, TranslationLanguage } from '../types';
@@ -15,7 +14,6 @@ interface Props {
   text: string;
   wordCount: number;
   fontSize: number;
-  onUpdateHistory?: (newText: string) => void;
   apiKey?: string;
   model?: GeminiModel;
   onIdeaAdded?: () => void;
@@ -52,42 +50,10 @@ async function translateLine(
   return data.candidates?.[0]?.content?.parts?.[0]?.text || text;
 }
 
-// Summarize transcription lines using Gemini
-async function summarizeTranscript(
-  lines: string[],
-  apiKey: string,
-  model: string
-): Promise<string> {
-  const text = lines.join('\n');
-
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{
-        parts: [{
-          text: `Summarize this meeting transcript into 1-2 concise sentences. Keep key topics, names, and decisions. This is for context retention:\n\n${text}`
-        }]
-      }],
-      generationConfig: { maxOutputTokens: 150, temperature: 0.3 }
-    })
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to summarize');
-  }
-
-  const data = await response.json();
-  return data.candidates?.[0]?.content?.parts?.[0]?.text || lines.join(' ... ');
-}
-
 export function HistoryDisplay({
   text,
   wordCount,
   fontSize,
-  onUpdateHistory,
   apiKey,
   model = 'gemini-2.0-flash',
   onIdeaAdded: _onIdeaAdded,
@@ -97,37 +63,10 @@ export function HistoryDisplay({
   onAddCommandToChat,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [isCompacting, setIsCompacting] = useState(false);
   const [translations, setTranslations] = useState<Record<number, string>>({});
   const [translatingIndex, setTranslatingIndex] = useState<number | null>(null);
 
   const lines = text ? text.toLowerCase().split('\n').filter(line => line.trim() !== '') : [];
-
-  const handleCompact = async () => {
-    if (lines.length <= 1 || !onUpdateHistory) return;
-
-    // Compact ALL lines into 1 summary
-    if (!apiKey) {
-      // Fallback: simple join if no API key
-      const merged = lines.join(' ... ');
-      onUpdateHistory(merged);
-      return;
-    }
-
-    setIsCompacting(true);
-    try {
-      // Use Gemini to summarize ALL lines into 1
-      const summary = await summarizeTranscript(lines, apiKey, model);
-      onUpdateHistory(`[Summary] ${summary}`);
-    } catch (error) {
-      console.error('Failed to compact with AI:', error);
-      // Fallback to simple join
-      const merged = lines.join(' ... ');
-      onUpdateHistory(merged);
-    } finally {
-      setIsCompacting(false);
-    }
-  };
 
   useEffect(() => {
     if (containerRef.current) {
@@ -142,7 +81,16 @@ export function HistoryDisplay({
 
   const handleAskClick = (index: number) => {
     const lineText = lines[index];
-    onAddCommandToChat?.('/ask', lineText);
+
+    // Get surrounding context (previous and next lines if they exist)
+    const surroundingLines: string[] = [];
+    if (index > 0) surroundingLines.push(lines[index - 1]);
+    surroundingLines.push(lineText);
+    if (index < lines.length - 1) surroundingLines.push(lines[index + 1]);
+
+    // Create context string with priority
+    const context = surroundingLines.join(' | ');
+    onAddCommandToChat?.('/ask-about-line', context);
   };
 
   const handleTalkClick = (index: number) => {
@@ -183,32 +131,16 @@ export function HistoryDisplay({
         <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
           {t.history} {wordCount > 0 && `(${wordCount} ${t.words})`}
         </span>
-        {lines.length > 2 && onUpdateHistory && (
-          <button
-            onClick={handleCompact}
-            disabled={isCompacting}
-            className="flex items-center gap-1 text-xs text-indigo-500 hover:text-indigo-600 dark:text-indigo-400 dark:hover:text-indigo-300 disabled:opacity-50"
-            title={t.compact}
-          >
-            {isCompacting ? (
-              <Loader2 size={14} className="animate-spin" />
-            ) : (
-              <Minimize2 size={14} />
-            )}
-            <span>{isCompacting ? 'Compacting...' : t.compact}</span>
-          </button>
-        )}
       </div>
       <div className="flex-1 overflow-y-auto min-h-0" ref={containerRef}>
         {lines.length > 0 ? (
           <div className="text-gray-800 dark:text-gray-200" style={{ fontSize: `${fontSize}px` }}>
             {lines.map((line, i) => {
               const alwaysShowActions = i >= lines.length - 3;
-              const isSummary = line.startsWith('[summary]');
               return (
-                <div key={i} className={`group py-2 border-b border-gray-200 dark:border-gray-700 last:border-b-0 ${isSummary ? 'bg-indigo-50 dark:bg-indigo-900/20 -mx-4 px-4' : ''}`}>
+                <div key={i} className="group py-2 border-b border-gray-200 dark:border-gray-700 last:border-b-0">
                   <div className="flex flex-col gap-2">
-                    <div className={`leading-relaxed ${isSummary ? 'text-indigo-700 dark:text-indigo-300 text-sm italic' : ''}`} style={{ wordWrap: 'break-word', overflowWrap: 'anywhere' }}>
+                    <div className="leading-relaxed" style={{ wordWrap: 'break-word', overflowWrap: 'anywhere' }}>
                       {line}
                     </div>
                     {/* Show translation inline */}
@@ -217,16 +149,16 @@ export function HistoryDisplay({
                         📝 {translations[i]}
                       </div>
                     )}
-                    {onAddCommandToChat && !isSummary && (
+                    {onAddCommandToChat && (
                       <div className={`flex items-center gap-2 flex-wrap transition-opacity duration-200 ${alwaysShowActions ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
                         <button
                           className="flex items-center gap-1 text-gray-600 hover:text-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                          title={t.ask}
+                          title={t.clarify}
                           onClick={() => handleAskClick(i)}
                           disabled={!apiKey}
                         >
                           <HelpCircle size={18} />
-                          <span className="text-sm">{t.ask}</span>
+                          <span className="text-sm">{t.clarify}</span>
                         </button>
                         <button
                           className="flex items-center gap-1 text-gray-600 hover:text-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -266,11 +198,7 @@ export function HistoryDisplay({
               );
             })}
           </div>
-        ) : (
-          <div className="text-gray-400 dark:text-gray-500 italic text-center py-4" style={{ fontSize: `${fontSize}px` }}>
-            {t.historyPlaceholder}
-          </div>
-        )}
+        ) : null}
       </div>
     </div>
   );
