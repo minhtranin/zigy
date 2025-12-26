@@ -1,0 +1,355 @@
+---
+// Support Form Component - Creates GitHub issues with pre-filled data
+
+const GITHUB_REPO = "minhtranin/zigy";
+---
+
+<div class="support-container">
+  <button id="openSupportBtn" class="support-btn">
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/>
+      <path d="M9.09 9c0-3.044 2.895-5.5 5.91-5.5"/>
+      <path d="M14.91 15c0 3.044-2.895 5.5-5.91 5.5"/>
+    </svg>
+    Support
+  </button>
+</div>
+
+<!-- Modal -->
+<div id="supportModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Report an Issue</h2>
+      <button id="closeModal" class="close-btn">&times;</button>
+    </div>
+
+    <form id="supportForm">
+      <div class="form-group">
+        <label for="issueType">Issue Type</label>
+        <select id="issueType" required>
+          <option value="">Select type...</option>
+          <option value="Bug">🐛 Bug Report</option>
+          <option value="Feature">✨ Feature Request</option>
+          <option value="Question">❓ Question</option>
+          <option value="Installation">💿 Installation Issue</option>
+          <option value="Performance">⚡ Performance Issue</option>
+          <option value="Other">📝 Other</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="title">Title *</label>
+        <input
+          type="text"
+          id="title"
+          placeholder="Brief description of the issue"
+          required
+          maxlength="100"
+        />
+        <small id="titleCount">0/100</small>
+      </div>
+
+      <div class="form-group">
+        <label for="description">Description *</label>
+        <textarea
+          id="description"
+          rows="6"
+          placeholder="Please provide as much detail as possible..."
+          required
+        ></textarea>
+        <small>Include steps to reproduce, expected behavior, and your environment (OS, version, etc.)</small>
+      </div>
+
+      <div class="form-group">
+        <label for="environment">Environment</label>
+        <input
+          type="text"
+          id="environment"
+          placeholder="e.g., Ubuntu 24.04, v1.0.0, AppImage"
+        />
+      </div>
+
+      <button type="submit" class="submit-btn">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 11c.648 0 .648 0 0 0z"/>
+          <path d="M15 11c.648 0 .648 0 0 0z"/>
+          <path d="M7.5 14.5c.828 0 1.5 1.12 1.5 2.5v1c0 1.38-.672 2.5-1.5 2.5S6 19.38 6 18v-1c0-1.38.672-2.5 1.5-2.5z"/>
+          <path d="M16.5 14.5c.828 0 1.5 1.12 1.5 2.5v1c0 1.38-.672 2.5-1.5 2.5S15 19.38 15 18v-1c0-1.38.672-2.5 1.5-2.5z"/>
+          <path d="M12 2C6.477 2 2 6.477 2 12c0 1.894.524 3.668 1.428 5.192L2 22l5.088-1.572C8.54 21.456 10.21 22 12 22c5.523 0 10-4.477 10-10S17.523 2 12 2z"/>
+        </svg>
+        Create GitHub Issue
+      </button>
+    </form>
+
+    <p class="note">
+      This will open GitHub with your issue pre-filled. You'll need a GitHub account to submit.
+    </p>
+  </div>
+</div>
+
+<script define:vars={{ GITHUB_REPO }}>
+  const modal = document.getElementById('supportModal');
+  const openBtn = document.getElementById('openSupportBtn');
+  const closeBtn = document.getElementById('closeModal');
+  const form = document.getElementById('supportForm');
+  const titleInput = document.getElementById('title');
+  const titleCount = document.getElementById('titleCount');
+
+  // Open modal
+  openBtn.addEventListener('click', () => {
+    modal.classList.add('active');
+  });
+
+  // Close modal
+  closeBtn.addEventListener('click', () => {
+    modal.classList.remove('active');
+  });
+
+  // Close on outside click
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      modal.classList.remove('active');
+    }
+  });
+
+  // Title character count
+  titleInput.addEventListener('input', () => {
+    titleCount.textContent = `${titleInput.value.length}/100`;
+  });
+
+  // Form submit - create GitHub issue URL
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+
+    const issueType = document.getElementById('issueType').value;
+    const title = document.getElementById('title').value.trim();
+    const description = document.getElementById('description').value.trim();
+    const environment = document.getElementById('environment').value.trim();
+
+    // Build the issue body
+    let body = `## Description\n${description}\n`;
+
+    if (environment) {
+      body += `\n## Environment\n${environment}\n`;
+    }
+
+    body += `\n---\n*This issue was created from the Zigy docs site*`;
+
+    // Add issue type prefix to title
+    const titleWithPrefix = issueType ? `[${issueType}] ${title}` : title;
+
+    // Encode for URL
+    const encodedTitle = encodeURIComponent(titleWithPrefix);
+    const encodedBody = encodeURIComponent(body);
+
+    // Create GitHub issue URL
+    const githubUrl = `https://github.com/${GITHUB_REPO}/issues/new?title=${encodedTitle}&body=${encodedBody}`;
+
+    // Open in new tab
+    window.open(githubUrl, '_blank');
+
+    // Close modal
+    modal.classList.remove('active');
+
+    // Reset form
+    form.reset();
+    titleCount.textContent = '0/100';
+  });
+
+  // Close on Escape key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal.classList.contains('active')) {
+      modal.classList.remove('active');
+    }
+  });
+</script>
+
+<style>
+  .support-container {
+    display: inline-block;
+  }
+
+  .support-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1.2rem;
+    background: linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 14px rgba(139, 92, 246, 0.3);
+  }
+
+  .support-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
+  }
+
+  /* Modal */
+  .modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+  }
+
+  .modal.active {
+    display: flex;
+  }
+
+  .modal-content {
+    background: #1F2937;
+    border-radius: 16px;
+    padding: 2rem;
+    width: 100%;
+    max-width: 500px;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(139, 92, 246, 0.2);
+  }
+
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+  }
+
+  .modal-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    color: white;
+  }
+
+  .close-btn {
+    background: none;
+    border: none;
+    color: #9CA3AF;
+    font-size: 2rem;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0;
+    width: 2rem;
+    height: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+  }
+
+  .close-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+  }
+
+  /* Form */
+  .form-group {
+    margin-bottom: 1.25rem;
+  }
+
+  .form-group label {
+    display: block;
+    color: #E5E7EB;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+  }
+
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    background: #111827;
+    border: 1px solid #374151;
+    border-radius: 8px;
+    color: white;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+    font-family: inherit;
+  }
+
+  .form-group input:focus,
+  .form-group select:focus,
+  .form-group textarea:focus {
+    outline: none;
+    border-color: #8B5CF6;
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+  }
+
+  .form-group textarea {
+    resize: vertical;
+    min-height: 120px;
+  }
+
+  .form-group small {
+    display: block;
+    color: #9CA3AF;
+    font-size: 0.8rem;
+    margin-top: 0.4rem;
+  }
+
+  #titleCount {
+    text-align: right;
+  }
+
+  .submit-btn {
+    width: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.875rem 1.5rem;
+    background: linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 1rem;
+  }
+
+  .submit-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(139, 92, 246, 0.4);
+  }
+
+  .note {
+    text-align: center;
+    color: #9CA3AF;
+    font-size: 0.85rem;
+    margin-top: 1rem;
+    padding: 0.75rem;
+    background: rgba(139, 92, 246, 0.1);
+    border-radius: 8px;
+  }
+
+  @media (max-width: 640px) {
+    .modal-content {
+      padding: 1.5rem;
+    }
+
+    .modal-header h2 {
+      font-size: 1.25rem;
+    }
+
+    .submit-btn {
+      padding: 0.75rem 1.25rem;
+    }
+  }
+</style>

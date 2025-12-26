@@ -4,6 +4,7 @@ import Hero from '../components/Hero.astro';
 import Features from '../components/Features.astro';
 import Installation from '../components/Installation.astro';
 import Footer from '../components/Footer.astro';
+import SupportForm from '../components/SupportForm.astro';
 ---
 
 <Layout title="Zigy - Real-time Speech-to-Text Desktop App">
@@ -13,10 +14,29 @@ import Footer from '../components/Footer.astro';
     <Installation />
     <Footer />
   </main>
+
+  <!-- Floating Support Button -->
+  <div class="floating-support">
+    <SupportForm />
+  </div>
 </Layout>
 
 <style>
   main {
     min-height: 100vh;
+  }
+
+  .floating-support {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    z-index: 100;
+  }
+
+  @media (max-width: 768px) {
+    .floating-support {
+      bottom: 1rem;
+      right: 1rem;
+    }
   }
 </style>
