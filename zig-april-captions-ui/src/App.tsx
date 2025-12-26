@@ -48,7 +48,6 @@ function App() {
     clearCaptions,
     exportCaptions,
     saveSettings,
-    updateHistory,
   } = useCaptions();
 
   // Get translations based on current language setting
