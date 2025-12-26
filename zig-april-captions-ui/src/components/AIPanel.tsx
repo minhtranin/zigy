@@ -1,15 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
-import { invoke } from '@tauri-apps/api/core';
-import { KnowledgeEntry, TimelineItem, GeminiModel, TranslationLanguage, ChatHistoryStats, TRANSLATION_LANGUAGES, Settings } from '../types';
+import { TimelineItem, GeminiModel, TranslationLanguage, ChatHistoryStats, TRANSLATION_LANGUAGES, Settings } from '../types';
 import { translateText } from '../services/geminiService';
 import { X, FileText, HelpCircle, Lightbulb, MessageCircle, Languages } from 'lucide-react';
 import { Translations } from '../translations';
 import { ChatPanel } from './ChatPanel';
-
-interface Tab {
-  id: string;
-  label: string;
-}
 
 interface Props {
   timeline: TimelineItem[];
@@ -51,7 +45,6 @@ export function AIPanel({
   externalCommand,
   onExternalCommandProcessed,
 }: Props) {
-  const [activeTab, setActiveTab] = useState('chat');
   // Use stable session ID from localStorage to persist across tab switches
   const [chatSessionId] = useState(() => {
     const stored = localStorage.getItem('zigy_chat_session_id');
@@ -61,20 +54,6 @@ export function AIPanel({
     return newId;
   });
 
-  // Tabs: Knowledge and Chat
-  const tabs: Tab[] = [
-    { id: 'knowledge', label: t.knowledgeTab },
-    { id: 'chat', label: t.chatTab || 'Chat' },
-  ];
-
-  // Knowledge state
-  const [knowledgeEntries, setKnowledgeEntries] = useState<KnowledgeEntry[]>([]);
-  const [newKnowledge, setNewKnowledge] = useState('');
-  const [isSaving, setIsSaving] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editingContent, setEditingContent] = useState('');
-  const [expandedKnowledgeId, setExpandedKnowledgeId] = useState<string | null>(null);
-
   // Expanded timeline item ID
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
   // Track previous timeline length to detect new additions
@@ -83,11 +62,6 @@ export function AIPanel({
   // Translation state for timeline items
   const [timelineTranslations, setTimelineTranslations] = useState<Map<string, string>>(new Map());
   const [translatingItemId, setTranslatingItemId] = useState<string | null>(null);
-
-  // Load knowledge on mount
-  useEffect(() => {
-    loadKnowledge();
-  }, []);
 
   // Auto-expand the newest timeline item when a new item is added
   useEffect(() => {
@@ -109,73 +83,6 @@ export function AIPanel({
     // Update the ref for next comparison
     prevTimelineLengthRef.current = currentLength;
   }, [timeline]);
-
-  const loadKnowledge = async () => {
-    try {
-      const entries = await invoke<KnowledgeEntry[]>('get_knowledge');
-      setKnowledgeEntries(entries);
-    } catch (e) {
-      console.error('Failed to load knowledge:', e);
-    }
-  };
-
-  const handleAddKnowledge = async () => {
-    if (!newKnowledge.trim()) return;
-    setIsSaving(true);
-    try {
-      await invoke('add_knowledge_entry', { content: newKnowledge.trim() });
-      setNewKnowledge('');
-      await loadKnowledge();
-    } catch (e) {
-      console.error('Failed to add knowledge:', e);
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleToggleNomination = async (id: string) => {
-    try {
-      await invoke('toggle_knowledge_nomination', { id });
-      await loadKnowledge();
-    } catch (e) {
-      console.error('Failed to toggle nomination:', e);
-    }
-  };
-
-  const handleDeleteKnowledge = async (id: string) => {
-    try {
-      await invoke('delete_knowledge_entry', { id });
-      await loadKnowledge();
-      if (expandedKnowledgeId === id) setExpandedKnowledgeId(null);
-    } catch (e) {
-      console.error('Failed to delete knowledge:', e);
-    }
-  };
-
-  const handleStartEdit = (entry: KnowledgeEntry) => {
-    setEditingId(entry.id);
-    setEditingContent(entry.content);
-  };
-
-  const handleCancelEdit = () => {
-    setEditingId(null);
-    setEditingContent('');
-  };
-
-  const handleSaveEdit = async () => {
-    if (!editingContent.trim() || editingId === null) return;
-    setIsSaving(true);
-    try {
-      await invoke('update_knowledge_entry', { id: editingId, content: editingContent.trim() });
-      setEditingId(null);
-      setEditingContent('');
-      await loadKnowledge();
-    } catch (e) {
-      console.error('Failed to update knowledge:', e);
-    } finally {
-      setIsSaving(false);
-    }
-  };
 
   // Handle translation for timeline items
   const handleTranslateTimelineItem = async (item: TimelineItem) => {
@@ -487,165 +394,16 @@ export function AIPanel({
   return (
     <div className="flex flex-col flex-1 min-h-0">
       <div className="flex-1 flex flex-col bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden min-h-0">
-        {/* Tabs */}
-        <div className="p-1.5 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
-          <div className="flex gap-0.5">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors duration-200 ${
-                  activeTab === tab.id
-                    ? 'bg-indigo-600 text-white'
-                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-                }`}
-                onClick={() => setActiveTab(tab.id)}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Context Monitor - hidden, always use smart context */}
-
-        {/* Tab Content */}
-        <div className="flex-1 overflow-y-auto min-h-0">
-          {activeTab === 'knowledge' && (
-            <div className="p-3 flex flex-col gap-4 h-full">
-              <div className="text-sm text-gray-500 dark:text-gray-400 italic pb-2 border-b border-gray-200 dark:border-gray-700" style={{ fontSize: `${fontSize}px` }}>
-                {t.knowledgeDescription}
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <textarea
-                  className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 resize-y min-h-[60px] focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-gray-400 dark:placeholder-gray-500"
-                  placeholder={t.knowledgePlaceholder}
-                  value={newKnowledge}
-                  onChange={(e) => setNewKnowledge(e.target.value)}
-                  rows={3}
-                  style={{ fontSize: `${fontSize}px` }}
-                />
-                <button
-                  className="self-end px-4 py-2 text-xs font-semibold text-white bg-green-600 rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                  onClick={handleAddKnowledge}
-                  disabled={!newKnowledge.trim() || isSaving}
-                >
-                  {isSaving ? t.saving : t.save}
-                </button>
-              </div>
-
-              {knowledgeEntries.length > 0 ? (
-                <div className="flex flex-col gap-2">
-                  <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    {t.savedKnowledge} ({knowledgeEntries.length})
-                    <span className="ml-2 text-indigo-600 dark:text-indigo-400">
-                      ✓ {knowledgeEntries.filter(e => e.nominated).length} {t.nominated}
-                    </span>
-                  </div>
-                  <div className="flex flex-col gap-2 max-h-64 overflow-y-auto">
-                    {knowledgeEntries.map((entry) => (
-                      <div key={entry.id} className="p-2 bg-gray-100 dark:bg-gray-800 rounded-md">
-                        <div className="flex items-start gap-2">
-                          <input
-                            type="checkbox"
-                            checked={entry.nominated}
-                            onChange={() => handleToggleNomination(entry.id)}
-                            className="mt-1 w-4 h-4 text-indigo-600 bg-gray-100 border-gray-300 rounded focus:ring-indigo-500 dark:focus:ring-indigo-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600 cursor-pointer"
-                            title={entry.nominated ? "Nominated for AI use" : "Not nominated"}
-                          />
-                          <div className="flex-1">
-                            <div className="flex items-center justify-between mb-1">
-                              <button
-                                className="flex-1 text-left font-semibold text-gray-800 dark:text-gray-200 hover:text-indigo-600 dark:hover:text-indigo-400 truncate"
-                                onClick={() => setExpandedKnowledgeId(expandedKnowledgeId === entry.id ? null : entry.id)}
-                                style={{ fontSize: `${fontSize}px` }}
-                              >
-                                {entry.content.substring(0, 60)}{entry.content.length > 60 ? '...' : ''}
-                              </button>
-                              <button
-                                className="p-1 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/50 rounded"
-                                onClick={() => handleDeleteKnowledge(entry.id)}
-                                title="Delete"
-                              >
-                                <X size={14} />
-                              </button>
-                            </div>
-                            {expandedKnowledgeId === entry.id && (
-                              <div className="mt-2">
-                                {editingId === entry.id ? (
-                                  <>
-                                    <textarea
-                                      className="w-full p-2 mb-2 border border-indigo-500 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 resize-y min-h-[60px] focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                      value={editingContent}
-                                      onChange={(e) => setEditingContent(e.target.value)}
-                                      rows={3}
-                                      style={{ fontSize: `${fontSize}px` }}
-                                      autoFocus
-                                    />
-                                    <div className="flex justify-end gap-2">
-                                      <button
-                                        className="px-3 py-1 text-xs font-semibold text-white bg-green-600 rounded-md hover:bg-green-700 disabled:opacity-50"
-                                        onClick={handleSaveEdit}
-                                        disabled={isSaving || !editingContent.trim()}
-                                      >
-                                        {isSaving ? t.saving : t.save}
-                                      </button>
-                                      <button
-                                        className="px-3 py-1 text-xs font-semibold text-gray-700 dark:text-gray-300 bg-transparent border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700"
-                                        onClick={handleCancelEdit}
-                                        disabled={isSaving}
-                                      >
-                                        {t.clear}
-                                      </button>
-                                    </div>
-                                  </>
-                                ) : (
-                                  <div className="p-2 bg-gray-50 dark:bg-gray-900/50 rounded">
-                                    <div className="text-gray-800 dark:text-gray-200 leading-relaxed whitespace-pre-wrap mb-2" style={{ fontSize: `${fontSize}px` }}>
-                                      {entry.content}
-                                    </div>
-                                    <div className="flex justify-between items-center">
-                                      <span className="text-xs text-gray-400 dark:text-gray-500">
-                                        {new Date(entry.created_at).toLocaleDateString()}
-                                      </span>
-                                      <button
-                                        className="px-3 py-1 text-xs font-semibold text-indigo-600 dark:text-indigo-400 rounded-md border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
-                                        onClick={() => handleStartEdit(entry)}
-                                        title="Edit"
-                                      >
-                                        Edit
-                                      </button>
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div className="p-2 text-sm text-gray-500 dark:text-gray-400 italic" style={{ fontSize: `${fontSize}px` }}>
-                  {t.noKnowledge}
-                </div>
-              )}
-            </div>
-          )}
-
-          {activeTab === 'chat' && (
-            <ChatPanel
-              settings={settings}
-              onSettingsChange={onSettingsChange}
-              sessionId={chatSessionId}
-              fontSize={fontSize}
-              t={t}
-              externalCommand={externalCommand}
-              onExternalCommandProcessed={onExternalCommandProcessed}
-            />
-          )}
-        </div>
+        {/* Chat Panel - now the only content */}
+        <ChatPanel
+          settings={settings}
+          onSettingsChange={onSettingsChange}
+          sessionId={chatSessionId}
+          fontSize={fontSize}
+          t={t}
+          externalCommand={externalCommand}
+          onExternalCommandProcessed={onExternalCommandProcessed}
+        />
       </div>
     </div>
   );

@@ -133,6 +133,26 @@ export interface Translations {
   support: string;
   buyMeACoffee: string;
   githubSupport: string;
+
+  // Knowledge Panel (Top-level tab)
+  newNote: string;
+  searchNotes: string;
+  searchNotesPlaceholder: string;
+  noNotesFound: string;
+  untitledNote: string;
+  editMode: string;
+  previewMode: string;
+  deleteNote: string;
+  confirmDeleteNote: string;
+  nominateNote: string;
+  unnominateNote: string;
+  nominatedNotes: string;
+  allNotes: string;
+  noteAutoSaved: string;
+  noteSaving: string;
+  noNotesYet: string;
+  addFirstNote: string;
+  noteCreated: string;
 }
 
 export const translations: Record<AppLanguage, Translations> = {
@@ -269,6 +289,26 @@ export const translations: Record<AppLanguage, Translations> = {
     support: 'Support',
     buyMeACoffee: 'Buy Me a Coffee',
     githubSupport: 'GitHub Support',
+
+    // Knowledge Panel (Top-level tab)
+    newNote: 'New Note',
+    searchNotes: 'Search',
+    searchNotesPlaceholder: 'Search notes...',
+    noNotesFound: 'No notes found',
+    untitledNote: 'Untitled Note',
+    editMode: 'Edit',
+    previewMode: 'Preview',
+    deleteNote: 'Delete',
+    confirmDeleteNote: 'Delete this note?',
+    nominateNote: 'Nominate for AI',
+    unnominateNote: 'Remove nomination',
+    nominatedNotes: 'Nominated',
+    allNotes: 'All',
+    noteAutoSaved: 'Saved',
+    noteSaving: 'Saving...',
+    noNotesYet: 'No notes yet',
+    addFirstNote: 'Create your first note to store knowledge for AI context',
+    noteCreated: 'Note created',
   },
   vi: {
     // App Header
@@ -403,6 +443,26 @@ export const translations: Record<AppLanguage, Translations> = {
     support: 'Hỗ trợ',
     buyMeACoffee: 'Mua cho tôi cà phê',
     githubSupport: 'Hỗ trợ GitHub',
+
+    // Knowledge Panel (Top-level tab)
+    newNote: 'Ghi chú mới',
+    searchNotes: 'Tìm kiếm',
+    searchNotesPlaceholder: 'Tìm ghi chú...',
+    noNotesFound: 'Không tìm thấy ghi chú',
+    untitledNote: 'Ghi chú không tên',
+    editMode: 'Sửa',
+    previewMode: 'Xem trước',
+    deleteNote: 'Xóa',
+    confirmDeleteNote: 'Xóa ghi chú này?',
+    nominateNote: 'Chọn cho AI',
+    unnominateNote: 'Bỏ chọn',
+    nominatedNotes: 'Đã chọn',
+    allNotes: 'Tất cả',
+    noteAutoSaved: 'Đã lưu',
+    noteSaving: 'Đang lưu...',
+    noNotesYet: 'Chưa có ghi chú',
+    addFirstNote: 'Tạo ghi chú đầu tiên để lưu kiến thức cho AI',
+    noteCreated: 'Đã tạo ghi chú',
   },
 };
 

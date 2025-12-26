@@ -6,6 +6,7 @@ import { HistoryDisplay } from './components/HistoryDisplay';
 import { AIPanel } from './components/AIPanel';
 import { SettingsPanel } from './components/SettingsPanel';
 import { AboutPanel } from './components/AboutPanel';
+import { KnowledgePanel } from './components/KnowledgePanel';
 import { ControlBar } from './components/ControlBar';
 import { TitleBar } from './components/TitleBar';
 import { InitMeetingModal } from './components/InitMeetingModal';
@@ -72,6 +73,22 @@ function App() {
       return () => clearTimeout(timer);
     }
   }, [ideaGenerationTrigger, loadTimelineFromIdeas]);
+
+  // Hide initial loader once settings are loaded
+  useEffect(() => {
+    if (settings && settings.model_path !== undefined) {
+      // Add a small delay for smoother transition
+      const timer = setTimeout(() => {
+        const loader = document.getElementById('initial-loader');
+        if (loader) {
+          loader.classList.add('hidden');
+          // Remove from DOM after transition
+          setTimeout(() => loader.remove(), 300);
+        }
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [settings]);
 
   // Get effective theme considering system preference
   const getEffectiveTheme = (theme: 'light' | 'dark' | 'system'): 'light' | 'dark' => {
@@ -255,6 +272,12 @@ function App() {
     </div>
   );
 
+  const renderKnowledgeContent = () => (
+    <div className="h-full overflow-hidden bg-white dark:bg-gray-900 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
+      <KnowledgePanel t={t} />
+    </div>
+  );
+
   // Simple mode view - only live transcription
   const renderSimpleMode = () => (
     <div className="flex items-center justify-center h-full p-8">
@@ -296,16 +319,18 @@ function App() {
         renderSimpleMode()
       ) : (
         <div className="flex flex-1 p-2 md:p-3 gap-3 min-h-0">
-          {/* Left side: Content - 5 parts */}
-          <div className="flex-[5] flex flex-col min-w-0 min-h-0">
+          {/* Left side: Content - 5 parts (or full width for knowledge) */}
+          <div className={`flex flex-col min-w-0 min-h-0 ${activeTab === 'knowledge' ? 'flex-1' : 'flex-[5]'}`}>
             {activeTab === 'captions'
               ? renderCaptionsContent()
-              : activeTab === 'settings'
-                ? renderSettingsContent()
-                : renderAboutContent()}
+              : activeTab === 'knowledge'
+                ? renderKnowledgeContent()
+                : activeTab === 'settings'
+                  ? renderSettingsContent()
+                  : renderAboutContent()}
           </div>
 
-        {/* Right side: AI Panel (Chat) - 5 parts */}
+        {/* Right side: AI Panel (Chat) - 5 parts (only for captions tab) */}
         {activeTab === 'captions' && (
           <div className="flex-[5] flex flex-col min-h-0 min-w-[400px]">
             <AIPanel

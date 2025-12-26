@@ -83,6 +83,24 @@ export interface KnowledgeEntry {
   nominated: boolean; // Whether this entry is selected for use with Gemini
 }
 
+// Note view for Knowledge Panel UI
+export interface NoteView {
+  id: string;
+  title: string;        // First line of content (up to 50 chars)
+  preview: string;      // First 100 chars of content
+  content: string;      // Full content
+  nominated: boolean;
+  created_at: number;
+}
+
+// Note editor state
+export interface NoteEditorState {
+  mode: 'edit' | 'preview';
+  content: string;
+  isDirty: boolean;
+  isSaving: boolean;
+}
+
 // Idea entry for grammar correction and script generation
 export interface IdeaEntry {
   id: string;
