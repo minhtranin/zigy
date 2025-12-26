@@ -222,29 +222,39 @@ fn get_zig_binary_path(app_handle: &AppHandle) -> Result<String, String> {
 
     // Try Tauri's resource resolver FIRST (for AppImage and proper bundles)
     // This should be checked before system paths to prefer bundled binaries
-    if let Ok(resource_path) = app_handle
+    if let Ok(resource_dir) = app_handle
         .path()
-        .resolve(&binary_name, tauri::path::BaseDirectory::Resource)
+        .resolve("", tauri::path::BaseDirectory::Resource)
     {
-        println!("Checking Tauri resource path: {}", resource_path.display());
-        if resource_path.exists() {
-            println!("Found zig-april-captions in Tauri resources at: {}", resource_path.display());
+        println!("Tauri resource directory: {}", resource_dir.display());
 
-            #[cfg(unix)]
-            {
-                // Make sure it's executable
-                use std::os::unix::fs::PermissionsExt;
-                if let Ok(metadata) = std::fs::metadata(&resource_path) {
-                    let mode = metadata.permissions().mode();
-                    println!("Binary permissions: {:o}", mode);
-                    if mode & 0o111 == 0 {
-                        println!("Binary is not executable, attempting to set +x");
-                        let _ = std::fs::set_permissions(&resource_path, std::fs::Permissions::from_mode(mode | 0o111));
+        // Check multiple possible locations within the resource directory
+        let resource_candidates = vec![
+            resource_dir.join(&binary_name),                    // Direct in resource dir
+            resource_dir.join("resources").join(&binary_name),  // In resources/ subdirectory
+        ];
+
+        for resource_path in resource_candidates {
+            println!("Checking Tauri resource path: {}", resource_path.display());
+            if resource_path.exists() {
+                println!("Found zig-april-captions in Tauri resources at: {}", resource_path.display());
+
+                #[cfg(unix)]
+                {
+                    // Make sure it's executable
+                    use std::os::unix::fs::PermissionsExt;
+                    if let Ok(metadata) = std::fs::metadata(&resource_path) {
+                        let mode = metadata.permissions().mode();
+                        println!("Binary permissions: {:o}", mode);
+                        if mode & 0o111 == 0 {
+                            println!("Binary is not executable, attempting to set +x");
+                            let _ = std::fs::set_permissions(&resource_path, std::fs::Permissions::from_mode(mode | 0o111));
+                        }
                     }
                 }
-            }
 
-            return Ok(resource_path.to_string_lossy().to_string());
+                return Ok(resource_path.to_string_lossy().to_string());
+            }
         }
     }
 
