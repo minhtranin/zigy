@@ -9,6 +9,7 @@ import { addChatEntry, getChatHistoryStats, createSessionSnapshot } from '../ser
 let globalHistory: string[] = [];  // All finalized sentences
 let lastText = '';                 // Last text shown (to detect replacement)
 let listenerRegistered = false;
+let silenceTimer: ReturnType<typeof setTimeout> | null = null;  // Timer for auto-move to history
 
 export function useCaptions() {
   // Current live transcription (replaceable, accurate)
@@ -146,6 +147,12 @@ export function useCaptions() {
             if (data.text !== undefined && data.captionType) {
               const newText = data.text.trim();
 
+              // Clear any existing silence timer
+              if (silenceTimer) {
+                clearTimeout(silenceTimer);
+                silenceTimer = null;
+              }
+
               if (data.captionType === 'partial') {
                 // Check if this is a replacement (new text doesn't start with old text)
                 // This means ASR started a new sentence
@@ -170,6 +177,29 @@ export function useCaptions() {
                 // Update current text
                 lastText = newText;
                 setCurrentTextRef.current(data.text);
+
+                // Start silence timer - move to history after 2 seconds of no new text
+                if (newText) {
+                  silenceTimer = setTimeout(() => {
+                    if (lastText && lastText.trim()) {
+                      const textToMove = lastText.trim();
+                      globalHistory = [...globalHistory, textToMove];
+                      setHistoryRef.current([...globalHistory]);
+
+                      // Persist to backend
+                      invoke('add_transcript_line', { line: textToMove }).catch(e => {
+                        console.error('Failed to persist:', e);
+                      });
+                      addChatEntry('transcript', textToMove).catch(e => {
+                        console.error('Failed to save to chat history:', e);
+                      });
+
+                      lastText = '';
+                      setCurrentTextRef.current('');
+                    }
+                    silenceTimer = null;
+                  }, 2000);  // 2 seconds of silence
+                }
               } else {
                 // Final - add to history and clear current
                 if (newText) {

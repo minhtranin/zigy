@@ -189,3 +189,66 @@ export interface CompressedContext {
   recentHistory: string;       // Recent chat entries (full)
   estimatedTokens: number;
 }
+
+// ============================================================================
+// NEW: Chat Feature Types
+// ============================================================================
+
+// Chat message roles
+export type ChatMessageRole = 'user' | 'assistant' | 'system';
+
+// Chat message for the new Chat tab
+export interface ChatMessage {
+  id: string;
+  role: ChatMessageRole;
+  content: string;
+  timestamp: number;
+  command?: ChatCommandType; // For command messages: /ask, /answer, etc.
+  metadata?: Record<string, unknown>;
+  isStreaming?: boolean; // For AI responses that are still streaming
+}
+
+// Chat commands for action buttons
+export type ChatCommandType = '/ask' | '/answer' | '/talk' | '/translate' | '/greeting' | '/summary' | '/questions';
+
+// Chat session
+export interface ChatSession {
+  id: string;
+  title: string;
+  created_at: number;
+  updated_at: number;
+  message_count: number;
+}
+
+// Vector search options
+export interface VectorSearchOptions {
+  limit?: number;
+  entryTypes?: ChatHistoryEntryType[];
+  sessionId?: string;
+  minSimilarity?: number;
+}
+
+// Vector search result
+export interface VectorSearchResult {
+  entry: ChatHistoryEntry;
+  similarity: number;
+}
+
+// SSE streaming events
+export interface ChatChunkEvent {
+  sessionId: string;
+  messageId: string;
+  text: string;
+  isComplete: boolean;
+}
+
+export interface ChatErrorEvent {
+  sessionId: string;
+  messageId: string;
+  error: string;
+}
+
+export interface ChatCompleteEvent {
+  sessionId: string;
+  messageId: string;
+}

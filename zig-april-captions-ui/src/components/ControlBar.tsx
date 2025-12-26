@@ -21,6 +21,8 @@ interface Props {
   onGenerateGreeting: () => void;
   isGreetingLoading: boolean;
   hasMeetingContext: boolean;
+  // Send commands to chat
+  onAddCommandToChat?: (command: string, text?: string) => void;
 }
 
 export function ControlBar({
@@ -31,21 +33,41 @@ export function ControlBar({
   onStop,
   onClear,
   modelPath,
-  onGenerateSummary,
-  onGenerateQuestions,
-  isSummaryLoading,
-  isQuestionsLoading,
+  onGenerateSummary: _onGenerateSummary,
+  onGenerateQuestions: _onGenerateQuestions,
+  isSummaryLoading: _isSummaryLoading,
+  isQuestionsLoading: _isQuestionsLoading,
   hasApiKey,
   hasTranscript,
   t,
   onInitMeeting,
-  onGenerateGreeting,
-  isGreetingLoading,
+  onGenerateGreeting: _onGenerateGreeting,
+  isGreetingLoading: _isGreetingLoading,
   hasMeetingContext,
+  onAddCommandToChat,
 }: Props) {
   const canStart = !isRunning && !isLoading && modelPath;
   const canGenerateAI = hasApiKey && hasTranscript;
   const canGenerateGreeting = hasApiKey;
+
+  // Send commands to chat instead of timeline
+  const handleGreeting = () => {
+    if (onAddCommandToChat) {
+      onAddCommandToChat('/greeting', '');
+    }
+  };
+
+  const handleSummary = () => {
+    if (onAddCommandToChat) {
+      onAddCommandToChat('/summary', '');
+    }
+  };
+
+  const handleQuestions = () => {
+    if (onAddCommandToChat) {
+      onAddCommandToChat('/questions', '');
+    }
+  };
 
   return (
     <div className="flex flex-col gap-2 p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
@@ -63,14 +85,14 @@ export function ControlBar({
           {hasMeetingContext ? '✓ Init' : 'Init'}
         </button>
 
-        {/* Greeting Button */}
+        {/* Greeting Button - now sends to chat */}
         <button
           className="px-4 py-1 text-sm font-semibold bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-700 rounded-md hover:bg-blue-200 dark:hover:bg-blue-900/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          onClick={onGenerateGreeting}
-          disabled={!canGenerateGreeting || isGreetingLoading}
-          title="Generate meeting greeting"
+          onClick={handleGreeting}
+          disabled={!canGenerateGreeting}
+          title="Generate meeting greeting in chat"
         >
-          {isGreetingLoading ? 'Generating...' : 'Greeting'}
+          Greeting
         </button>
 
         {/* Start/Stop Button */}
@@ -94,19 +116,23 @@ export function ControlBar({
         >
           {t.clear}
         </button>
+        {/* Summary Button - now sends to chat */}
         <button
           className="px-4 py-1 text-sm font-semibold bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-700 rounded-md hover:bg-indigo-200 dark:hover:bg-indigo-900/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          onClick={onGenerateSummary}
-          disabled={!canGenerateAI || isSummaryLoading}
+          onClick={handleSummary}
+          disabled={!canGenerateAI}
+          title="Generate meeting summary in chat"
         >
-          {isSummaryLoading ? `${t.generating}` : t.generateSummaryBtn}
+          {t.generateSummaryBtn}
         </button>
+        {/* Questions Button - now sends to chat */}
         <button
           className="px-4 py-1 text-sm font-semibold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-700 rounded-md hover:bg-amber-200 dark:hover:bg-amber-900/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          onClick={onGenerateQuestions}
-          disabled={!canGenerateAI || isQuestionsLoading}
+          onClick={handleQuestions}
+          disabled={!canGenerateAI}
+          title="Generate questions in chat"
         >
-          {isQuestionsLoading ? `${t.generating}` : t.generateQuestionsBtn}
+          {t.generateQuestionsBtn}
         </button>
       </div>
 

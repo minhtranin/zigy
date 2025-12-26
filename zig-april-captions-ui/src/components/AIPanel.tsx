@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { invoke } from '@tauri-apps/api/core';
-import { KnowledgeEntry, TimelineItem, GeminiModel, TranslationLanguage, ChatHistoryStats, TRANSLATION_LANGUAGES } from '../types';
-import { generateIdeaScript, translateText } from '../services/geminiService';
+import { KnowledgeEntry, TimelineItem, GeminiModel, TranslationLanguage, ChatHistoryStats, TRANSLATION_LANGUAGES, Settings } from '../types';
+import { translateText } from '../services/geminiService';
 import { X, FileText, HelpCircle, Lightbulb, MessageCircle, Languages } from 'lucide-react';
 import { Translations } from '../translations';
-import { ContextMonitor } from './ContextMonitor';
+import { ChatPanel } from './ChatPanel';
 
 interface Tab {
   id: string;
@@ -22,33 +22,49 @@ interface Props {
   model: GeminiModel;
   t: Translations;
   translationLanguage?: TranslationLanguage;
-  // Context monitoring props
+  // Context monitoring props (hidden but kept for API compatibility)
   chatHistoryStats?: ChatHistoryStats | null;
   useContextOptimization?: boolean;
   onToggleContextOptimization?: (enabled: boolean) => void;
+  settings: Settings;
+  onSettingsChange: (settings: Settings) => void;
+  externalCommand?: { command: string; text: string } | null;
+  onExternalCommandProcessed?: () => void;
 }
 
 export function AIPanel({
   timeline,
   onDeleteTimelineItem,
-  onIdeaAdded,
-  hasApiKey,
+  onIdeaAdded: _onIdeaAdded,
+  hasApiKey: _hasApiKey,
   fontSize,
-  transcriptText,
+  transcriptText: _transcriptText,
   apiKey,
   model,
   t,
   translationLanguage,
-  chatHistoryStats,
-  useContextOptimization = true,
-  onToggleContextOptimization,
+  chatHistoryStats: _chatHistoryStats,
+  useContextOptimization: _useContextOptimization = true,
+  onToggleContextOptimization: _onToggleContextOptimization,
+  settings,
+  onSettingsChange,
+  externalCommand,
+  onExternalCommandProcessed,
 }: Props) {
-  const [activeTab, setActiveTab] = useState('ideas');
+  const [activeTab, setActiveTab] = useState('chat');
+  // Use stable session ID from localStorage to persist across tab switches
+  const [chatSessionId] = useState(() => {
+    const stored = localStorage.getItem('zigy_chat_session_id');
+    if (stored) return stored;
+    const newId = crypto.randomUUID();
+    localStorage.setItem('zigy_chat_session_id', newId);
+    return newId;
+  });
 
-  // Only 2 tabs now: Knowledge and Ideas
+  // Tabs: Knowledge and Chat
   const tabs: Tab[] = [
     { id: 'knowledge', label: t.knowledgeTab },
-    { id: 'ideas', label: t.ideasTab },
+    { id: 'chat', label: t.chatTab || 'Chat' },
   ];
 
   // Knowledge state
@@ -58,11 +74,6 @@ export function AIPanel({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingContent, setEditingContent] = useState('');
   const [expandedKnowledgeId, setExpandedKnowledgeId] = useState<string | null>(null);
-
-  // Idea generation state (for Ideas tab)
-  const [ideaRawContent, setIdeaRawContent] = useState('');
-  const [isGeneratingIdea, setIsGeneratingIdea] = useState(false);
-  const [ideaError, setIdeaError] = useState<string | null>(null);
 
   // Expanded timeline item ID
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
@@ -86,8 +97,8 @@ export function AIPanel({
     // Check if a new item was added (length increased)
     if (currentLength > prevLength && timeline.length > 0) {
       // Sort timeline by timestamp to get the newest item
-      const sortedTimeline = [...timeline].sort((a, b) => b.timestamp - a.timestamp);
-      const newestItem = sortedTimeline[0];
+      const _sortedTimeline = [...timeline].sort((a, b) => b.timestamp - a.timestamp);
+      const newestItem = _sortedTimeline[0];
 
       // Auto-expand the newest item
       if (newestItem) {
@@ -166,52 +177,6 @@ export function AIPanel({
     }
   };
 
-  // Idea generation handler
-  const handleGenerateIdea = async () => {
-    if (!ideaRawContent.trim()) return;
-
-    setIsGeneratingIdea(true);
-    setIdeaError(null);
-
-    try {
-      const knowledgeContext = knowledgeEntries
-        .filter(e => e.nominated)
-        .map(e => e.content)
-        .join('\n\n');
-      const { title, script } = await generateIdeaScript(
-        ideaRawContent.trim(),
-        transcriptText,
-        knowledgeContext,
-        apiKey,
-        model,
-        translationLanguage
-      );
-
-      // Save to backend
-      await invoke('add_idea', {
-        title: title,
-        rawContent: ideaRawContent.trim(),
-        correctedScript: script
-      });
-
-      // Clear form
-      setIdeaRawContent('');
-      setIdeaError(null);
-
-      // Notify parent to reload timeline
-      onIdeaAdded?.();
-    } catch (e) {
-      setIdeaError(e instanceof Error ? e.message : 'Failed to generate idea');
-    } finally {
-      setIsGeneratingIdea(false);
-    }
-  };
-
-  const handleClearIdea = () => {
-    setIdeaRawContent('');
-    setIdeaError(null);
-  };
-
   // Handle translation for timeline items
   const handleTranslateTimelineItem = async (item: TimelineItem) => {
     if (!translationLanguage || translationLanguage === 'none') {
@@ -263,7 +228,8 @@ export function AIPanel({
   };
 
   // Render timeline item based on type
-  const renderTimelineItem = (item: TimelineItem) => {
+  // @ts-ignore - unused: kept for potential future use
+  const _renderTimelineItem = (item: TimelineItem) => {
     const timeStr = new Date(item.timestamp).toLocaleTimeString('en-US', {
       hour: '2-digit',
       minute: '2-digit'
@@ -515,7 +481,8 @@ export function AIPanel({
   };
 
   // Sort timeline by timestamp descending (newest first)
-  const sortedTimeline = [...timeline].sort((a, b) => b.timestamp - a.timestamp);
+  // @ts-ignore - unused: kept for potential future use
+  const _sortedTimeline = [...timeline].sort((a, b) => b.timestamp - a.timestamp);
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
@@ -539,14 +506,7 @@ export function AIPanel({
           </div>
         </div>
 
-        {/* Context Monitor */}
-        {onToggleContextOptimization && (
-          <ContextMonitor
-            stats={chatHistoryStats ?? null}
-            useContextOptimization={useContextOptimization}
-            onToggleOptimization={onToggleContextOptimization}
-          />
-        )}
+        {/* Context Monitor - hidden, always use smart context */}
 
         {/* Tab Content */}
         <div className="flex-1 overflow-y-auto min-h-0">
@@ -674,64 +634,16 @@ export function AIPanel({
             </div>
           )}
 
-          {activeTab === 'ideas' && (
-            <div className="p-3 flex flex-col gap-3 h-full">
-              {/* Idea Input Form */}
-              <div className="flex flex-col gap-2 pb-3 border-b border-gray-200 dark:border-gray-700">
-                <textarea
-                  className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 resize-y min-h-[50px] focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-gray-400 dark:placeholder-gray-500"
-                  placeholder={t.ideasPlaceholder}
-                  value={ideaRawContent}
-                  onChange={(e) => setIdeaRawContent(e.target.value)}
-                  rows={2}
-                  style={{ fontSize: `${fontSize}px` }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-                      e.preventDefault();
-                      handleGenerateIdea();
-                    }
-                  }}
-                />
-                <div className="flex gap-2">
-                  <button
-                    className="px-4 py-2 text-xs font-semibold text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                    onClick={handleGenerateIdea}
-                    disabled={!hasApiKey || !ideaRawContent.trim() || isGeneratingIdea}
-                  >
-                    {isGeneratingIdea ? t.generating : t.generate}
-                  </button>
-                  {ideaRawContent && (
-                    <button
-                      className="px-4 py-2 text-xs font-semibold text-gray-700 dark:text-gray-300 bg-transparent border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700"
-                      onClick={handleClearIdea}
-                    >
-                      {t.clear}
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Error Display */}
-              {ideaError && (
-                <div className="p-2 text-xs text-red-700 bg-red-100 dark:bg-red-900/20 dark:text-red-400 rounded-md">
-                  {ideaError}
-                </div>
-              )}
-
-              {/* Timeline */}
-              {sortedTimeline.length > 0 ? (
-                <div className="flex-1 flex flex-col gap-3 overflow-y-auto min-h-0">
-                  {sortedTimeline.map(item => renderTimelineItem(item))}
-                </div>
-              ) : (
-                <div className="flex-1 flex items-center justify-center">
-                  <div className="text-center p-4 text-gray-500 dark:text-gray-400 italic" style={{ fontSize: `${fontSize}px` }}>
-                    <div className="mb-2">{t.noTimelineItems}</div>
-                    <div className="text-xs text-gray-400 dark:text-gray-500">{t.timelineHint}</div>
-                  </div>
-                </div>
-              )}
-            </div>
+          {activeTab === 'chat' && (
+            <ChatPanel
+              settings={settings}
+              onSettingsChange={onSettingsChange}
+              sessionId={chatSessionId}
+              fontSize={fontSize}
+              t={t}
+              externalCommand={externalCommand}
+              onExternalCommandProcessed={onExternalCommandProcessed}
+            />
           )}
         </div>
       </div>

@@ -20,6 +20,7 @@ export interface Translations {
   translating: string;
   hide: string;
   historyPlaceholder: string;
+  compact: string;
 
   // Control Bar
   start: string;
@@ -108,6 +109,23 @@ export interface Translations {
   generateSummaryBtn: string;
   generateQuestionsBtn: string;
 
+  // Chat Tab (replaces Ideas)
+  chatTab: string;
+  chatPlaceholder: string;
+  pleaseConfigureApiKey: string;
+
+  // Chat Panel UI
+  contextSuggestions: string;
+  whatToSayNext: string;
+  respondToLastPoint: string;
+  addMyOpinion: string;
+  talkModeHint: string;
+  talkModePlaceholder: string;
+  askMeAnything: string;
+  meetingAssistant: string;
+  trySuggestion: string;
+  translateToLanguage: string;
+
   // About Panel
   aboutTitle: string;
   contact: string;
@@ -138,6 +156,7 @@ export const translations: Record<AppLanguage, Translations> = {
     translating: 'Translating...',
     hide: 'Hide',
     historyPlaceholder: 'History will appear here...',
+    compact: 'Compact',
 
     // Control Bar
     start: 'Start',
@@ -226,6 +245,23 @@ export const translations: Record<AppLanguage, Translations> = {
     generateSummaryBtn: 'Summary',
     generateQuestionsBtn: 'Questions',
 
+    // Chat Tab (replaces Ideas)
+    chatTab: 'Chat',
+    chatPlaceholder: 'Type a message or /ask, /answer, /talk, /translate...',
+    pleaseConfigureApiKey: 'Please configure your Gemini API key in Settings',
+
+    // Chat Panel UI
+    contextSuggestions: 'Context suggestions',
+    whatToSayNext: 'What to say next?',
+    respondToLastPoint: 'Respond to last point',
+    addMyOpinion: 'Add my opinion',
+    talkModeHint: 'Talk Mode: Type in any language → Natural English',
+    talkModePlaceholder: 'Type in any language → English for speaking...',
+    askMeAnything: 'Ask me anything...',
+    meetingAssistant: 'Meeting Assistant',
+    trySuggestion: 'Try a suggestion or type your message',
+    translateToLanguage: 'Translate',
+
     // About Panel
     aboutTitle: 'About Zigy',
     contact: 'Contact',
@@ -254,6 +290,7 @@ export const translations: Record<AppLanguage, Translations> = {
     translating: 'Đang dịch...',
     hide: 'Ẩn',
     historyPlaceholder: 'Lịch sử sẽ xuất hiện ở đây...',
+    compact: 'Gộp',
 
     // Control Bar
     start: 'Bắt đầu',
@@ -341,6 +378,23 @@ export const translations: Record<AppLanguage, Translations> = {
     ideaTitle: 'Ý tưởng',
     generateSummaryBtn: 'Tóm tắt',
     generateQuestionsBtn: 'Câu hỏi',
+
+    // Chat Tab (replaces Ideas)
+    chatTab: 'Chat',
+    chatPlaceholder: 'Nhập tin nhắn hoặc /ask, /answer, /talk, /translate...',
+    pleaseConfigureApiKey: 'Vui lòng cấu hình khóa API Gemini trong Cài đặt',
+
+    // Chat Panel UI
+    contextSuggestions: 'Gợi ý theo ngữ cảnh',
+    whatToSayNext: 'Nói gì tiếp?',
+    respondToLastPoint: 'Phản hồi điểm trước',
+    addMyOpinion: 'Thêm ý kiến',
+    talkModeHint: 'Chế độ nói: Nhập bằng bất kỳ ngôn ngữ nào → Tiếng Anh tự nhiên',
+    talkModePlaceholder: 'Nhập bằng bất kỳ ngôn ngữ nào → Tiếng Anh để nói...',
+    askMeAnything: 'Hỏi tôi bất cứ điều gì...',
+    meetingAssistant: 'Trợ lý cuộc họp',
+    trySuggestion: 'Thử một gợi ý hoặc nhập tin nhắn',
+    translateToLanguage: 'Dịch',
 
     // About Panel
     aboutTitle: 'Về Zigy',

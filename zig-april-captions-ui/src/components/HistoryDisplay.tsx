@@ -1,17 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import {
-  Pencil,
-  Trash2,
   HelpCircle,
   MessageSquare,
   Mic,
-  Check,
-  X,
   Languages,
+  Minimize2,
+  Loader2,
 } from 'lucide-react';
-import { invoke } from '@tauri-apps/api/core';
-import { generateAnswerResponse, generateClarifyingQuestions, generateTalkScript, translateText } from '../services/geminiService';
-import type { GeminiModel, KnowledgeEntry, TranslationLanguage } from '../types';
+import type { GeminiModel, TranslationLanguage } from '../types';
 import { TRANSLATION_LANGUAGES } from '../types';
 import { Translations } from '../translations';
 
@@ -26,6 +22,65 @@ interface Props {
   onQuestionsGenerated?: (questions: string[], lineContext?: string) => void;
   translationLanguage?: TranslationLanguage;
   t: Translations;
+  onAddCommandToChat?: (command: string, text: string) => void;
+}
+
+// Translate text using Gemini
+async function translateLine(
+  text: string,
+  targetLanguage: string,
+  apiKey: string,
+  model: string
+): Promise<string> {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{
+        parts: [{
+          text: `Translate this text to ${targetLanguage}. Return ONLY the translation, no explanations:\n\n${text}`
+        }]
+      }],
+      generationConfig: { maxOutputTokens: 500, temperature: 0.3 }
+    })
+  });
+
+  if (!response.ok) throw new Error('Translation failed');
+  const data = await response.json();
+  return data.candidates?.[0]?.content?.parts?.[0]?.text || text;
+}
+
+// Summarize transcription lines using Gemini
+async function summarizeTranscript(
+  lines: string[],
+  apiKey: string,
+  model: string
+): Promise<string> {
+  const text = lines.join('\n');
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{
+        parts: [{
+          text: `Summarize this meeting transcript into 1-2 concise sentences. Keep key topics, names, and decisions. This is for context retention:\n\n${text}`
+        }]
+      }],
+      generationConfig: { maxOutputTokens: 150, temperature: 0.3 }
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to summarize');
+  }
+
+  const data = await response.json();
+  return data.candidates?.[0]?.content?.parts?.[0]?.text || lines.join(' ... ');
 }
 
 export function HistoryDisplay({
@@ -34,228 +89,89 @@ export function HistoryDisplay({
   fontSize,
   onUpdateHistory,
   apiKey,
-  model = 'gemini-2.5-flash',
-  onIdeaAdded,
-  onQuestionsGenerated,
-  translationLanguage,
+  model = 'gemini-2.0-flash',
+  onIdeaAdded: _onIdeaAdded,
+  onQuestionsGenerated: _onQuestionsGenerated,
+  translationLanguage = 'vi',
   t,
+  onAddCommandToChat,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [editingIndex, setEditingIndex] = useState<number | null>(null);
-  const [editText, setEditText] = useState('');
-  const [answeringIndex, setAnsweringIndex] = useState<number | null>(null);
-  const [_answerError, setAnswerError] = useState<string | null>(null);
-  const [askingIndex, setAskingIndex] = useState<number | null>(null);
-  const [_askError, setAskError] = useState<string | null>(null);
-  const [talkingIndex, setTalkingIndex] = useState<number | null>(null);
-  const [_talkError, setTalkError] = useState<string | null>(null);
-  const [localKnowledge, setLocalKnowledge] = useState<KnowledgeEntry[]>([]);
-  const [translations, setTranslations] = useState<Map<number, string>>(new Map());
+  const [isCompacting, setIsCompacting] = useState(false);
+  const [translations, setTranslations] = useState<Record<number, string>>({});
   const [translatingIndex, setTranslatingIndex] = useState<number | null>(null);
-  const [_translateError, setTranslateError] = useState<string | null>(null);
 
   const lines = text ? text.toLowerCase().split('\n').filter(line => line.trim() !== '') : [];
 
-  // Load knowledge entries on mount
-  useEffect(() => {
-    const loadKnowledge = async () => {
-      try {
-        const entries = await invoke<KnowledgeEntry[]>('get_knowledge');
-        setLocalKnowledge(entries);
-      } catch (e) {
-        console.error('Failed to load knowledge:', e);
-      }
-    };
-    loadKnowledge();
-  }, []);
+  const handleCompact = async () => {
+    if (lines.length <= 1 || !onUpdateHistory) return;
+
+    // Compact ALL lines into 1 summary
+    if (!apiKey) {
+      // Fallback: simple join if no API key
+      const merged = lines.join(' ... ');
+      onUpdateHistory(merged);
+      return;
+    }
+
+    setIsCompacting(true);
+    try {
+      // Use Gemini to summarize ALL lines into 1
+      const summary = await summarizeTranscript(lines, apiKey, model);
+      onUpdateHistory(`[Summary] ${summary}`);
+    } catch (error) {
+      console.error('Failed to compact with AI:', error);
+      // Fallback to simple join
+      const merged = lines.join(' ... ');
+      onUpdateHistory(merged);
+    } finally {
+      setIsCompacting(false);
+    }
+  };
 
   useEffect(() => {
-    if (containerRef.current && editingIndex === null) {
+    if (containerRef.current) {
       containerRef.current.scrollTop = containerRef.current.scrollHeight;
     }
-  }, [text, editingIndex]);
+  }, [text]);
 
-  const handleStartEdit = (index: number) => {
-    setEditText(lines[index]);
-    setEditingIndex(index);
+  const handleAnswerClick = (index: number) => {
+    const lineText = lines[index];
+    onAddCommandToChat?.('/answer', lineText);
   };
 
-  const handleCancelEdit = () => {
-    setEditingIndex(null);
-    setEditText('');
+  const handleAskClick = (index: number) => {
+    const lineText = lines[index];
+    onAddCommandToChat?.('/ask', lineText);
   };
 
-  const handleSaveEdit = () => {
-    if (onUpdateHistory && editingIndex !== null) {
-      const newLines = [...lines];
-      newLines[editingIndex] = editText.trim();
-      onUpdateHistory(newLines.join('\n'));
-    }
-    setEditingIndex(null);
-    setEditText('');
-  };
-
-  const handleDeleteLine = (index: number) => {
-    if (onUpdateHistory) {
-      const newLines = lines.filter((_, i) => i !== index);
-      onUpdateHistory(newLines.join('\n'));
-    }
-  };
-
-  const handleAnswerClick = async (index: number) => {
-    if (!apiKey) {
-      setAnswerError('API key is required');
-      return;
-    }
-
-    setAnsweringIndex(index);
-    setAnswerError(null);
-
-    try {
-      const question = lines[index];
-      const knowledgeContext = localKnowledge
-        .filter(e => e.nominated)
-        .map(e => e.content)
-        .join('\n\n');
-
-      const answer = await generateAnswerResponse(
-        question,
-        text, // full transcript
-        knowledgeContext,
-        apiKey,
-        model
-      );
-
-      // Save as an idea for speaking
-      const title = question.length > 50
-        ? question.substring(0, 47) + '...'
-        : question;
-
-      await invoke('add_idea', {
-        title: `Answer: ${title}`,
-        rawContent: question,
-        correctedScript: answer
-      });
-
-      // Notify parent to reload ideas and expand the new one
-      onIdeaAdded?.();
-    } catch (e) {
-      setAnswerError(e instanceof Error ? e.message : 'Failed to generate answer');
-    } finally {
-      setAnsweringIndex(null);
-    }
-  };
-
-  const handleAskClick = async (index: number) => {
-    if (!apiKey) {
-      setAskError('API key is required');
-      return;
-    }
-
-    setAskingIndex(index);
-    setAskError(null);
-
-    try {
-      const specificLine = lines[index];
-
-      const questions = await generateClarifyingQuestions(
-        specificLine,
-        text, // full transcript
-        apiKey,
-        model
-      );
-
-      // Notify parent to add questions to Questions tab with line context
-      onQuestionsGenerated?.(questions, specificLine);
-    } catch (e) {
-      setAskError(e instanceof Error ? e.message : 'Failed to generate questions');
-    } finally {
-      setAskingIndex(null);
-    }
-  };
-
-  const handleTalkClick = async (index: number) => {
-    if (!apiKey) {
-      setTalkError('API key is required');
-      return;
-    }
-
-    setTalkingIndex(index);
-    setTalkError(null);
-
-    try {
-      const specificLine = lines[index];
-      const knowledgeContext = localKnowledge
-        .filter(e => e.nominated)
-        .map(e => e.content)
-        .join('\n\n');
-
-      const { title, script } = await generateTalkScript(
-        specificLine,
-        text, // full transcript
-        knowledgeContext,
-        apiKey,
-        model
-      );
-
-      // Save as an idea for speaking
-      await invoke('add_idea', {
-        title,
-        rawContent: specificLine,
-        correctedScript: script
-      });
-
-      // Notify parent to reload ideas and expand the new one
-      onIdeaAdded?.();
-    } catch (e) {
-      setTalkError(e instanceof Error ? e.message : 'Failed to generate talk script');
-    } finally {
-      setTalkingIndex(null);
-    }
+  const handleTalkClick = (index: number) => {
+    const lineText = lines[index];
+    onAddCommandToChat?.('/talk', lineText);
   };
 
   const handleTranslateClick = async (index: number) => {
-    if (!apiKey) {
-      setTranslateError('API key is required');
-      return;
-    }
+    if (!apiKey || translatingIndex !== null) return;
 
-    if (!translationLanguage || translationLanguage === 'none') {
-      setTranslateError('Please select a translation language in Settings');
+    // If already translated, toggle off
+    if (translations[index]) {
+      setTranslations(prev => {
+        const next = { ...prev };
+        delete next[index];
+        return next;
+      });
       return;
     }
 
     const lineText = lines[index];
-
-    // If already translated, toggle visibility (hide it)
-    if (translations.has(index)) {
-      setTranslations(prev => {
-        const newMap = new Map(prev);
-        newMap.delete(index);
-        return newMap;
-      });
-      return;
-    }
-
     setTranslatingIndex(index);
-    setTranslateError(null);
 
     try {
-      const targetLanguageName = TRANSLATION_LANGUAGES[translationLanguage];
-      const translation = await translateText(
-        lineText,
-        targetLanguageName,
-        apiKey,
-        model
-      );
-
-      setTranslations(prev => {
-        const newMap = new Map(prev);
-        newMap.set(index, translation);
-        return newMap;
-      });
+      const languageName = TRANSLATION_LANGUAGES[translationLanguage] || 'Vietnamese';
+      const translated = await translateLine(lineText, languageName, apiKey, model);
+      setTranslations(prev => ({ ...prev, [index]: translated }));
     } catch (e) {
-      setTranslateError(e instanceof Error ? e.message : 'Failed to translate');
+      console.error('Translation failed:', e);
     } finally {
       setTranslatingIndex(null);
     }
@@ -263,109 +179,89 @@ export function HistoryDisplay({
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 flex flex-col h-full border border-gray-200 dark:border-gray-700">
-      <div className="flex-shrink-0 pb-2 mb-2 border-b border-gray-200 dark:border-gray-700">
+      <div className="flex-shrink-0 pb-2 mb-2 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
         <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
           {t.history} {wordCount > 0 && `(${wordCount} ${t.words})`}
         </span>
+        {lines.length > 2 && onUpdateHistory && (
+          <button
+            onClick={handleCompact}
+            disabled={isCompacting}
+            className="flex items-center gap-1 text-xs text-indigo-500 hover:text-indigo-600 dark:text-indigo-400 dark:hover:text-indigo-300 disabled:opacity-50"
+            title={t.compact}
+          >
+            {isCompacting ? (
+              <Loader2 size={14} className="animate-spin" />
+            ) : (
+              <Minimize2 size={14} />
+            )}
+            <span>{isCompacting ? 'Compacting...' : t.compact}</span>
+          </button>
+        )}
       </div>
       <div className="flex-1 overflow-y-auto min-h-0" ref={containerRef}>
         {lines.length > 0 ? (
           <div className="text-gray-800 dark:text-gray-200" style={{ fontSize: `${fontSize}px` }}>
             {lines.map((line, i) => {
               const alwaysShowActions = i >= lines.length - 3;
+              const isSummary = line.startsWith('[summary]');
               return (
-                <div key={i} className="group py-2 border-b border-gray-200 dark:border-gray-700 last:border-b-0">
-                  {editingIndex === i ? (
-                    <div className="flex w-full items-center gap-2">
-                      <input
-                        type="text"
-                        className="flex-grow bg-transparent border border-blue-500 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        value={editText}
-                        onChange={(e) => setEditText(e.target.value)}
-                        style={{ fontSize: `${fontSize}px` }}
-                        autoFocus
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') handleSaveEdit();
-                          if (e.key === 'Escape') handleCancelEdit();
-                        }}
-                      />
-                      <div className="flex items-center gap-2">
-                        <button className="text-green-500 hover:text-green-400 p-1" onClick={handleSaveEdit}><Check size={18} /></button>
-                        <button className="text-red-500 hover:text-red-400 p-1" onClick={handleCancelEdit}><X size={18} /></button>
-                      </div>
+                <div key={i} className={`group py-2 border-b border-gray-200 dark:border-gray-700 last:border-b-0 ${isSummary ? 'bg-indigo-50 dark:bg-indigo-900/20 -mx-4 px-4' : ''}`}>
+                  <div className="flex flex-col gap-2">
+                    <div className={`leading-relaxed ${isSummary ? 'text-indigo-700 dark:text-indigo-300 text-sm italic' : ''}`} style={{ wordWrap: 'break-word', overflowWrap: 'anywhere' }}>
+                      {line}
                     </div>
-                  ) : (
-                    <>
-                      <div className="flex flex-col gap-2">
-                        <div className="leading-relaxed" style={{ wordWrap: 'break-word', overflowWrap: 'anywhere' }}>{line}</div>
-                        {onUpdateHistory && (
-                          <div className={`flex items-center gap-2 flex-wrap transition-opacity duration-200 ${alwaysShowActions ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
-                            <button className="flex items-center gap-1 text-gray-600 hover:text-blue-500" title={t.edit} onClick={() => handleStartEdit(i)}>
-                              <Pencil size={18} />
-                              <span className="text-sm">{t.edit}</span>
-                            </button>
-                            <button className="flex items-center gap-1 text-gray-600 hover:text-red-500" onClick={() => handleDeleteLine(i)} title={t.delete}>
-                              <Trash2 size={18} />
-                               <span className="text-sm">{t.delete}</span>
-                            </button>
-                            <button
-                              className="flex items-center gap-1 text-gray-600 hover:text-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                              title={t.ask}
-                              onClick={() => handleAskClick(i)}
-                              disabled={!apiKey || askingIndex !== null}
-                            >
-                              <HelpCircle size={18} />
-                              <span className="text-sm">
-                                {askingIndex === i ? t.generating : t.ask}
-                              </span>
-                            </button>
-                            <button
-                              className="flex items-center gap-1 text-gray-600 hover:text-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                              title={t.answer}
-                              onClick={() => handleAnswerClick(i)}
-                              disabled={!apiKey || answeringIndex !== null}
-                            >
-                              <MessageSquare size={18} />
-                              <span className="text-sm">
-                                {answeringIndex === i ? t.generating : t.answer}
-                              </span>
-                            </button>
-                            <button
-                              className="flex items-center gap-1 text-gray-600 hover:text-teal-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                              title={t.talk}
-                              onClick={() => handleTalkClick(i)}
-                              disabled={!apiKey || talkingIndex !== null}
-                            >
-                              <Mic size={18} />
-                              <span className="text-sm">
-                                {talkingIndex === i ? t.generating : t.talk}
-                              </span>
-                            </button>
-                            <button
-                              className="flex items-center gap-1 text-gray-600 hover:text-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                              title={t.translate}
-                              onClick={() => handleTranslateClick(i)}
-                              disabled={!apiKey || !translationLanguage || translationLanguage === 'none' || translatingIndex !== null}
-                            >
-                              <Languages size={18} />
-                              <span className="text-sm">
-                                {translatingIndex === i ? t.translating : translations.has(i) ? t.hide : t.translate}
-                              </span>
-                            </button>
-                          </div>
-                        )}
+                    {/* Show translation inline */}
+                    {translations[i] && (
+                      <div className="text-sm text-blue-600 dark:text-blue-400 italic pl-2 border-l-2 border-blue-300 dark:border-blue-600">
+                        📝 {translations[i]}
                       </div>
-                      {/* Show translation if available */}
-                      {translations.has(i) && (
-                        <div className="mt-2 pl-4 border-l-2 border-blue-500 bg-blue-50 dark:bg-blue-900/20 rounded-r p-2 flex items-start gap-2">
-                          <Languages size={12} className="text-blue-600 dark:text-blue-400 mt-1 flex-shrink-0" />
-                          <div className="text-gray-700 dark:text-gray-300 flex-1" style={{ fontSize: `${Math.round(fontSize * 0.85)}px` }}>
-                            {translations.get(i)}
-                          </div>
-                        </div>
-                      )}
-                    </>
-                  )}
+                    )}
+                    {onAddCommandToChat && !isSummary && (
+                      <div className={`flex items-center gap-2 flex-wrap transition-opacity duration-200 ${alwaysShowActions ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                        <button
+                          className="flex items-center gap-1 text-gray-600 hover:text-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                          title={t.ask}
+                          onClick={() => handleAskClick(i)}
+                          disabled={!apiKey}
+                        >
+                          <HelpCircle size={18} />
+                          <span className="text-sm">{t.ask}</span>
+                        </button>
+                        <button
+                          className="flex items-center gap-1 text-gray-600 hover:text-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                          title={t.answer}
+                          onClick={() => handleAnswerClick(i)}
+                          disabled={!apiKey}
+                        >
+                          <MessageSquare size={18} />
+                          <span className="text-sm">{t.answer}</span>
+                        </button>
+                        <button
+                          className="flex items-center gap-1 text-gray-600 hover:text-teal-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                          title={t.talk}
+                          onClick={() => handleTalkClick(i)}
+                          disabled={!apiKey}
+                        >
+                          <Mic size={18} />
+                          <span className="text-sm">{t.talk}</span>
+                        </button>
+                        <button
+                          className={`flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed ${translations[i] ? 'text-blue-600 dark:text-blue-400' : 'text-gray-600 hover:text-blue-600'}`}
+                          title={translations[i] ? t.hide : t.translate}
+                          onClick={() => handleTranslateClick(i)}
+                          disabled={!apiKey || translatingIndex === i}
+                        >
+                          {translatingIndex === i ? (
+                            <Loader2 size={18} className="animate-spin" />
+                          ) : (
+                            <Languages size={18} />
+                          )}
+                          <span className="text-sm">{translatingIndex === i ? t.translating : (translations[i] ? t.hide : t.translate)}</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               );
             })}

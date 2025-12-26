@@ -28,6 +28,16 @@ tokio = { version = "1", features = ["full"] }
 dirs = "5"
 uuid = { version = "1", features = ["v4"] }
 
+# SQLite and vector support
+rusqlite = { version = "0.32", features = ["bundled"] }
+sqlite-vec = "0.1"
+
+# HTTP client for API calls - use rustls to avoid OpenSSL dependency
+reqwest = { version = "0.12", features = ["json", "stream", "rustls-tls"], default-features = false }
+
+# Async stream utilities for SSE parsing
+futures-util = "0.3"
+
 # Patch dlopen2_derive to fix Rust compatibility issue
 [patch.crates-io]
 dlopen2_derive = { git = "https://github.com/OpenByteDev/dlopen2" }

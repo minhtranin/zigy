@@ -4,6 +4,11 @@ use std::path::Path;
 use std::process::{Child, Command, Stdio};
 use std::sync::{Arc, Mutex};
 use tauri::{AppHandle, Emitter, Manager};
+use rusqlite::params;
+
+// Database module
+mod database;
+use database::{init_db, migrate_from_json, ChatHistoryEntry};
 
 // Global state to manage the child process and transcript history
 struct AppState {
@@ -139,17 +144,6 @@ pub struct IdeaEntry {
     pub raw_content: String,
     pub corrected_script: String,
     pub created_at: i64,
-}
-
-// Chat history entry - unified record of all interactions
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ChatHistoryEntry {
-    pub id: String,
-    pub timestamp: i64,
-    pub entry_type: String, // "transcript" | "question" | "answer" | "summary" | "idea" | "translation"
-    pub content: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub metadata: Option<serde_json::Value>, // For type-specific data
 }
 
 // Context compression snapshot
@@ -986,6 +980,675 @@ async fn clear_context_snapshots() -> Result<(), String> {
     Ok(())
 }
 
+// ============================================================================
+// NEW: Database and Chat Commands
+// ============================================================================
+
+/// Initialize the SQLite database and migrate from JSON if needed
+#[tauri::command]
+async fn init_database() -> Result<String, String> {
+    let mut conn = init_db().map_err(|e| format!("Failed to init database: {}", e))?;
+
+    // Check if we need to migrate (no chat entries yet)
+    let count: i64 = conn.query_row("SELECT COUNT(*) FROM chat_entries", [], |r| r.get(0))
+        .unwrap_or(0);
+
+    if count == 0 {
+        // Migrate from JSON files
+        let stats = migrate_from_json(&mut conn)
+            .map_err(|e| format!("Migration failed: {}", e))?;
+
+        println!("Migration complete: {} chat entries, {} ideas, {} knowledge, {} snapshots",
+            stats.chat_entries_migrated,
+            stats.ideas_migrated,
+            stats.knowledge_migrated,
+            stats.snapshots_migrated);
+    }
+
+    Ok("Database initialized".to_string())
+}
+
+/// Generate embedding using Gemini API
+#[tauri::command]
+async fn vector_generate_embedding(
+    text: String,
+    api_key: String,
+) -> Result<Vec<f32>, String> {
+    let client = reqwest::Client::new();
+    let url = format!("https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key={}", api_key);
+
+    let response = client
+        .post(&url)
+        .json(&serde_json::json!({
+            "content": {
+                "parts": [{ "text": text }]
+            },
+            "model": "models/text-embedding-004"
+        }))
+        .send()
+        .await
+        .map_err(|e| format!("Request failed: {}", e))?;
+
+    if !response.status().is_success() {
+        let status = response.status();
+        let error_text = response.text().await.unwrap_or_default();
+        return Err(format!("API error {}: {}", status, error_text));
+    }
+
+    let json: serde_json::Value = response
+        .json()
+        .await
+        .map_err(|e| format!("Failed to parse response: {}", e))?;
+
+    let embedding = json["embedding"]["values"]
+        .as_array()
+        .ok_or_else(|| "Missing embedding values".to_string())?
+        .iter()
+        .map(|v| v.as_f64().ok_or_else(|| "Invalid float".to_string()).map(|f| f as f32))
+        .collect::<Result<Vec<f32>, _>>()
+        .map_err(|e| e.to_string())?;
+
+    Ok(embedding)
+}
+
+/// Compute cosine similarity between two vectors
+fn cosine_similarity(a: &[f32], b: &[f32]) -> f32 {
+    if a.len() != b.len() || a.is_empty() {
+        return 0.0;
+    }
+    let dot: f32 = a.iter().zip(b.iter()).map(|(x, y)| x * y).sum();
+    let norm_a: f32 = a.iter().map(|x| x * x).sum::<f32>().sqrt();
+    let norm_b: f32 = b.iter().map(|x| x * x).sum::<f32>().sqrt();
+    if norm_a == 0.0 || norm_b == 0.0 {
+        return 0.0;
+    }
+    dot / (norm_a * norm_b)
+}
+
+/// Search for similar entries using vector similarity (proper implementation)
+#[tauri::command]
+async fn vector_search(
+    query_embedding: Vec<f32>,
+    limit: usize,
+    entry_types: Option<Vec<String>>,
+) -> Result<Vec<ChatHistoryEntry>, String> {
+    let conn = init_db().map_err(|e| format!("Failed to open database: {}", e))?;
+
+    let type_filter = entry_types
+        .map(|types| format!("'{}'", types.join("','")))
+        .unwrap_or_else(|| "'transcript','summary','answer'".to_string());
+
+    // Fetch entries that have embeddings
+    let query = format!(r#"
+        SELECT id, timestamp, entry_type, content, metadata, embedding
+        FROM chat_entries
+        WHERE entry_type IN ({}) AND embedding IS NOT NULL
+        ORDER BY timestamp DESC
+        LIMIT 100
+    "#, type_filter);
+
+    let mut stmt = conn.prepare(&query)
+        .map_err(|e| format!("Query failed: {}", e))?;
+
+    // Collect entries with their embeddings
+    let mut entries_with_scores: Vec<(ChatHistoryEntry, f32)> = Vec::new();
+
+    let rows = stmt.query_map([], |row| {
+        let id: String = row.get(0)?;
+        let timestamp: i64 = row.get(1)?;
+        let entry_type: String = row.get(2)?;
+        let content: String = row.get(3)?;
+        let metadata: Option<String> = row.get(4)?;
+        let embedding_blob: Option<Vec<u8>> = row.get(5)?;
+        Ok((id, timestamp, entry_type, content, metadata, embedding_blob))
+    })
+    .map_err(|e| format!("Execute failed: {}", e))?;
+
+    for row_result in rows {
+        let (id, timestamp, entry_type, content, metadata, embedding_blob) =
+            row_result.map_err(|e| format!("Row extraction failed: {}", e))?;
+
+        // Calculate similarity if embedding exists
+        let similarity = if let Some(blob) = embedding_blob {
+            let entry_embedding = database::blob_to_embedding(&blob);
+            cosine_similarity(&query_embedding, &entry_embedding)
+        } else {
+            0.0
+        };
+
+        let entry = ChatHistoryEntry {
+            id,
+            timestamp,
+            entry_type,
+            content,
+            metadata: metadata.and_then(|s| serde_json::from_str(&s).ok()),
+        };
+
+        entries_with_scores.push((entry, similarity));
+    }
+
+    // Sort by similarity (highest first)
+    entries_with_scores.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+
+    // Return top N entries
+    let entries: Vec<ChatHistoryEntry> = entries_with_scores
+        .into_iter()
+        .take(limit)
+        .map(|(entry, _)| entry)
+        .collect();
+
+    Ok(entries)
+}
+
+/// Search knowledge entries by semantic similarity
+#[tauri::command]
+async fn search_knowledge_semantic(
+    query_embedding: Vec<f32>,
+    limit: usize,
+    nominated_only: bool,
+) -> Result<Vec<KnowledgeEntry>, String> {
+    let conn = init_db().map_err(|e| format!("Failed to open database: {}", e))?;
+
+    let nominated_filter = if nominated_only { "AND nominated = 1" } else { "" };
+
+    let query = format!(r#"
+        SELECT id, content, created_at, nominated, embedding
+        FROM knowledge_entries
+        WHERE embedding IS NOT NULL {}
+    "#, nominated_filter);
+
+    let mut stmt = conn.prepare(&query)
+        .map_err(|e| format!("Query failed: {}", e))?;
+
+    let mut entries_with_scores: Vec<(KnowledgeEntry, f32)> = Vec::new();
+
+    let rows = stmt.query_map([], |row| {
+        let id: String = row.get(0)?;
+        let content: String = row.get(1)?;
+        let created_at: i64 = row.get(2)?;
+        let nominated: i32 = row.get(3)?;
+        let embedding_blob: Option<Vec<u8>> = row.get(4)?;
+        Ok((id, content, created_at, nominated, embedding_blob))
+    })
+    .map_err(|e| format!("Execute failed: {}", e))?;
+
+    for row_result in rows {
+        let (id, content, created_at, nominated, embedding_blob) =
+            row_result.map_err(|e| format!("Row extraction failed: {}", e))?;
+
+        let similarity = if let Some(blob) = embedding_blob {
+            let entry_embedding = database::blob_to_embedding(&blob);
+            cosine_similarity(&query_embedding, &entry_embedding)
+        } else {
+            0.0
+        };
+
+        entries_with_scores.push((KnowledgeEntry {
+            id,
+            content,
+            created_at,
+            nominated: nominated == 1,
+        }, similarity));
+    }
+
+    // Sort by similarity
+    entries_with_scores.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+
+    let entries: Vec<KnowledgeEntry> = entries_with_scores
+        .into_iter()
+        .take(limit)
+        .map(|(entry, _)| entry)
+        .collect();
+
+    Ok(entries)
+}
+
+/// Send a chat message with streaming response
+#[tauri::command]
+async fn chat_send_message_stream(
+    app_handle: AppHandle,
+    session_id: String,
+    message: String,
+    context: String,
+    api_key: String,
+    model: String,
+) -> Result<String, String> {
+    use tokio::spawn;
+
+    let message_id = uuid::Uuid::new_v4().to_string();
+    let message_id_clone = message_id.clone();
+    let session_id_clone = session_id.clone();
+    let app_handle_clone = app_handle.clone();
+    let message_clone = message.clone();
+
+    spawn(async move {
+        // Use alt=sse for proper Server-Sent Events streaming
+        let url = format!("https://generativelanguage.googleapis.com/v1beta/models/{}:streamGenerateContent?alt=sse&key={}",
+            model, api_key);
+
+        let client = reqwest::Client::new();
+
+        // Build prompt with context
+        let user_message = if context.is_empty() {
+            message.clone()
+        } else {
+            format!("{}\n\nUser question: {}", context, message)
+        };
+
+        println!("Chat request: model={}, message={}", model, message_clone);
+
+        // System instruction for meeting/interview assistant
+        let system_instruction = "You are a personal meeting/interview assistant. Your job is to help the user speak confidently. \
+            IMPORTANT: Generate responses in FIRST PERSON that the user can READ ALOUD or say directly. \
+            Example: If asked 'introduce yourself', respond with 'I'm a fullstack developer at...' NOT 'You are a developer...'. \
+            Use the knowledge base context to personalize responses with the user's actual background, skills, and experience. \
+            Keep responses concise and natural-sounding (2-4 sentences). \
+            Write as if you ARE the user speaking to others in a meeting or interview.";
+
+        let response = match client
+            .post(&url)
+            .json(&serde_json::json!({
+                "system_instruction": {
+                    "parts": [{"text": system_instruction}]
+                },
+                "contents": [{
+                    "parts": [{"text": user_message}]
+                }],
+                "generationConfig": {
+                    "maxOutputTokens": 500,
+                    "temperature": 0.7
+                }
+            }))
+            .send()
+            .await
+        {
+            Ok(resp) => resp,
+            Err(e) => {
+                eprintln!("Request error: {}", e);
+                let _ = app_handle_clone.emit("chat-error", serde_json::json!({
+                    "sessionId": session_id_clone,
+                    "messageId": message_id_clone,
+                    "error": e.to_string()
+                }));
+                return;
+            }
+        };
+
+        // Check response status
+        let status = response.status();
+        println!("Response status: {}", status);
+
+        if !status.is_success() {
+            let error_text = response.text().await.unwrap_or_default();
+            eprintln!("API error response: {}", error_text);
+            let _ = app_handle_clone.emit("chat-error", serde_json::json!({
+                "sessionId": session_id_clone,
+                "messageId": message_id_clone,
+                "error": format!("API error {}: {}", status, error_text)
+            }));
+            return;
+        }
+
+        // Read the full response and process SSE events
+        // Note: bytes_stream() may not work well with all server configurations
+        println!("Starting to read response body...");
+
+        let response_bytes = match response.bytes().await {
+            Ok(bytes) => bytes,
+            Err(e) => {
+                eprintln!("Failed to read response bytes: {}", e);
+                let _ = app_handle_clone.emit("chat-error", serde_json::json!({
+                    "sessionId": session_id_clone,
+                    "messageId": message_id_clone,
+                    "error": format!("Failed to read response: {}", e)
+                }));
+                return;
+            }
+        };
+
+        let response_text = match String::from_utf8(response_bytes.to_vec()) {
+            Ok(text) => text,
+            Err(e) => {
+                eprintln!("Failed to decode response as UTF-8: {}", e);
+                return;
+            }
+        };
+
+        println!("Response body length: {}", response_text.len());
+        println!("Response preview: {}", &response_text[..response_text.len().min(500)]);
+
+        // Normalize line endings
+        let normalized = response_text.replace("\r\n", "\n").replace("\r", "\n");
+
+        // Process SSE events
+        // Format: "data: {...}\n\n" or "data: {...}\ndata: {...}\n"
+        for line in normalized.lines() {
+            let line = line.trim();
+            if line.starts_with("data: ") {
+                let json_str = &line[6..];
+                println!("Processing SSE line: {}", &json_str[..json_str.len().min(100)]);
+
+                if let Ok(json) = serde_json::from_str::<serde_json::Value>(json_str) {
+                    // Extract text from Gemini response format
+                    if let Some(candidates) = json.get("candidates").and_then(|v| v.as_array()) {
+                        for candidate in candidates {
+                            if let Some(content) = candidate.get("content") {
+                                if let Some(parts) = content.get("parts").and_then(|v| v.as_array()) {
+                                    for part in parts {
+                                        if let Some(text) = part.get("text").and_then(|v| v.as_str()) {
+                                            println!("Emitting text chunk: {}", text);
+                                            let _ = app_handle_clone.emit("chat-chunk", serde_json::json!({
+                                                "sessionId": session_id_clone,
+                                                "messageId": message_id_clone,
+                                                "text": text
+                                            }));
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    println!("Failed to parse JSON from line: {}", json_str);
+                }
+            }
+        }
+
+        // If no SSE format detected, try parsing as JSON array (non-streaming format)
+        if !normalized.contains("data: ") {
+            println!("No SSE format detected, trying JSON array format...");
+            if let Ok(json_array) = serde_json::from_str::<serde_json::Value>(&normalized) {
+                if let Some(array) = json_array.as_array() {
+                    for chunk in array {
+                        if let Some(candidates) = chunk.get("candidates").and_then(|v| v.as_array()) {
+                            for candidate in candidates {
+                                if let Some(content) = candidate.get("content") {
+                                    if let Some(parts) = content.get("parts").and_then(|v| v.as_array()) {
+                                        for part in parts {
+                                            if let Some(text) = part.get("text").and_then(|v| v.as_str()) {
+                                                println!("Emitting text (array): {}", text);
+                                                let _ = app_handle_clone.emit("chat-chunk", serde_json::json!({
+                                                    "sessionId": session_id_clone,
+                                                    "messageId": message_id_clone,
+                                                    "text": text
+                                                }));
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Emit completion event
+        println!("Emitting complete event");
+        let _ = app_handle_clone.emit("chat-complete", serde_json::json!({
+            "sessionId": session_id_clone,
+            "messageId": message_id_clone
+        }));
+    });
+
+    Ok(message_id)
+}
+
+/// Get chat history from SQLite
+#[tauri::command]
+async fn chat_get_history(
+    session_id: Option<String>,
+    _since: Option<i64>,
+    _limit: Option<usize>,
+) -> Result<Vec<ChatHistoryEntry>, String> {
+    let conn = init_db().map_err(|e| format!("Failed to open database: {}", e))?;
+
+    let entries = if let Some(ref sid) = session_id {
+        let mut stmt = conn.prepare("SELECT id, timestamp, entry_type, content, metadata FROM chat_entries WHERE session_id = ? ORDER BY timestamp DESC")
+            .map_err(|e| format!("Prepare failed: {}", e))?;
+
+        let result = stmt.query_map(params![sid], |row| {
+            Ok(ChatHistoryEntry {
+                id: row.get(0)?,
+                timestamp: row.get(1)?,
+                entry_type: row.get(2)?,
+                content: row.get(3)?,
+                metadata: row.get::<_, Option<String>>(4)?
+                    .and_then(|s| serde_json::from_str(&s).ok()),
+            })
+        })
+        .map_err(|e| format!("Query failed: {}", e))?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| e.to_string())?;
+        result
+    } else {
+        let mut stmt = conn.prepare("SELECT id, timestamp, entry_type, content, metadata FROM chat_entries ORDER BY timestamp DESC")
+            .map_err(|e| format!("Prepare failed: {}", e))?;
+
+        let result = stmt.query_map(params![], |row| {
+            Ok(ChatHistoryEntry {
+                id: row.get(0)?,
+                timestamp: row.get(1)?,
+                entry_type: row.get(2)?,
+                content: row.get(3)?,
+                metadata: row.get::<_, Option<String>>(4)?
+                    .and_then(|s| serde_json::from_str(&s).ok()),
+            })
+        })
+        .map_err(|e| format!("Query failed: {}", e))?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| e.to_string())?;
+        result
+    };
+
+    Ok(entries)
+}
+
+/// Create a new chat session
+#[tauri::command]
+async fn create_session() -> Result<String, String> {
+    let session_id = uuid::Uuid::new_v4().to_string();
+    Ok(session_id)
+}
+
+/// Get relevant context for AI chat (knowledge + transcript + recent history)
+/// Now with optional semantic search for smarter context retrieval
+#[tauri::command]
+async fn get_chat_context(
+    state: tauri::State<'_, Arc<AppState>>,
+    limit: Option<usize>,
+    query: Option<String>,
+    api_key: Option<String>,
+) -> Result<serde_json::Value, String> {
+    // 1. Get nominated knowledge entries
+    let knowledge_path = get_knowledge_path();
+    let knowledge_context = if knowledge_path.exists() {
+        let content = std::fs::read_to_string(&knowledge_path).map_err(|e| e.to_string())?;
+        let entries: Vec<KnowledgeEntry> = serde_json::from_str(&content).unwrap_or_default();
+        let nominated: Vec<&KnowledgeEntry> = entries.iter().filter(|e| e.nominated).collect();
+        if nominated.is_empty() {
+            String::new()
+        } else {
+            format!("=== User's Knowledge Base ===\n{}\n",
+                nominated.iter().map(|e| format!("- {}", e.content)).collect::<Vec<_>>().join("\n"))
+        }
+    } else {
+        String::new()
+    };
+
+    // 2. Get current transcript lines (drop lock before await)
+    let transcript_context = {
+        let transcript_lines = state.transcript_lines.lock().map_err(|e| e.to_string())?;
+        if transcript_lines.is_empty() {
+            String::new()
+        } else {
+            let recent_lines: Vec<String> = transcript_lines.iter().rev().take(20).cloned().collect::<Vec<_>>().into_iter().rev().collect();
+            format!("=== Current Conversation Transcript (Recent Lines) ===\n{}\n",
+                recent_lines.join("\n"))
+        }
+    };
+
+    // 4. Get meeting context if set (do this before await too)
+    let meeting_context = {
+        let settings = state.settings.lock().map_err(|e| e.to_string())?;
+        settings.ai.as_ref()
+            .and_then(|ai| ai.meeting_context.as_ref())
+            .map(|ctx| format!("=== Meeting Context ===\n{}\n", ctx))
+            .unwrap_or_default()
+    };
+
+    // 3. Get relevant history - use semantic search if query and api_key provided
+    let history_limit = limit.unwrap_or(10);
+    let history_context = if let (Some(q), Some(key)) = (&query, &api_key) {
+        // Try semantic search
+        match get_semantic_history_context(q, &key, history_limit).await {
+            Ok(ctx) => ctx,
+            Err(e) => {
+                println!("Semantic search failed, falling back to recent: {}", e);
+                get_recent_history_context(history_limit)?
+            }
+        }
+    } else {
+        get_recent_history_context(history_limit)?
+    };
+
+    // Combine all context
+    let full_context = format!("{}{}{}{}",
+        meeting_context,
+        knowledge_context,
+        transcript_context,
+        history_context
+    );
+
+    Ok(serde_json::json!({
+        "context": full_context,
+        "has_knowledge": !knowledge_context.is_empty(),
+        "has_transcript": !transcript_context.is_empty(),
+        "has_history": !history_context.is_empty(),
+        "has_meeting_context": !meeting_context.is_empty()
+    }))
+}
+
+/// Get recent history context (fallback when no semantic search)
+fn get_recent_history_context(limit: usize) -> Result<String, String> {
+    let conn = init_db().map_err(|e| format!("Failed to open database: {}", e))?;
+
+    let mut stmt = conn.prepare(
+        "SELECT content, entry_type FROM chat_entries
+         WHERE entry_type IN ('answer', 'summary')
+         ORDER BY timestamp DESC
+         LIMIT ?"
+    ).map_err(|e| format!("Prepare failed: {}", e))?;
+
+    let history_entries: Vec<(String, String)> = stmt.query_map(params![limit], |row| {
+        Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+    })
+    .map_err(|e| format!("Query failed: {}", e))?
+    .collect::<Result<Vec<_>, _>>()
+    .map_err(|e| e.to_string())?;
+
+    if history_entries.is_empty() {
+        Ok(String::new())
+    } else {
+        Ok(format!("=== Recent AI Responses ===\n{}\n",
+            history_entries.iter()
+                .map(|(content, entry_type)| format!("[{}]: {}", entry_type, content))
+                .collect::<Vec<_>>()
+                .join("\n\n")))
+    }
+}
+
+/// Get semantically relevant history context using embeddings
+async fn get_semantic_history_context(query: &str, api_key: &str, limit: usize) -> Result<String, String> {
+    // Generate embedding for query
+    let embedding = generate_embedding(query, api_key).await?;
+
+    // Search for similar entries
+    let conn = init_db().map_err(|e| format!("Failed to open database: {}", e))?;
+
+    let mut stmt = conn.prepare(r#"
+        SELECT id, content, entry_type, embedding
+        FROM chat_entries
+        WHERE entry_type IN ('answer', 'summary', 'transcript') AND embedding IS NOT NULL
+        ORDER BY timestamp DESC
+        LIMIT 50
+    "#).map_err(|e| format!("Query failed: {}", e))?;
+
+    let mut entries_with_scores: Vec<(String, String, f32)> = Vec::new();
+
+    let rows = stmt.query_map([], |row| {
+        let content: String = row.get(1)?;
+        let entry_type: String = row.get(2)?;
+        let embedding_blob: Option<Vec<u8>> = row.get(3)?;
+        Ok((content, entry_type, embedding_blob))
+    }).map_err(|e| format!("Execute failed: {}", e))?;
+
+    for row_result in rows {
+        let (content, entry_type, embedding_blob) = row_result.map_err(|e| e.to_string())?;
+
+        let similarity = if let Some(blob) = embedding_blob {
+            let entry_embedding = database::blob_to_embedding(&blob);
+            cosine_similarity(&embedding, &entry_embedding)
+        } else {
+            0.0
+        };
+
+        if similarity > 0.3 { // Only include entries with decent similarity
+            entries_with_scores.push((content, entry_type, similarity));
+        }
+    }
+
+    // Sort by similarity
+    entries_with_scores.sort_by(|a, b| b.2.partial_cmp(&a.2).unwrap_or(std::cmp::Ordering::Equal));
+
+    let top_entries: Vec<_> = entries_with_scores.into_iter().take(limit).collect();
+
+    if top_entries.is_empty() {
+        Ok(String::new())
+    } else {
+        Ok(format!("=== Relevant Context (Semantic) ===\n{}\n",
+            top_entries.iter()
+                .map(|(content, entry_type, score)| format!("[{} ({:.0}%)]: {}", entry_type, score * 100.0, content))
+                .collect::<Vec<_>>()
+                .join("\n\n")))
+    }
+}
+
+/// Helper to generate embedding
+async fn generate_embedding(text: &str, api_key: &str) -> Result<Vec<f32>, String> {
+    let url = format!(
+        "https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key={}",
+        api_key
+    );
+
+    let client = reqwest::Client::new();
+    let response = client
+        .post(&url)
+        .json(&serde_json::json!({
+            "content": {
+                "parts": [{"text": text}]
+            }
+        }))
+        .send()
+        .await
+        .map_err(|e| format!("Request failed: {}", e))?;
+
+    if !response.status().is_success() {
+        return Err(format!("API error: {}", response.status()));
+    }
+
+    let data: serde_json::Value = response.json().await.map_err(|e| format!("Parse failed: {}", e))?;
+
+    let embedding = data["embedding"]["values"]
+        .as_array()
+        .ok_or("Invalid embedding response")?
+        .iter()
+        .map(|v| v.as_f64().unwrap_or(0.0) as f32)
+        .collect();
+
+    Ok(embedding)
+}
+
 fn load_settings() -> Settings {
     let path = get_settings_path();
     if path.exists() {
@@ -1050,6 +1713,15 @@ pub fn run() {
             get_latest_snapshot,
             get_all_snapshots,
             clear_context_snapshots,
+            // NEW: Database and chat commands
+            init_database,
+            vector_generate_embedding,
+            vector_search,
+            search_knowledge_semantic,
+            chat_send_message_stream,
+            chat_get_history,
+            create_session,
+            get_chat_context,
         ])
         .on_window_event(move |_window, event| {
             if let tauri::WindowEvent::Destroyed = event {

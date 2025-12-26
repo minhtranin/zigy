@@ -60,6 +60,9 @@ function App() {
   // Simple mode state - shows only live transcription
   const [simpleMode, setSimpleMode] = useState(false);
 
+  // External command state for chat (from transcription action buttons)
+  const [externalCommand, setExternalCommand] = useState<{ command: string; text: string } | null>(null);
+
   useEffect(() => {
     if (ideaGenerationTrigger > 0) {
       // Small delay to allow backend to save
@@ -198,6 +201,9 @@ function App() {
           onQuestionsGenerated={addQuestionsToTimeline}
           translationLanguage={settings.ai?.translation_language}
           t={t}
+          onAddCommandToChat={(command, text) => {
+            setExternalCommand({ command, text });
+          }}
         />
       </div>
 
@@ -221,6 +227,9 @@ function App() {
         isGreetingLoading={isGreetingLoading}
         hasMeetingContext={!!settings.ai?.meeting_context}
         t={t}
+        onAddCommandToChat={(command, text) => {
+          setExternalCommand({ command, text: text || '' });
+        }}
       />
     </div>
   );
@@ -287,8 +296,8 @@ function App() {
         renderSimpleMode()
       ) : (
         <div className="flex flex-1 p-2 md:p-3 gap-3 min-h-0">
-          {/* Left side: Content - Takes more space */}
-          <div className="flex-[2] flex flex-col min-w-0 min-h-0">
+          {/* Left side: Content - 5 parts */}
+          <div className="flex-[5] flex flex-col min-w-0 min-h-0">
             {activeTab === 'captions'
               ? renderCaptionsContent()
               : activeTab === 'settings'
@@ -296,9 +305,9 @@ function App() {
                 : renderAboutContent()}
           </div>
 
-        {/* Right side: AI Panel (only shown in captions tab) - Takes less space */}
+        {/* Right side: AI Panel (Chat) - 5 parts */}
         {activeTab === 'captions' && (
-          <div className="flex-[1] flex flex-col min-h-0 max-w-[600px] min-w-[400px]">
+          <div className="flex-[5] flex flex-col min-h-0 min-w-[400px]">
             <AIPanel
               timeline={timeline}
               onDeleteTimelineItem={deleteTimelineItem}
@@ -313,6 +322,10 @@ function App() {
               chatHistoryStats={chatHistoryStats}
               useContextOptimization={useContextOptimization}
               onToggleContextOptimization={setUseContextOptimization}
+              settings={settings}
+              onSettingsChange={saveSettings}
+              externalCommand={externalCommand}
+              onExternalCommandProcessed={() => setExternalCommand(null)}
             />
           </div>
         )}
