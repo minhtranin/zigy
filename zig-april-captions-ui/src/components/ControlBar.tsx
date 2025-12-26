@@ -90,9 +90,9 @@ export function ControlBar({
           className="px-4 py-1 text-sm font-semibold bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-700 rounded-md hover:bg-blue-200 dark:hover:bg-blue-900/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           onClick={handleGreeting}
           disabled={!canGenerateGreeting}
-          title="Generate meeting greeting in chat"
+          title="Generate ice-breaker questions in chat"
         >
-          Greeting
+          {t.iceBreakers}
         </button>
 
         {/* Start/Stop Button */}

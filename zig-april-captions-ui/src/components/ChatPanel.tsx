@@ -261,6 +261,7 @@ const RESPONSE_SUGGESTIONS: PromptSuggestion[] = [
   { label: 'Another way', prompt: 'Give me another way to say that', icon: '🔄' },
   { label: 'Shorter', prompt: 'Make that shorter and more concise', icon: '✂️' },
   { label: 'More casual', prompt: 'Make that more casual and friendly', icon: '😊' },
+  { label: '1 vs 1', prompt: 'Make that more direct and personal, addressing one person casually (use "you", "bro", "mate" - like talking 1-on-1 instead of to a group)', icon: '👥' },
   { label: 'More formal', prompt: 'Make that more formal and professional', icon: '👔' },
   { label: 'Add details', prompt: 'Add more details to that response', icon: '➕' },
 ];
@@ -473,7 +474,7 @@ export function ChatPanel({ settings, sessionId, fontSize, t, externalCommand, o
             prompt = `Translate to natural English I can say: "${args}"`;
             break;
           case '/greeting':
-            prompt = 'Generate a friendly meeting greeting script with small talk starters.';
+            prompt = 'Generate 4-5 simple ice-breaker questions. Topics: home, family, friends, weather, weekend plans, hobbies. Each question must be simple and direct - NO "or" combinations, NO multiple questions in one. Keep each question to ONE short sentence.\n\nFormat:\n1. [simple question]\n2. [simple question]\n3. [simple question]\n4. [simple question]\n5. [simple question]\n\nStart directly with numbered list.';
             break;
           case '/summary':
             prompt = 'Summarize the current meeting discussion. Focus on key points and decisions.';

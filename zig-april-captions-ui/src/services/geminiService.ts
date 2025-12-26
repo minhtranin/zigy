@@ -1202,33 +1202,32 @@ export async function generateMeetingGreeting(
 
   const prompt = `You are a friendly conversation coach helping someone make small talk before a meeting or interview starts.
 
-Generate 3-4 casual conversation starters (ice-breakers) that the user can say to start friendly conversations.
+Generate 4-5 simple ice-breaker questions.
 
 Requirements:
-- Topics should be about: home, family/friends, work/life balance, weather, weekend plans, hobbies, or personal interests
-- NOT related to the actual meeting content or work topics
-- Each starter should be 1-2 sentences, casual and friendly
-- Sound natural - like something you'd say while waiting for others to arrive
-- Help break the ice and build rapport before the formal meeting starts
+- Topics: home, family, friends, weather, weekend plans, hobbies
+- Each question must be simple and direct - NO "or" combinations
+- NO multiple questions in one line
+- Keep each question to ONE short sentence
+- Sound natural and friendly
 
-Example styles:
-- "How was your weekend? Did you get up to anything fun?"
-- "The weather's been crazy lately, right? I heard it might rain later."
-- "I'm trying to find a good coffee spot nearby - any recommendations?"
-- "Do you have any fun plans for the upcoming holidays?"
+Examples:
+1. How was your weekend?
+2. How is your family doing?
+3. What are your plans for the holidays?
+4. Do you have any hobbies?
+5. How is the weather there?
 
-Generate 3-4 different conversation starters.
+Generate 4-5 numbered questions ONLY.
 
-Format your response exactly as:
-TITLE: Ice-Breaker Starters
+Format:
+TITLE: Ice-Breaker Questions
 SCRIPT:
-[First conversation starter]
-
-[Second conversation starter]
-
-[Third conversation starter]
-
-[Fourth conversation starter - optional]`;
+1. [simple question]
+2. [simple question]
+3. [simple question]
+4. [simple question]
+5. [simple question]`;
 
   const requestBody = {
     contents: [

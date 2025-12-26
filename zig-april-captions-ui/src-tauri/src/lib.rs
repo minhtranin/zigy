@@ -157,6 +157,29 @@ pub struct ContextSnapshot {
     pub compressed_token_count: i64, // Estimated tokens after compression
 }
 
+// ============================================================================
+// BINARY SEARCH ORDER - CRITICAL FOR APPIMAGE/DEB BUNDLES
+// ============================================================================
+// IMPORTANT: The order of binary path checks is CRITICAL for bundled apps
+// (AppImage, .deb, .app). The issue was that system paths like /usr/lib/zigy/
+// were checked BEFORE Tauri's bundled resource path, causing the app to find
+// system-installed binaries instead of bundled ones.
+//
+// FIXED ORDER (must maintain):
+// 1. Dev mode paths (only in debug builds)
+// 2. Relative paths to executable (for some bundle formats)
+// 3. TAURI RESOURCE PATH FIRST (for AppImage/deb - resolves to
+//    /tmp/.mount_XXX/usr/lib/Zigy/resources/ in AppImage)
+// 4. System paths like /usr/lib/zigy/ (fallback ONLY)
+//
+// ISSUE HISTORY: GitHub Actions builds would create AppImage/deb where the
+// bundled binary was at /usr/lib/Zigy/resources/zig-april-captions but the
+// code checked /usr/lib/zigy/ first, so it found system-installed version
+// instead of bundled one, causing "hang on start" issues.
+//
+// ALSO IMPORTANT: The binary needs LD_LIBRARY_PATH set to find
+// libonnxruntime.so which is bundled in the same directory.
+// ============================================================================
 fn get_zig_binary_path(app_handle: &AppHandle) -> Result<String, String> {
     #[cfg(target_os = "windows")]
     let binary_name = "zig-april-captions.exe";
@@ -358,7 +381,11 @@ async fn start_captions(
     // Spawn the process
     println!("Spawning process: {} {:?}", binary_path, args);
 
-    // Set LD_LIBRARY_PATH to include the binary's directory (for libonnxruntime.so)
+    // CRITICAL: Set LD_LIBRARY_PATH to include the binary's directory
+    // The zig-april-captions binary depends on libonnxruntime.so which is
+    // bundled in the same directory. Without this, the binary fails to find
+    // the library and crashes on startup. This is especially important for
+    // AppImage/deb bundles where the binary's rpath may be incorrect.
     let binary_dir = binary_path_obj.parent()
         .map(|p| p.to_string_lossy().to_string())
         .unwrap_or_default();

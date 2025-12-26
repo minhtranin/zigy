@@ -75,6 +75,7 @@ export interface Translations {
   examplesTab: string;
   examplesDescription: string;
   greetings: string;
+  iceBreakers: string;
   smallTalk: string;
   checkIn: string;
   starting: string;
@@ -231,6 +232,7 @@ export const translations: Record<AppLanguage, Translations> = {
     examplesTab: 'Examples',
     examplesDescription: 'Quick phrases for meeting greetings and warm-ups',
     greetings: 'Greetings',
+    iceBreakers: 'Ice Breakers',
     smallTalk: 'Small Talk',
     checkIn: 'Check-in',
     starting: 'Starting',
@@ -385,6 +387,7 @@ export const translations: Record<AppLanguage, Translations> = {
     examplesTab: 'Mẫu câu',
     examplesDescription: 'Các mẫu câu nhanh cho lời chào và khởi động cuộc họp',
     greetings: 'Lời chào',
+    iceBreakers: 'Bắt chuyện',
     smallTalk: 'Trò chuyện',
     checkIn: 'Kiểm tra',
     starting: 'Bắt đầu',
