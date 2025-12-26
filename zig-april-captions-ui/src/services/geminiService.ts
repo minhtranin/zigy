@@ -1187,10 +1187,10 @@ Generate 1-3 natural clarifying questions about this specific statement:`;
   return questions;
 }
 
-// Generate greeting script for meeting start
+// Generate small talk conversation starters for before meetings/interviews
 export async function generateMeetingGreeting(
   meetingContext: string | undefined,
-  transcriptText: string,
+  _transcriptText: string,
   apiKey: string,
   model: GeminiModel = 'gemini-2.5-flash'
 ): Promise<{ title: string; script: string }> {
@@ -1198,43 +1198,37 @@ export async function generateMeetingGreeting(
     throw new Error('API key is required');
   }
 
-  // Build compressed context
-  const context = await buildCompressedContext(apiKey, model);
-  const contextStr = buildContextString(context);
-
   const url = `${GEMINI_API_BASE}/${model}:generateContent?key=${apiKey}`;
 
-  const meetingContextPart = meetingContext
-    ? `\n\nMeeting Purpose:\n${meetingContext}\n`
-    : '';
+  const prompt = `You are a friendly conversation coach helping someone make small talk before a meeting or interview starts.
 
-  // Get the last few lines of transcript for recent context
-  const recentTranscript = transcriptText
-    ? `\n\nRecent Conversation:\n${transcriptText.split('\n').slice(-10).join('\n')}\n`
-    : '';
-
-  const prompt = `You are a casual, friendly conversation starter. Generate a short, natural greeting to continue the conversation.
-
-${meetingContextPart}${recentTranscript}${contextStr ? `\n${contextStr}\n` : ''}
+Generate 3-4 casual conversation starters (ice-breakers) that the user can say to start friendly conversations.
 
 Requirements:
-- Keep it VERY SHORT (1-2 sentences, 5-10 seconds when spoken)
-- Reference something from the recent conversation if available
-- Be casual and friendly (like "Hey, how's it going?", "How about that flood situation?")
-- Include a light joke or casual comment if relevant to context
-- Sound like a natural conversation starter, NOT a formal meeting greeting
-- Be contextually aware - mention specific topics if they were discussed
+- Topics should be about: home, family/friends, work/life balance, weather, weekend plans, hobbies, or personal interests
+- NOT related to the actual meeting content or work topics
+- Each starter should be 1-2 sentences, casual and friendly
+- Sound natural - like something you'd say while waiting for others to arrive
+- Help break the ice and build rapport before the formal meeting starts
 
-Examples of the style:
-- "Hey! How are things with the flooding situation? Hope you're staying safe."
-- "What's up? Still dealing with that API integration headache?"
-- "Hey there! How'd that meeting with the ops team go?"
+Example styles:
+- "How was your weekend? Did you get up to anything fun?"
+- "The weather's been crazy lately, right? I heard it might rain later."
+- "I'm trying to find a good coffee spot nearby - any recommendations?"
+- "Do you have any fun plans for the upcoming holidays?"
 
-Generate a SHORT, casual greeting that references the recent context.
+Generate 3-4 different conversation starters.
 
 Format your response exactly as:
-TITLE: [2-3 word casual title like "Quick Check-in" or "Flood Update"]
-SCRIPT: [your 1-2 sentence casual greeting]`;
+TITLE: Ice-Breaker Starters
+SCRIPT:
+[First conversation starter]
+
+[Second conversation starter]
+
+[Third conversation starter]
+
+[Fourth conversation starter - optional]`;
 
   const requestBody = {
     contents: [
@@ -1243,7 +1237,7 @@ SCRIPT: [your 1-2 sentence casual greeting]`;
       }
     ],
     generationConfig: {
-      temperature: 0.8,
+      temperature: 0.9,
       maxOutputTokens: 512,
       topP: 0.9,
     }
@@ -1268,18 +1262,18 @@ SCRIPT: [your 1-2 sentence casual greeting]`;
 
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
   if (!text) {
-    throw new Error('No greeting generated');
+    throw new Error('No conversation starters generated');
   }
 
   // Parse the response to extract title and script
   const titleMatch = text.match(/TITLE:\s*(.+?)(?:\n|$)/i);
   const scriptMatch = text.match(/SCRIPT:\s*(.+)/is);
 
-  const title = titleMatch ? titleMatch[1].trim() : 'Meeting Greeting';
+  const title = titleMatch ? titleMatch[1].trim() : 'Ice-Breaker Starters';
   const script = scriptMatch ? scriptMatch[1].trim() : text;
 
   // Save to chat history
-  await addChatEntry('idea', `${title}: ${script}`, { type: 'greeting', meetingContext });
+  await addChatEntry('greeting', script, { type: 'icebreaker', meetingContext });
 
   return { title, script };
 }
