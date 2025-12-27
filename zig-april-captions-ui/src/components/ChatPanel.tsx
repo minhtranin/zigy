@@ -286,8 +286,8 @@ export function ChatPanel({ settings, sessionId, fontSize, t, externalCommand, o
   const translateLanguage = settings.ai?.translation_language || 'Vietnamese';
   const appLanguage = settings.language || 'en';
 
-  const TOKEN_THRESHOLD = 2000;
-  const COMPACT_KEEP_RECENT = 4;
+  const TOKEN_THRESHOLD = 12000;  // Snapshot at 12K tokens (~6 min conversation) - maximum speed
+  const COMPACT_KEEP_RECENT = 6;  // Keep last 6 messages when compacting
 
   const hasLastResponse = messages.some(m => m.role === 'assistant');
 

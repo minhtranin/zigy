@@ -80,12 +80,12 @@ export function ContextMonitor({
       </div>
 
       {/* Compression indicator */}
-      {useContextOptimization && stats.estimated_tokens > 3000 && (
+      {useContextOptimization && stats.estimated_tokens > 5000 && (
         <div className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
           <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
           </svg>
-          <span>Context compression active (saving ~{Math.round((1 - 2000 / stats.estimated_tokens) * 100)}% tokens)</span>
+          <span>Context compression active (saving ~{Math.round((1 - 18000 / stats.estimated_tokens) * 100)}% tokens)</span>
         </div>
       )}
     </div>

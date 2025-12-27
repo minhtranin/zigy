@@ -22,9 +22,9 @@ export function estimateTokensForEntries(entries: ChatHistoryEntry[]): number {
 }
 
 // Configuration
-const DEFAULT_TOKEN_LIMIT = 6000; // Leave room for prompt + response
-const DEFAULT_RECENT_MESSAGE_COUNT = 30; // Keep last N messages full
-const COMPRESSION_THRESHOLD = 50; // Start compressing after this many messages
+const DEFAULT_TOKEN_LIMIT = 18000; // Leave room for prompt + response (optimized for 1-2s response time)
+const DEFAULT_RECENT_MESSAGE_COUNT = 35; // Keep last N messages full
+const COMPRESSION_THRESHOLD = 60; // Start compressing after this many messages
 
 // Generate context summary using Gemini (meta-summarization)
 const CONTEXT_COMPRESSION_PROMPT = `You are a context compression assistant. Summarize the following chat history into a concise summary that preserves key information for future AI responses.

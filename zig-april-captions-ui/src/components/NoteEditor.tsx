@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Star, Trash2, Loader2, Check } from 'lucide-react';
+import { ask } from '@tauri-apps/plugin-dialog';
 import { NoteView } from '../types';
 import { Translations } from '../translations';
 
@@ -63,9 +64,13 @@ export function NoteEditor({ note, onSave, onDelete, onToggleNominate, t }: Prop
   };
 
   // Handle delete with confirmation
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!note) return;
-    if (window.confirm(t.confirmDeleteNote)) {
+    const confirmed = await ask(t.confirmDeleteNote, {
+      title: '',
+      kind: 'warning',
+    });
+    if (confirmed) {
       onDelete(note.id);
     }
   };
