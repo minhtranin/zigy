@@ -42,6 +42,10 @@
                 <li><strong>Right-click</strong> Zigy and select "Open" (first time only)</li>
                 <li>Click "Open" in the security dialog</li>
               </ol>
+              <p class="warning"><strong>⚠️ If you see "Apple could not verify Zigy is free of malware":</strong></p>
+              <p>Open Terminal and run:</p>
+              <pre><code>sudo xattr -rd com.apple.quarantine /Applications/Zigy.app</code></pre>
+              <p>Then try opening Zigy again from Applications.</p>
               <p class="note">Supported: M1, M2, M3, M4 chips only</p>
             </details>
 
