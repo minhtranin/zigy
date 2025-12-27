@@ -1,0 +1,84 @@
+---
+import { languages, type Language } from '../i18n/languages';
+import { getLangFromUrl } from '../i18n/utils';
+
+const currentLang = getLangFromUrl(Astro.url);
+const currentPath = Astro.url.pathname.replace(/^\/(en|vi)/, '') || '/';
+---
+
+<div class="language-switcher">
+  <select id="lang-selector" class="lang-select">
+    {Object.entries(languages).map(([code, name]) => (
+      <option value={code} selected={code === currentLang}>
+        {name}
+      </option>
+    ))}
+  </select>
+</div>
+
+<script define:vars={{ currentPath }}>
+  const langSelector = document.getElementById('lang-selector');
+
+  langSelector?.addEventListener('change', (e) => {
+    const newLang = e.target.value;
+    let newPath;
+
+    if (newLang === 'en') {
+      newPath = currentPath;
+    } else {
+      newPath = `/${newLang}${currentPath}`;
+    }
+
+    window.location.href = newPath;
+  });
+</script>
+
+<style>
+  .language-switcher {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 200;
+  }
+
+  .lang-select {
+    padding: 0.5rem 0.75rem;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    color: white;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    outline: none;
+  }
+
+  .lang-select:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(139, 92, 246, 0.5);
+  }
+
+  .lang-select:focus {
+    border-color: rgba(139, 92, 246, 0.8);
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
+  }
+
+  .lang-select option {
+    background: #1F2937;
+    color: white;
+  }
+
+  @media (max-width: 768px) {
+    .language-switcher {
+      top: 0.75rem;
+      right: 0.75rem;
+    }
+
+    .lang-select {
+      padding: 0.4rem 0.6rem;
+      font-size: 0.85rem;
+    }
+  }
+</style>

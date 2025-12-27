@@ -1,7 +1,10 @@
 ---
 // Support Form Component - Creates GitHub issues with pre-filled data
+import { getLangFromUrl, useTranslations } from '../i18n/utils';
 
 const GITHUB_REPO = "minhtranin/zigy";
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
 ---
 
 <div class="support-container">
@@ -11,7 +14,7 @@ const GITHUB_REPO = "minhtranin/zigy";
       <path d="M9.09 9c0-3.044 2.895-5.5 5.91-5.5"/>
       <path d="M14.91 15c0 3.044-2.895 5.5-5.91 5.5"/>
     </svg>
-    Support
+    {t('support.button')}
   </button>
 </div>
 
@@ -19,30 +22,30 @@ const GITHUB_REPO = "minhtranin/zigy";
 <div id="supportModal" class="modal">
   <div class="modal-content">
     <div class="modal-header">
-      <h2>Report an Issue</h2>
+      <h2>{t('support.title')}</h2>
       <button id="closeModal" class="close-btn">&times;</button>
     </div>
 
     <form id="supportForm">
       <div class="form-group">
-        <label for="issueType">Issue Type</label>
+        <label for="issueType">{t('support.type')}</label>
         <select id="issueType" required>
-          <option value="">Select type...</option>
-          <option value="Bug">🐛 Bug Report</option>
-          <option value="Feature">✨ Feature Request</option>
-          <option value="Question">❓ Question</option>
-          <option value="Installation">💿 Installation Issue</option>
-          <option value="Performance">⚡ Performance Issue</option>
-          <option value="Other">📝 Other</option>
+          <option value="">{t('support.type.select')}</option>
+          <option value="Bug">{t('support.type.bug')}</option>
+          <option value="Feature">{t('support.type.feature')}</option>
+          <option value="Question">{t('support.type.question')}</option>
+          <option value="Installation">{t('support.type.installation')}</option>
+          <option value="Performance">{t('support.type.performance')}</option>
+          <option value="Other">{t('support.type.other')}</option>
         </select>
       </div>
 
       <div class="form-group">
-        <label for="title">Title *</label>
+        <label for="title">{t('support.title.label')}</label>
         <input
           type="text"
           id="title"
-          placeholder="Brief description of the issue"
+          placeholder={t('support.title.placeholder')}
           required
           maxlength="100"
         />
@@ -50,22 +53,22 @@ const GITHUB_REPO = "minhtranin/zigy";
       </div>
 
       <div class="form-group">
-        <label for="description">Description *</label>
+        <label for="description">{t('support.description.label')}</label>
         <textarea
           id="description"
           rows="6"
-          placeholder="Please provide as much detail as possible..."
+          placeholder={t('support.description.placeholder')}
           required
         ></textarea>
-        <small>Include steps to reproduce, expected behavior, and your environment (OS, version, etc.)</small>
+        <small>{t('support.description.note')}</small>
       </div>
 
       <div class="form-group">
-        <label for="environment">Environment</label>
+        <label for="environment">{t('support.environment.label')}</label>
         <input
           type="text"
           id="environment"
-          placeholder="e.g., Ubuntu 24.04, v1.0.0, AppImage"
+          placeholder={t('support.environment.placeholder')}
         />
       </div>
 
@@ -77,12 +80,12 @@ const GITHUB_REPO = "minhtranin/zigy";
           <path d="M16.5 14.5c.828 0 1.5 1.12 1.5 2.5v1c0 1.38-.672 2.5-1.5 2.5S15 19.38 15 18v-1c0-1.38.672-2.5 1.5-2.5z"/>
           <path d="M12 2C6.477 2 2 6.477 2 12c0 1.894.524 3.668 1.428 5.192L2 22l5.088-1.572C8.54 21.456 10.21 22 12 22c5.523 0 10-4.477 10-10S17.523 2 12 2z"/>
         </svg>
-        Create GitHub Issue
+        {t('support.submit')}
       </button>
     </form>
 
     <p class="note">
-      This will open GitHub with your issue pre-filled. You'll need a GitHub account to submit.
+      {t('support.note')}
     </p>
   </div>
 </div>

@@ -1,14 +1,25 @@
 ---
+import { getLangFromUrl, useTranslations } from '../i18n/utils';
+import type { Language } from '../i18n/languages';
+import LanguageSwitcher from '../components/LanguageSwitcher.astro';
+
 interface Props {
-  title: string;
+  title?: string;
   description?: string;
+  lang?: Language;
 }
 
-const { title, description = "Real-time speech-to-text captions desktop app with AI-powered features" } = Astro.props;
+const lang = Astro.props.lang || getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+
+const {
+  title = t('page.title'),
+  description = t('page.description')
+} = Astro.props;
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang={lang}>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -26,6 +37,7 @@ const { title, description = "Real-time speech-to-text captions desktop app with
     <title>{title}</title>
   </head>
   <body>
+    <LanguageSwitcher />
     <slot />
   </body>
 </html>
