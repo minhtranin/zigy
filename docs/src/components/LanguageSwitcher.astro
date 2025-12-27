@@ -3,7 +3,7 @@ import { languages, type Language } from '../i18n/languages';
 import { getLangFromUrl } from '../i18n/utils';
 
 const currentLang = getLangFromUrl(Astro.url);
-const currentPath = Astro.url.pathname.replace(/^\/(en|vi)/, '') || '/';
+const basePath = '/zigy';
 ---
 
 <div class="language-switcher">
@@ -16,7 +16,7 @@ const currentPath = Astro.url.pathname.replace(/^\/(en|vi)/, '') || '/';
   </select>
 </div>
 
-<script define:vars={{ currentPath }}>
+<script define:vars={{ basePath }}>
   const langSelector = document.getElementById('lang-selector');
 
   langSelector?.addEventListener('change', (e) => {
@@ -24,9 +24,9 @@ const currentPath = Astro.url.pathname.replace(/^\/(en|vi)/, '') || '/';
     let newPath;
 
     if (newLang === 'en') {
-      newPath = currentPath;
+      newPath = basePath + '/';
     } else {
-      newPath = `/${newLang}${currentPath}`;
+      newPath = basePath + '/' + newLang + '/';
     }
 
     window.location.href = newPath;
