@@ -1,77 +1,85 @@
 ---
 // Installation guide component
+import { getLangFromUrl, useTranslations } from '../i18n/utils';
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
 ---
 
 <section id="installation" class="installation-section compact-section">
   <div class="container">
-    <h2 class="section-title">Quick Start Guide</h2>
-    <p class="section-subtitle">Get up and running in 5-10 minutes</p>
+    <h2 class="section-title">{t('installation.title')}</h2>
+    <p class="section-subtitle">{t('installation.subtitle')}</p>
 
     <div class="install-steps">
       <div class="step">
         <div class="step-number">1</div>
         <div class="step-content">
-          <h3>Download Zigy</h3>
-          <p>Get the installer for your operating system from the download section above.</p>
+          <h3>{t('installation.step1.title')}</h3>
+          <p>{t('installation.step1.description')}</p>
         </div>
       </div>
 
       <div class="step">
         <div class="step-number">2</div>
         <div class="step-content">
-          <h3>Install</h3>
+          <h3>{t('installation.step2.title')}</h3>
           <div class="platform-tabs">
             <details>
               <summary><strong>🪟 Windows</strong></summary>
-              <p class="warning"><strong>⚠️ Prerequisites:</strong> Install <a href="https://aka.ms/vs/17/release/vc_redist.x64.exe" target="_blank" style="color: #A5B4FC;">Microsoft Visual C++ Redistributable</a> first (required by ONNX Runtime)</p>
+              <p class="warning"><strong>{t('installation.step2.windows.prereq')}</strong> {t('installation.step2.windows.prereq.text')} <a href="https://aka.ms/vs/17/release/vc_redist.x64.exe" target="_blank" style="color: #A5B4FC;">{t('installation.step2.windows.prereq.link')}</a> {t('installation.step2.windows.prereq.note')}</p>
               <ol>
-                <li>Download and install VC++ Redistributable (one-time)</li>
-                <li>Double-click the <code>Zipy_0.1.0_x64-setup.exe</code> file</li>
-                <li>Click "More info" if Windows Defender appears</li>
-                <li>Click "Run anyway"</li>
-                <li>Follow the installation wizard</li>
+                <li>{t('installation.step2.windows.step1')}</li>
+                <li>{t('installation.step2.windows.step2')}</li>
+                <li>{t('installation.step2.windows.step3')}</li>
+                <li>{t('installation.step2.windows.step4')}</li>
+                <li>{t('installation.step2.windows.step5')}</li>
               </ol>
-              <p class="note">Note: Windows version includes UI and AI features only (no speech recognition)</p>
+              <p class="note">{t('installation.step2.windows.note')}</p>
             </details>
 
             <details>
               <summary><strong>🍎 macOS (Apple Silicon)</strong></summary>
               <ol>
-                <li>Open the <code>.dmg</code> file</li>
-                <li>Drag Zigy to Applications folder</li>
-                <li><strong>Right-click</strong> Zigy and select "Open" (first time only)</li>
-                <li>Click "Open" in the security dialog</li>
+                <li>{t('installation.step2.macos.step1')}</li>
+                <li>{t('installation.step2.macos.step2')}</li>
+                <li><strong>{t('installation.step2.macos.step3')}</strong></li>
+                <li>{t('installation.step2.macos.step4')}</li>
               </ol>
-              <p class="note">Supported: M1, M2, M3, M4 chips only</p>
+              <p class="warning"><strong>{t('installation.step2.macos.quarantine.warning')}</strong></p>
+              <p>{t('installation.step2.macos.quarantine.text1')}</p>
+              <pre><code>sudo xattr -rd com.apple.quarantine /Applications/Zigy.app</code></pre>
+              <p>{t('installation.step2.macos.quarantine.text2')}</p>
+              <p class="note">{t('installation.step2.macos.note')}</p>
             </details>
 
             <details>
               <summary><strong>🐧 Linux (Ubuntu/Debian)</strong></summary>
               <pre><code>sudo dpkg -i zigy_0.1.0_amd64.deb</code></pre>
-              <p>Then launch from applications menu or run <code>zigy</code> in terminal.</p>
+              <p>{t('installation.step2.linux.debian.text')}</p>
             </details>
 
             <details>
               <summary><strong>🐧 Linux (AppImage)</strong></summary>
               <pre><code>chmod +x zigy_0.1.0_amd64.AppImage
 ./zigy_0.1.0_amd64.AppImage</code></pre>
-              <p class="note">Universal format that works on most Linux distributions</p>
+              <p class="note">{t('installation.step2.linux.appimage.note')}</p>
             </details>
 
             <details>
               <summary><strong>🐧 Linux (Arch Linux)</strong></summary>
-              <p><strong>Option 1: AppImage (Recommended)</strong></p>
+              <p><strong>{t('installation.step2.linux.arch.option1')}</strong></p>
               <pre><code>chmod +x zigy_0.1.0_amd64.AppImage
 ./zigy_0.1.0_amd64.AppImage</code></pre>
 
-              <p><strong>Option 2: If AppImage doesn't work</strong></p>
-              <p>Extract and run directly:</p>
+              <p><strong>{t('installation.step2.linux.arch.option2')}</strong></p>
+              <p>{t('installation.step2.linux.arch.option2.text')}</p>
               <pre><code>./zigy_0.1.0_amd64.AppImage --appimage-extract
 ./squashfs-root/zig-april-captions-ui</code></pre>
 
-              <p><strong>Option 3: Build from AUR (Coming Soon)</strong></p>
+              <p><strong>{t('installation.step2.linux.arch.option3')}</strong></p>
               <pre><code>yay -S zigy</code></pre>
-              <p class="note">Arch users may need to install additional dependencies: <code>webkit2gtk</code>, <code>gtk3</code></p>
+              <p class="note">{t('installation.step2.linux.arch.note')}</p>
             </details>
           </div>
         </div>
@@ -80,25 +88,25 @@
       <div class="step">
         <div class="step-number">3</div>
         <div class="step-content">
-          <h3>Download Voice Model</h3>
-          <p>Download the English speech recognition model (322 MB, one-time):</p>
+          <h3>{t('installation.step3.title')}</h3>
+          <p>{t('installation.step3.description')}</p>
           <a href="https://abb128.github.io/april-asr/models.html" target="_blank" class="model-link">
-            Download april-english-dev-01110_en.april →
+            {t('installation.step3.link')}
           </a>
-          <p class="note">Save it to Documents folder for easy access</p>
+          <p class="note">{t('installation.step3.note')}</p>
         </div>
       </div>
 
       <div class="step">
         <div class="step-number">4</div>
         <div class="step-content">
-          <h3>Configure Model</h3>
+          <h3>{t('installation.step4.title')}</h3>
           <ol>
-            <li>Open Zigy</li>
-            <li>Click Settings (⚙️ gear icon)</li>
-            <li>Click "Browse" next to ASR Model</li>
-            <li>Select the <code>.april</code> file you downloaded</li>
-            <li>Click "Save"</li>
+            <li>{t('installation.step4.step1')}</li>
+            <li>{t('installation.step4.step2')}</li>
+            <li>{t('installation.step4.step3')}</li>
+            <li>{t('installation.step4.step4')}</li>
+            <li>{t('installation.step4.step5')}</li>
           </ol>
         </div>
       </div>
@@ -106,50 +114,50 @@
       <div class="step">
         <div class="step-number">5</div>
         <div class="step-content">
-          <h3>Start Using!</h3>
-          <p>Click "Start" and begin speaking. Your words will appear in real-time!</p>
+          <h3>{t('installation.step5.title')}</h3>
+          <p>{t('installation.step5.description')}</p>
           <div class="feature-highlights">
-            <span>✓ Speech-to-text</span>
-            <span>✓ AI summaries</span>
-            <span>✓ Export transcripts</span>
+            <span>{t('installation.step5.feature1')}</span>
+            <span>{t('installation.step5.feature2')}</span>
+            <span>{t('installation.step5.feature3')}</span>
           </div>
         </div>
       </div>
     </div>
 
     <div class="help-section">
-      <h3>Need Help?</h3>
-      <p>Check out the full documentation on <a href="https://github.com/minhtranin/zigy#-installation-guide-for-everyone" target="_blank">GitHub</a> or <a href="https://github.com/minhtranin/zigy/issues" target="_blank">report an issue</a>.</p>
+      <h3>{t('installation.help.title')}</h3>
+      <p>{t('installation.help.description')} <a href="https://github.com/minhtranin/zigy#-installation-guide-for-everyone" target="_blank">{t('installation.help.github')}</a> {t('installation.help.or')} <a href="https://github.com/minhtranin/zigy/issues" target="_blank">{t('installation.help.report')}</a>.</p>
     </div>
 
     <div class="troubleshooting-section">
-      <h3>🔧 Common Issues & Solutions</h3>
+      <h3>{t('installation.troubleshooting.title')}</h3>
 
       <div class="troubleshooting-item">
-        <h4>Windows: "msvcp140.dll was not found"</h4>
-        <p>Install the <a href="https://aka.ms/vs/17/release/vc_redist.x64.exe" target="_blank">Microsoft Visual C++ Redistributable</a> and restart the app.</p>
+        <h4>{t('installation.troubleshooting.dll.title')}</h4>
+        <p>{t('installation.troubleshooting.dll.description')} <a href="https://aka.ms/vs/17/release/vc_redist.x64.exe" target="_blank">{t('installation.troubleshooting.dll.link')}</a> {t('installation.troubleshooting.dll.note')}</p>
       </div>
 
       <div class="troubleshooting-item">
-        <h4>Linux AppImage: gio/gvfs warnings</h4>
-        <p>These are harmless warnings. The app will work normally. Safe to ignore.</p>
+        <h4>{t('installation.troubleshooting.gio.title')}</h4>
+        <p>{t('installation.troubleshooting.gio.description')}</p>
       </div>
 
       <div class="troubleshooting-item">
-        <h4>Speech recognition not working</h4>
+        <h4>{t('installation.troubleshooting.speech.title')}</h4>
         <ul>
-          <li>Make sure you downloaded a voice model (Step 3 above)</li>
-          <li>Verify the model file is selected in Settings</li>
-          <li>Check microphone permissions in system settings</li>
+          <li>{t('installation.troubleshooting.speech.step1')}</li>
+          <li>{t('installation.troubleshooting.speech.step2')}</li>
+          <li>{t('installation.troubleshooting.speech.step3')}</li>
         </ul>
       </div>
 
       <div class="troubleshooting-item">
-        <h4>App crashes on Linux startup</h4>
+        <h4>{t('installation.troubleshooting.crash.title')}</h4>
         <ul>
-          <li>Ubuntu/Debian/Mint: Use <code>.deb</code> package</li>
-          <li>Other distros: Use <code>.AppImage</code></li>
-          <li>Ensure PulseAudio is installed: <code>sudo apt install pulseaudio</code></li>
+          <li>{t('installation.troubleshooting.crash.step1')}</li>
+          <li>{t('installation.troubleshooting.crash.step2')}</li>
+          <li>{t('installation.troubleshooting.crash.step3')}</li>
         </ul>
       </div>
     </div>
