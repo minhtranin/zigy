@@ -8,7 +8,9 @@ const translations = {
 } as const;
 
 export function getLangFromUrl(url: URL): Language {
-  const [, lang] = url.pathname.split('/');
+  // Remove base path if present (e.g., /zigy/vi/ -> /vi/)
+  const pathname = url.pathname.replace('/zigy', '');
+  const [, lang] = pathname.split('/');
   if (lang === 'vi') return 'vi';
   return defaultLang;
 }
