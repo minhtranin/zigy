@@ -1,5 +1,9 @@
 ---
 // Footer component
+import { getLangFromUrl, useTranslations } from '../i18n/utils';
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
 const currentYear = new Date().getFullYear();
 ---
 
@@ -7,22 +11,22 @@ const currentYear = new Date().getFullYear();
   <div class="container">
     <div class="footer-content">
       <div class="footer-section">
-        <h3>Zigy</h3>
-        <p>Real-time speech-to-text captions desktop app</p>
+        <h3>{t('hero.title')}</h3>
+        <p>{t('footer.description')}</p>
       </div>
 
       <div class="footer-section">
-        <h4>Links</h4>
+        <h4>{t('footer.links')}</h4>
         <ul>
-          <li><a href="https://github.com/minhtranin/zigy" target="_blank">GitHub Repository</a></li>
-          <li><a href="https://github.com/minhtranin/zigy/releases" target="_blank">Releases</a></li>
-          <li><a href="https://github.com/minhtranin/zigy/issues" target="_blank">Report Issues</a></li>
-          <li><a href="https://github.com/minhtranin/zigy#-installation-guide-for-everyone" target="_blank">Documentation</a></li>
+          <li><a href="https://github.com/minhtranin/zigy" target="_blank">{t('footer.links.github')}</a></li>
+          <li><a href="https://github.com/minhtranin/zigy/releases" target="_blank">{t('footer.links.releases')}</a></li>
+          <li><a href="https://github.com/minhtranin/zigy/issues" target="_blank">{t('footer.links.issues')}</a></li>
+          <li><a href="https://github.com/minhtranin/zigy#-installation-guide-for-everyone" target="_blank">{t('footer.links.docs')}</a></li>
         </ul>
       </div>
 
       <div class="footer-section">
-        <h4>Technology</h4>
+        <h4>{t('footer.technology')}</h4>
         <ul>
           <li><a href="https://tauri.app/" target="_blank">Tauri</a></li>
           <li><a href="https://github.com/abb128/april-asr" target="_blank">April ASR</a></li>
@@ -32,22 +36,22 @@ const currentYear = new Date().getFullYear();
       </div>
 
       <div class="footer-section">
-        <h4>Platform Support</h4>
+        <h4>{t('footer.platform')}</h4>
         <ul>
-          <li>🐧 Linux (Full)</li>
-          <li>🍎 macOS Apple Silicon (Full)</li>
-          <li>🪟 Windows (Full)</li>
+          <li>{t('footer.platform.linux')}</li>
+          <li>{t('footer.platform.macos')}</li>
+          <li>{t('footer.platform.windows')}</li>
         </ul>
       </div>
     </div>
 
     <div class="footer-bottom">
       <p>
-        © {currentYear} Minh Cong Tran.
-        <a href="https://github.com/minhtranin/zigy/blob/main/zig-april-captions-ui/LICENSE" target="_blank">MIT License</a>
+        {t('footer.copyright', { year: currentYear.toString() })}
+        <a href="https://github.com/minhtranin/zigy/blob/main/zig-april-captions-ui/LICENSE" target="_blank">{t('footer.license')}</a>
       </p>
       <p>
-        Built with ❤️ using <a href="https://astro.build" target="_blank">Astro</a>
+        {t('footer.built')} <a href="https://astro.build" target="_blank">Astro</a>
       </p>
     </div>
   </div>

@@ -1,64 +1,67 @@
 ---
 // Hero component with download section
+import { getLangFromUrl, useTranslations } from '../i18n/utils';
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
 ---
 
 <section class="hero dark-bg">
   <div class="container">
     <div class="hero-content">
-      <h1 class="hero-title">Zigy</h1>
-      <p class="hero-subtitle">Real-time Speech-to-Text Captions Desktop App</p>
+      <h1 class="hero-title">{t('hero.title')}</h1>
+      <p class="hero-subtitle">{t('hero.subtitle')}</p>
       <p class="hero-description">
-        Turn your voice into text instantly with AI-powered speech recognition.
-        Perfect for meetings, lectures, accessibility, and live captions.
+        {t('hero.description')}
       </p>
 
       <div class="download-section">
-        <h2>Download Zigy</h2>
-        <p class="version-info">Latest version: <span id="version-number">Loading...</span></p>
+        <h2>{t('hero.download')}</h2>
+        <p class="version-info">{t('hero.version')} <span id="version-number">{t('hero.loading')}</span></p>
 
         <div class="download-buttons">
           <a href="#" id="download-windows" class="download-btn windows" style="display:none;">
             <span class="icon">🪟</span>
             <div class="btn-text">
-              <strong>Windows</strong>
-              <small>Windows 10/11</small>
+              <strong>{t('hero.windows')}</strong>
+              <small>{t('hero.windows.subtitle')}</small>
             </div>
           </a>
 
           <a href="#" id="download-macos" class="download-btn macos" style="display:none;">
             <span class="icon">🍎</span>
             <div class="btn-text">
-              <strong>macOS</strong>
-              <small>Apple Silicon (M1/M2/M3/M4)</small>
+              <strong>{t('hero.macos')}</strong>
+              <small>{t('hero.macos.subtitle')}</small>
             </div>
           </a>
 
           <a href="#" id="download-linux-deb" class="download-btn linux" style="display:none;">
             <span class="icon">🐧</span>
             <div class="btn-text">
-              <strong>Linux (Debian)</strong>
-              <small>Ubuntu, Debian, Mint</small>
+              <strong>{t('hero.linux.debian')}</strong>
+              <small>{t('hero.linux.debian.subtitle')}</small>
             </div>
           </a>
 
           <a href="#" id="download-linux-appimage" class="download-btn linux" style="display:none;">
             <span class="icon">🐧</span>
             <div class="btn-text">
-              <strong>Linux (AppImage)</strong>
-              <small>Universal Linux</small>
+              <strong>{t('hero.linux.appimage')}</strong>
+              <small>{t('hero.linux.appimage.subtitle')}</small>
             </div>
           </a>
         </div>
 
         <p class="download-note">
-          Free and open source • <a href="https://github.com/minhtranin/zigy" target="_blank">View on GitHub</a>
+          {t('hero.opensource')} <a href="https://github.com/minhtranin/zigy" target="_blank">{t('hero.github')}</a>
         </p>
       </div>
 
       <div class="quick-features">
-        <div class="feature-badge">🎤 Real-time Speech Recognition</div>
-        <div class="feature-badge">💬 AI-Powered Assistance</div>
-        <div class="feature-badge">🌐 Multi-language Support</div>
+        <div class="feature-badge">{t('hero.feature.realtime')}</div>
+        <div class="feature-badge">{t('hero.feature.ai')}</div>
+        <div class="feature-badge">{t('hero.feature.multilang')}</div>
       </div>
     </div>
   </div>

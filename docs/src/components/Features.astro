@@ -1,53 +1,58 @@
 ---
 // Features showcase component
+import { getLangFromUrl, useTranslations } from '../i18n/utils';
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+
 const features = [
   {
     icon: "🎤",
-    title: "Real-time Speech Recognition",
-    description: "Live transcription as you speak with April ASR. 100% offline, your audio never leaves your device."
+    title: t('features.realtime.title'),
+    description: t('features.realtime.description')
   },
   {
     icon: "💬",
-    title: "AI-Powered Assistance",
-    description: "Integrated Gemini AI for summaries, questions, and idea generation from your conversations."
+    title: t('features.ai.title'),
+    description: t('features.ai.description')
   },
   {
     icon: "🌐",
-    title: "Multi-language Support",
-    description: "Translate captions to multiple languages. Support for various speech recognition models."
+    title: t('features.multilang.title'),
+    description: t('features.multilang.description')
   },
   {
     icon: "🎨",
-    title: "Simple Mode",
-    description: "Minimalist view perfect for presentations and focused transcription work."
+    title: t('features.simple.title'),
+    description: t('features.simple.description')
   },
   {
     icon: "🌓",
-    title: "Dark Mode",
-    description: "Comfortable viewing in any lighting condition with beautiful dark theme."
+    title: t('features.darkmode.title'),
+    description: t('features.darkmode.description')
   },
   {
     icon: "📋",
-    title: "Timeline View",
-    description: "Organized history of all summaries, questions, ideas, and greetings."
+    title: t('features.timeline.title'),
+    description: t('features.timeline.description')
   },
   {
     icon: "⚙️",
-    title: "Customizable Settings",
-    description: "Adjust font size, language, AI model, and more to fit your workflow."
+    title: t('features.customizable.title'),
+    description: t('features.customizable.description')
   },
   {
     icon: "🔒",
-    title: "Privacy First",
-    description: "Speech recognition runs 100% locally. No cloud processing, complete privacy."
+    title: t('features.privacy.title'),
+    description: t('features.privacy.description')
   }
 ];
 ---
 
 <section id="features" class="features-section compact-section">
   <div class="container">
-    <h2 class="section-title">Features</h2>
-    <p class="section-subtitle">Everything you need for real-time speech-to-text</p>
+    <h2 class="section-title">{t('features.title')}</h2>
+    <p class="section-subtitle">{t('features.subtitle')}</p>
 
     <div class="features-grid">
       {features.map((feature) => (
