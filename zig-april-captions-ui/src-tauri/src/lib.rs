@@ -304,14 +304,18 @@ fn get_zig_binary_path(app_handle: &AppHandle) -> Result<String, String> {
         }
     }
 
-    // For macOS app bundles: check Contents/MacOS/ and Contents/Resources/
+    // For macOS app bundles: check Contents/Resources/ where Tauri bundles resources
     #[cfg(target_os = "macos")]
     {
-        // In .app bundle, binary is at Contents/MacOS/ and resources at Contents/Resources/
+        // Standard macOS .app bundle structure:
+        // Zigy.app/Contents/MacOS/zig-april-captions-ui (main executable, exe_dir is here)
+        // Zigy.app/Contents/Resources/zig-april-captions (bundled Zig binary)
+
         let app_bundle_candidates = vec![
-            exe_dir.join("MacOS").join(&binary_name),  // Contents/MacOS/
-            exe_dir.join("Resources").join(&binary_name),  // Contents/Resources/
-            exe_dir.join(&binary_name),  // Same directory
+            // Most common: ../Resources/ relative to MacOS/ directory
+            exe_dir.join("..").join("Resources").join(&binary_name),
+            // Fallback: same directory as executable (edge case)
+            exe_dir.join(&binary_name),
         ];
 
         for candidate in &app_bundle_candidates {
@@ -320,13 +324,6 @@ fn get_zig_binary_path(app_handle: &AppHandle) -> Result<String, String> {
                 println!("Found zig-april-captions at: {}", candidate.display());
                 return Ok(candidate.to_string_lossy().to_string());
             }
-        }
-
-        // Also check ../Resources/ relative to executable (common in .app bundles)
-        let resources_relative = exe_dir.join("..").join("Resources").join(&binary_name);
-        if resources_relative.exists() {
-            println!("Found zig-april-captions at: {}", resources_relative.display());
-            return Ok(resources_relative.to_string_lossy().to_string());
         }
     }
 
