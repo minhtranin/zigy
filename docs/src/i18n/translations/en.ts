@@ -106,6 +106,16 @@ export default {
   'installation.troubleshooting.crash.step1': 'Ubuntu/Debian/Mint: Use .deb package',
   'installation.troubleshooting.crash.step2': 'Other distros: Use .AppImage',
   'installation.troubleshooting.crash.step3': 'Ensure PulseAudio is installed: sudo apt install pulseaudio',
+  'installation.troubleshooting.windows.mic.title': 'Windows: Microphone access denied',
+  'installation.troubleshooting.windows.mic.description': 'If you see "error.deviceEnumFailed", enable microphone permissions:',
+  'installation.troubleshooting.windows.mic.step1': 'Open Windows Settings (Win + I)',
+  'installation.troubleshooting.windows.mic.step2': 'Go to Privacy & Security → Microphone',
+  'installation.troubleshooting.windows.mic.step3': 'Enable "Let desktop apps access your microphone"',
+  'installation.troubleshooting.windows.mic.step4': 'Restart Zigy',
+  'installation.troubleshooting.windows.audio.title': 'Windows: Audio service not running',
+  'installation.troubleshooting.windows.audio.step1': 'Press Win + R, type "services.msc"',
+  'installation.troubleshooting.windows.audio.step2': 'Find "Windows Audio" service',
+  'installation.troubleshooting.windows.audio.step3': 'Right-click → Restart',
 
   // Footer section
   'footer.description': 'Real-time speech-to-text captions desktop app',

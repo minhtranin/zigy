@@ -160,6 +160,26 @@ const t = useTranslations(lang);
           <li>{t('installation.troubleshooting.crash.step3')}</li>
         </ul>
       </div>
+
+      <div class="troubleshooting-item">
+        <h4>{t('installation.troubleshooting.windows.mic.title')}</h4>
+        <p>{t('installation.troubleshooting.windows.mic.description')}</p>
+        <ol>
+          <li>{t('installation.troubleshooting.windows.mic.step1')}</li>
+          <li>{t('installation.troubleshooting.windows.mic.step2')}</li>
+          <li>{t('installation.troubleshooting.windows.mic.step3')}</li>
+          <li>{t('installation.troubleshooting.windows.mic.step4')}</li>
+        </ol>
+      </div>
+
+      <div class="troubleshooting-item">
+        <h4>{t('installation.troubleshooting.windows.audio.title')}</h4>
+        <ol>
+          <li>{t('installation.troubleshooting.windows.audio.step1')}</li>
+          <li>{t('installation.troubleshooting.windows.audio.step2')}</li>
+          <li>{t('installation.troubleshooting.windows.audio.step3')}</li>
+        </ol>
+      </div>
     </div>
   </div>
 </section>
@@ -454,7 +474,8 @@ const t = useTranslations(lang);
     margin-bottom: 0;
   }
 
-  .troubleshooting-item ul {
+  .troubleshooting-item ul,
+  .troubleshooting-item ol {
     margin: 0.4rem 0 0;
     padding-left: 1.25rem;
   }
