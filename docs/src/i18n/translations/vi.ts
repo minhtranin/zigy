@@ -106,6 +106,16 @@ export default {
   'installation.troubleshooting.crash.step1': 'Ubuntu/Debian/Mint: Sử dụng gói .deb',
   'installation.troubleshooting.crash.step2': 'Bản phân phối khác: Sử dụng .AppImage',
   'installation.troubleshooting.crash.step3': 'Đảm bảo PulseAudio được cài đặt: sudo apt install pulseaudio',
+  'installation.troubleshooting.windows.mic.title': 'Windows: Quyền truy cập microphone bị từ chối',
+  'installation.troubleshooting.windows.mic.description': 'Nếu bạn thấy "error.deviceEnumFailed", hãy bật quyền microphone:',
+  'installation.troubleshooting.windows.mic.step1': 'Mở Windows Settings (Win + I)',
+  'installation.troubleshooting.windows.mic.step2': 'Vào Privacy & Security → Microphone',
+  'installation.troubleshooting.windows.mic.step3': 'Bật "Let desktop apps access your microphone"',
+  'installation.troubleshooting.windows.mic.step4': 'Khởi động lại Zigy',
+  'installation.troubleshooting.windows.audio.title': 'Windows: Dịch vụ âm thanh không chạy',
+  'installation.troubleshooting.windows.audio.step1': 'Nhấn Win + R, gõ "services.msc"',
+  'installation.troubleshooting.windows.audio.step2': 'Tìm dịch vụ "Windows Audio"',
+  'installation.troubleshooting.windows.audio.step3': 'Nhấp chuột phải → Restart',
 
   // Footer section
   'footer.description': 'Ứng dụng phụ đề chuyển đổi giọng nói thành văn bản thời gian thực',
