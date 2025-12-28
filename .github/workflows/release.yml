@@ -168,11 +168,15 @@ jobs:
       - name: Build zig-april-captions binary (macOS)
         if: runner.os == 'macOS'
         shell: bash
+        env:
+          MACOSX_DEPLOYMENT_TARGET: "10.13"
         run: |
           cd zig-april-captions
           mkdir -p ../zig-april-captions-ui/src-tauri/resources
 
           # Build with baseline CPU features for compatibility
+          # Set deployment target to support older macOS versions
+          echo "Building for macOS deployment target: $MACOSX_DEPLOYMENT_TARGET"
           zig build -Doptimize=ReleaseFast -Dcpu=baseline
           # Copy binary to Tauri resources and ensure it's executable
           if [ -f "zig-out/bin/zig-april-captions" ]; then
@@ -191,8 +195,18 @@ jobs:
             if [ -n "$ONNX_VERSIONED" ]; then
               cp "$ONNX_VERSIONED" ../zig-april-captions-ui/src-tauri/resources/
               echo "Copied ONNX Runtime library to resources"
-              # Note: rpath is already set to @loader_path by Zig build.zig (line 148)
-              # No need to use install_name_tool
+
+              # Fix dylib install names and binary rpaths for Tauri bundle
+              echo "Fixing dylib install names with install_name_tool..."
+              install_name_tool -id "@rpath/libonnxruntime.1.16.3.dylib" ../zig-april-captions-ui/src-tauri/resources/libonnxruntime.1.16.3.dylib
+              install_name_tool -id "@rpath/libonnxruntime.dylib" ../zig-april-captions-ui/src-tauri/resources/libonnxruntime.dylib
+
+              echo "Adding rpaths to zig-april-captions binary for Tauri bundle..."
+              # Add rpaths so binary can find dylibs in Tauri app bundle
+              install_name_tool -add_rpath "@executable_path/../Frameworks" ../zig-april-captions-ui/src-tauri/resources/zig-april-captions || true
+              install_name_tool -add_rpath "@executable_path/../Resources/resources" ../zig-april-captions-ui/src-tauri/resources/zig-april-captions || true
+
+              echo "macOS dylib and binary rpath fixes applied"
             fi
           else
             echo "Warning: ONNX Runtime library not found"
@@ -439,6 +453,7 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MACOSX_DEPLOYMENT_TARGET: "10.13"
         with:
           releaseId: ${{ needs.create-release.outputs.release_id }}
           args: --target ${{ matrix.target }} --bundles ${{ matrix.bundle }}

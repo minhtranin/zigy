@@ -142,7 +142,6 @@ pub fn build(b: *std.Build) void {
     // For production: use platform-specific relative paths
     // Linux: $ORIGIN (finds libraries relative to executable)
     // macOS: @loader_path (finds libraries relative to executable)
-    // Note: We need to escape the $ for Zig's build system
     if (target.result.isDarwin()) {
         // macOS uses @loader_path
         exe.addRPath(.{ .cwd_relative = "@loader_path" });
@@ -150,12 +149,14 @@ pub fn build(b: *std.Build) void {
         exe.addRPath(.{ .cwd_relative = "@executable_path/../Frameworks" });
         // When bundled in Tauri app, look in Resources directory
         exe.addRPath(.{ .cwd_relative = "@executable_path/../Resources/resources" });
+        // Development: also check the build location
+        exe.addRPath(.{ .cwd_relative = b.fmt("{s}/lib", .{onnx_path}) });
     } else {
-        // Linux and others use $ORIGIN
-        exe.addRPath(.{ .cwd_relative = "$$$ORIGIN" });
+        // Linux: Don't set rpath here - let the CI workflow's patchelf handle it
+        // The workflow sets: patchelf --set-rpath '$ORIGIN'
+        // Development: add ONNX Runtime lib path for local testing
+        exe.addRPath(.{ .cwd_relative = b.fmt("{s}/lib", .{onnx_path}) });
     }
-    // Development: also check the build location
-    exe.addRPath(.{ .cwd_relative = b.fmt("{s}/lib", .{onnx_path}) });
 
     b.installArtifact(exe);
 
