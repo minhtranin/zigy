@@ -245,10 +245,25 @@ jobs:
               install_name_tool -id "@rpath/libonnxruntime.1.16.3.dylib" ../zig-april-captions-ui/src-tauri/resources/libonnxruntime.1.16.3.dylib
               install_name_tool -id "@rpath/libonnxruntime.dylib" ../zig-april-captions-ui/src-tauri/resources/libonnxruntime.dylib
 
-              echo "Adding rpaths to zig-april-captions binary for Tauri bundle..."
-              # Add rpaths so binary can find dylibs in Tauri app bundle
-              install_name_tool -add_rpath "@executable_path/../Frameworks" ../zig-april-captions-ui/src-tauri/resources/zig-april-captions || true
-              install_name_tool -add_rpath "@executable_path/../Resources/resources" ../zig-april-captions-ui/src-tauri/resources/zig-april-captions || true
+              echo "Clearing and setting correct rpaths on zig-april-captions binary..."
+              # Delete all existing rpaths (Zig adds hardcoded build paths)
+              # We need to get the list and delete them one by one
+              BINARY="../zig-april-captions-ui/src-tauri/resources/zig-april-captions"
+
+              # Get all rpath entries
+              RPATHS=$(otool -l "$BINARY" | grep -A 2 "LC_RPATH" | grep "path" | awk '{print $2}')
+
+              # Delete each rpath
+              for rpath in $RPATHS; do
+                echo "Deleting rpath: $rpath"
+                install_name_tool -delete_rpath "$rpath" "$BINARY" 2>/dev/null || true
+              done
+
+              # Add only the correct rpaths for Tauri bundle
+              echo "Adding correct rpaths..."
+              install_name_tool -add_rpath "@loader_path" "$BINARY"
+              install_name_tool -add_rpath "@executable_path/../Frameworks" "$BINARY"
+              install_name_tool -add_rpath "@executable_path/../Resources/resources" "$BINARY"
 
               echo "macOS dylib and binary rpath fixes applied"
             fi

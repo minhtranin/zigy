@@ -143,13 +143,10 @@ pub fn build(b: *std.Build) void {
     // Linux: $ORIGIN (finds libraries relative to executable)
     // macOS: @loader_path (finds libraries relative to executable)
     if (target.result.isDarwin()) {
-        // macOS uses @loader_path
-        exe.addRPath(.{ .cwd_relative = "@loader_path" });
-        // When bundled in Tauri app, look in Frameworks directory
-        exe.addRPath(.{ .cwd_relative = "@executable_path/../Frameworks" });
-        // When bundled in Tauri app, look in Resources directory
-        exe.addRPath(.{ .cwd_relative = "@executable_path/../Resources/resources" });
-        // Development: also check the build location
+        // macOS: Only add development ONNX Runtime path
+        // The CI workflow will set production rpaths using install_name_tool
+        // because Zig's .cwd_relative interprets @executable_path as a relative path
+        // and prepends the build directory, creating hardcoded paths
         exe.addRPath(.{ .cwd_relative = b.fmt("{s}/lib", .{onnx_path}) });
     } else {
         // Linux: Don't set rpath here - let the CI workflow's patchelf handle it
