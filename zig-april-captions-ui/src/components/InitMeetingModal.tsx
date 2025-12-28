@@ -18,8 +18,7 @@ const DEFAULT_CONTEXT: MeetingContext = {
   additionalContext: '',
 };
 
-const selectClassName = "w-full px-3 py-2 text-sm bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 dark:text-gray-100 dark:[color-scheme:dark]";
-const optionClassName = "bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100";
+const selectClassName = "w-full px-3 py-2 text-sm bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none";
 const inputClassName = "w-full px-3 py-2 text-sm bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500";
 const labelClassName = "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1";
 
@@ -125,7 +124,7 @@ export function InitMeetingModal({ isOpen, onClose, onSave, initialContext }: Pr
                   className={selectClassName}
                 >
                   {USER_ROLES.map(role => (
-                    <option key={role.value} value={role.value} className={optionClassName}>
+                    <option key={role.value} value={role.value}>
                       {role.label}
                     </option>
                   ))}
@@ -166,7 +165,7 @@ export function InitMeetingModal({ isOpen, onClose, onSave, initialContext }: Pr
                   className={selectClassName}
                 >
                   {MEETING_TYPES.map(type => (
-                    <option key={type.value} value={type.value} className={optionClassName}>
+                    <option key={type.value} value={type.value}>
                       {type.label}
                     </option>
                   ))}
@@ -191,7 +190,7 @@ export function InitMeetingModal({ isOpen, onClose, onSave, initialContext }: Pr
                   className={selectClassName}
                 >
                   {MEETING_SIZES.map(size => (
-                    <option key={size.value} value={size.value} className={optionClassName}>
+                    <option key={size.value} value={size.value}>
                       {size.label}
                     </option>
                   ))}
