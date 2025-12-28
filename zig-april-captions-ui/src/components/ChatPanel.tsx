@@ -279,6 +279,7 @@ export function ChatPanel({ settings, sessionId, fontSize, t, externalCommand, o
   const [isLoadingDynamic, setIsLoadingDynamic] = useState(false);
   const [transcriptText, setTranscriptText] = useState('');
   const [translatingId, setTranslatingId] = useState<string | null>(null);
+  const [currentTip, setCurrentTip] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const apiKey = settings.ai?.api_key || '';
@@ -335,6 +336,14 @@ export function ChatPanel({ settings, sessionId, fontSize, t, externalCommand, o
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Randomize loading tip when loading starts
+  useEffect(() => {
+    if (isLoading && t.chatTips && t.chatTips.length > 0) {
+      const randomIndex = Math.floor(Math.random() * t.chatTips.length);
+      setCurrentTip(t.chatTips[randomIndex]);
+    }
+  }, [isLoading, t.chatTips]);
 
   // Handle external commands
   const pendingCommandRef = useRef<{ command: string; text: string } | null>(null);
@@ -669,7 +678,7 @@ Generate questions I can ASK them:`;
           <div className="flex justify-start">
             <div className="bg-gray-100 dark:bg-gray-800 rounded-lg px-3 py-2 flex items-center gap-2">
               <Loader2 className="w-4 h-4 animate-spin text-indigo-500" />
-              <span className="text-sm text-gray-600 dark:text-gray-400">Thinking...</span>
+              <span className="text-sm text-gray-600 dark:text-gray-400">{currentTip}</span>
             </div>
           </div>
         )}

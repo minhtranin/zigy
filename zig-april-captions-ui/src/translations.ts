@@ -155,6 +155,9 @@ export interface Translations {
   noNotesYet: string;
   addFirstNote: string;
   noteCreated: string;
+
+  // Chat Loading Tips
+  chatTips: string[];
 }
 
 export const translations: Record<AppLanguage, Translations> = {
@@ -313,6 +316,37 @@ export const translations: Record<AppLanguage, Translations> = {
     noNotesYet: 'No notes yet',
     addFirstNote: 'Create your first note to store knowledge for AI context',
     noteCreated: 'Note created',
+
+    // Chat Loading Tips
+    chatTips: [
+      // Acknowledgment (8 tips)
+      "That's a good question",
+      "Interesting point",
+      "I see what you're asking",
+      "Let me address that",
+      "Good thinking",
+      "Fair question",
+      "I understand",
+      "That makes sense",
+      // Processing (8 tips)
+      "Let me think about that...",
+      "From my perspective...",
+      "Based on my understanding...",
+      "Considering the context...",
+      "Let me organize my thoughts...",
+      "Give me a moment...",
+      "Processing your question...",
+      "Analyzing the situation...",
+      // Conversational (8 tips)
+      "Hmm, interesting...",
+      "Right, so...",
+      "Okay, let's see...",
+      "Alright then...",
+      "Sure thing...",
+      "Got it...",
+      "I'm on it...",
+      "Working on it...",
+    ],
   },
   vi: {
     // App Header
@@ -469,6 +503,37 @@ export const translations: Record<AppLanguage, Translations> = {
     noNotesYet: 'Chưa có ghi chú',
     addFirstNote: 'Tạo ghi chú đầu tiên để lưu kiến thức cho AI',
     noteCreated: 'Đã tạo ghi chú',
+
+    // Chat Loading Tips
+    chatTips: [
+      // Acknowledgment (8 tips)
+      "Đó là câu hỏi hay",
+      "Điểm thú vị",
+      "Tôi hiểu ý bạn",
+      "Để tôi trả lời",
+      "Suy nghĩ hay đấy",
+      "Câu hỏi hợp lý",
+      "Tôi hiểu",
+      "Điều đó hợp lý",
+      // Processing (8 tips)
+      "Để tôi suy nghĩ về điều đó...",
+      "Theo quan điểm của tôi...",
+      "Dựa trên hiểu biết của tôi...",
+      "Xét theo ngữ cảnh...",
+      "Để tôi sắp xếp suy nghĩ...",
+      "Cho tôi một chút thời gian...",
+      "Đang xử lý câu hỏi của bạn...",
+      "Đang phân tích tình huống...",
+      // Conversational (8 tips)
+      "Hmm, thú vị...",
+      "Được rồi, vậy...",
+      "Ok, xem thử nào...",
+      "Được thôi...",
+      "Không vấn đề gì...",
+      "Hiểu rồi...",
+      "Tôi đang làm...",
+      "Đang xử lý...",
+    ],
   },
 };
 
