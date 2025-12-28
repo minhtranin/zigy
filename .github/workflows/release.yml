@@ -592,6 +592,117 @@ jobs:
           args: --target ${{ matrix.target }} --bundles ${{ matrix.bundle }}
           projectPath: zig-april-captions-ui
 
+      - name: Final Verification - Inspect DMG/App Bundle (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          echo "=========================================="
+          echo "Final DMG/App Bundle Verification (macOS)"
+          echo "=========================================="
+
+          # Find the built DMG file
+          DMG_FILE=$(find zig-april-captions-ui/src-tauri/target -name "*.dmg" -type f | head -1)
+
+          if [ -z "$DMG_FILE" ]; then
+            echo "ERROR: No DMG file found!"
+            exit 1
+          fi
+
+          echo "Found DMG: $DMG_FILE"
+          echo ""
+
+          # Mount the DMG
+          echo "Mounting DMG..."
+          MOUNT_POINT="/tmp/zigy-verify-$$"
+          mkdir -p "$MOUNT_POINT"
+          hdiutil attach "$DMG_FILE" -readonly -mountpoint "$MOUNT_POINT" -nobrowse
+
+          # Find the .app bundle
+          APP_BUNDLE=$(find "$MOUNT_POINT" -name "*.app" -maxdepth 1 | head -1)
+
+          if [ -z "$APP_BUNDLE" ]; then
+            echo "ERROR: No .app bundle found in DMG!"
+            hdiutil detach "$MOUNT_POINT"
+            exit 1
+          fi
+
+          echo "Found app bundle: $APP_BUNDLE"
+          echo ""
+
+          # Path to the binary inside the app
+          BINARY="$APP_BUNDLE/Contents/Resources/resources/zig-april-captions"
+
+          if [ ! -f "$BINARY" ]; then
+            echo "ERROR: Binary not found at: $BINARY"
+            echo "Contents of Resources/resources:"
+            ls -la "$APP_BUNDLE/Contents/Resources/resources/" || echo "Directory not found"
+            hdiutil detach "$MOUNT_POINT"
+            exit 1
+          fi
+
+          echo "1. Files in app bundle Resources/resources:"
+          ls -lah "$APP_BUNDLE/Contents/Resources/resources/"
+          echo ""
+
+          echo "2. Binary rpaths in final app:"
+          otool -l "$BINARY" | grep -A 3 "LC_RPATH"
+          echo ""
+
+          echo "3. Binary library dependencies:"
+          otool -L "$BINARY" | grep -i onnx
+          echo ""
+
+          echo "4. Checking dylib files exist:"
+          DYLIB_PATH="$APP_BUNDLE/Contents/Resources/resources"
+          if [ -f "$DYLIB_PATH/libonnxruntime.1.16.3.dylib" ]; then
+            echo "✓ libonnxruntime.1.16.3.dylib exists"
+            otool -D "$DYLIB_PATH/libonnxruntime.1.16.3.dylib" | tail -1
+          else
+            echo "ERROR: libonnxruntime.1.16.3.dylib not found!"
+            hdiutil detach "$MOUNT_POINT"
+            exit 1
+          fi
+          echo ""
+
+          echo "5. Final check - No hardcoded GitHub paths:"
+          if otool -l "$BINARY" | grep -i "runner/work"; then
+            echo "ERROR: Found hardcoded GitHub Actions paths in final DMG!"
+            hdiutil detach "$MOUNT_POINT"
+            exit 1
+          else
+            echo "✓ No hardcoded paths found"
+          fi
+          echo ""
+
+          echo "6. Verify required rpaths present in final app:"
+          RPATH_OUTPUT=$(otool -l "$BINARY" | grep -A 2 "LC_RPATH")
+
+          if echo "$RPATH_OUTPUT" | grep -q "@executable_path/../Frameworks"; then
+            echo "✓ Found @executable_path/../Frameworks"
+          else
+            echo "ERROR: Missing @executable_path/../Frameworks in final app!"
+            hdiutil detach "$MOUNT_POINT"
+            exit 1
+          fi
+
+          if echo "$RPATH_OUTPUT" | grep -q "@executable_path/../Resources/resources"; then
+            echo "✓ Found @executable_path/../Resources/resources"
+          else
+            echo "ERROR: Missing @executable_path/../Resources/resources in final app!"
+            hdiutil detach "$MOUNT_POINT"
+            exit 1
+          fi
+
+          # Unmount DMG
+          echo ""
+          echo "Unmounting DMG..."
+          hdiutil detach "$MOUNT_POINT"
+
+          echo ""
+          echo "=========================================="
+          echo "✓ Final DMG Verification Passed!"
+          echo "=========================================="
+
   publish-release:
     needs: [create-release, build-tauri]
     runs-on: ubuntu-latest

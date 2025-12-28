@@ -5799,7 +5799,7 @@ dependencies = [
 
 [[package]]
 name = "zig-april-captions-ui"
-version = "0.1.0"
+version = "1.0.3"
 dependencies = [
  "dirs 5.0.1",
  "futures-util",
