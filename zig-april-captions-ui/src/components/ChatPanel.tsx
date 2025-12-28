@@ -279,7 +279,7 @@ export function ChatPanel({ settings, sessionId, fontSize, t, externalCommand, o
   const [isLoadingDynamic, setIsLoadingDynamic] = useState(false);
   const [transcriptText, setTranscriptText] = useState('');
   const [translatingId, setTranslatingId] = useState<string | null>(null);
-  const [currentTips, setCurrentTips] = useState<string[]>([]);
+  const [currentTip, setCurrentTip] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const apiKey = settings.ai?.api_key || '';
@@ -337,14 +337,11 @@ export function ChatPanel({ settings, sessionId, fontSize, t, externalCommand, o
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Randomize loading tips when loading starts (3-4 unique tips)
+  // Randomize loading tip when loading starts
   useEffect(() => {
     if (isLoading && t.chatTips && t.chatTips.length > 0) {
-      // Select 3-4 random unique tips
-      const tipCount = Math.floor(Math.random() * 2) + 3; // 3 or 4 tips
-      const shuffled = [...t.chatTips].sort(() => Math.random() - 0.5);
-      const selectedTips = shuffled.slice(0, Math.min(tipCount, t.chatTips.length));
-      setCurrentTips(selectedTips);
+      const randomIndex = Math.floor(Math.random() * t.chatTips.length);
+      setCurrentTip(t.chatTips[randomIndex]);
     }
   }, [isLoading, t.chatTips]);
 
@@ -623,6 +620,7 @@ Generate questions I can ASK them:`;
       {messages.length > 0 && (
         <div className="flex items-center justify-end px-3 py-1 border-b border-gray-200 dark:border-gray-700">
           {isCompacting && <span className="text-xs text-yellow-500 mr-2">compacting...</span>}
+          {isLoading && currentTip && <span className="text-xs text-gray-500 dark:text-gray-400 mr-2 italic">{currentTip}</span>}
           <button onClick={clearHistory} className="text-xs text-red-500 hover:text-red-600">{t.clear}</button>
         </div>
       )}
@@ -679,15 +677,9 @@ Generate questions I can ASK them:`;
 
         {isLoading && (
           <div className="flex justify-start">
-            <div className="bg-gray-100 dark:bg-gray-800 rounded-lg px-3 py-2 flex items-start gap-2">
-              <Loader2 className="w-4 h-4 animate-spin text-indigo-500 mt-0.5 flex-shrink-0" />
-              <div className="flex flex-col gap-1">
-                {currentTips.map((tip, index) => (
-                  <span key={index} className="text-sm text-gray-600 dark:text-gray-400">
-                    {tip}
-                  </span>
-                ))}
-              </div>
+            <div className="bg-gray-100 dark:bg-gray-800 rounded-lg px-3 py-2 flex items-center gap-2">
+              <Loader2 className="w-4 h-4 animate-spin text-indigo-500" />
+              <span className="text-sm text-gray-600 dark:text-gray-400">{t.thinking}</span>
             </div>
           </div>
         )}
