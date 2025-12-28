@@ -310,11 +310,16 @@ fn get_zig_binary_path(app_handle: &AppHandle) -> Result<String, String> {
         // Standard macOS .app bundle structure:
         // Zigy.app/Contents/MacOS/zig-april-captions-ui (main executable, exe_dir is here)
         // Zigy.app/Contents/Resources/zig-april-captions (bundled Zig binary)
+        //
+        // NOTE: Current bundle has nested resources/ directory due to tauri.conf.json config,
+        // so we check Resources/resources/ first for compatibility with existing installations
 
         let app_bundle_candidates = vec![
-            // Most common: ../Resources/ relative to MacOS/ directory
+            // FIRST: Check nested resources/ subdirectory (current bundle structure)
+            exe_dir.join("..").join("Resources").join("resources").join(&binary_name),
+            // SECOND: Standard location (future builds after bundle fix)
             exe_dir.join("..").join("Resources").join(&binary_name),
-            // Fallback: same directory as executable (edge case)
+            // THIRD: Fallback - same directory as executable (edge case)
             exe_dir.join(&binary_name),
         ];
 
@@ -403,6 +408,19 @@ async fn start_captions(
         };
         println!("Setting LD_LIBRARY_PATH: {}", new_ld_path);
         cmd.env("LD_LIBRARY_PATH", new_ld_path);
+    }
+
+    // On macOS, set DYLD_LIBRARY_PATH so the binary can find libonnxruntime.dylib
+    #[cfg(target_os = "macos")]
+    {
+        let current_dyld_path = std::env::var("DYLD_LIBRARY_PATH").unwrap_or_default();
+        let new_dyld_path = if current_dyld_path.is_empty() {
+            binary_dir.clone()
+        } else {
+            format!("{}:{}", binary_dir, current_dyld_path)
+        };
+        println!("Setting DYLD_LIBRARY_PATH: {}", new_dyld_path);
+        cmd.env("DYLD_LIBRARY_PATH", new_dyld_path);
     }
 
     let mut child = cmd.spawn()

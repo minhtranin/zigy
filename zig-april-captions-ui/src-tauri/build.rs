@@ -82,4 +82,88 @@ fn prepare_binary_for_bundling() {
         std::fs::set_permissions(&dest, perms).unwrap();
         println!("Set executable permissions on binary");
     }
+
+    // Copy ONNX Runtime libraries (required for bundling)
+    // The binary's RPATH is set to $ORIGIN (Linux) / @loader_path (macOS)
+    // so it expects libraries in the same directory
+    copy_onnx_libraries_if_present(&resources_dir);
+}
+
+fn copy_onnx_libraries_if_present(resources_dir: &PathBuf) {
+    // Try ONNX_ROOT env var first, then fall back to ~/onnxruntime
+    let onnx_root = env::var("ONNX_ROOT").ok().or_else(|| {
+        env::var("HOME")
+            .or_else(|_| env::var("USERPROFILE"))
+            .ok()
+            .map(|home| format!("{}/onnxruntime", home))
+    });
+
+    let Some(onnx_path) = onnx_root else {
+        println!("cargo:warning=ONNX_ROOT not set and HOME not found. Skipping ONNX library bundling.");
+        println!("cargo:warning=Set ONNX_ROOT environment variable to bundle ONNX Runtime libraries.");
+        return;
+    };
+
+    let lib_dir = PathBuf::from(&onnx_path).join("lib");
+    if !lib_dir.exists() {
+        println!("cargo:warning=ONNX Runtime lib directory not found at {}", lib_dir.display());
+        println!("cargo:warning=Libraries will not be bundled. Binary may fail at runtime.");
+        return;
+    }
+
+    println!("Found ONNX Runtime at: {}", lib_dir.display());
+
+    // Copy all ONNX library files to resources
+    let Ok(entries) = std::fs::read_dir(&lib_dir) else {
+        return;
+    };
+
+    let mut copied_count = 0;
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if !path.is_file() {
+            continue;
+        }
+
+        let Some(filename) = path.file_name() else {
+            continue;
+        };
+        let filename_str = filename.to_string_lossy();
+
+        // Platform-specific library file patterns
+        let is_onnx_lib = if cfg!(target_os = "linux") {
+            filename_str.starts_with("libonnxruntime.so")
+        } else if cfg!(target_os = "macos") {
+            filename_str.starts_with("libonnxruntime") && filename_str.ends_with(".dylib")
+        } else if cfg!(target_os = "windows") {
+            filename_str == "onnxruntime.dll" || filename_str.ends_with(".lib")
+        } else {
+            false
+        };
+
+        if is_onnx_lib {
+            let dest = resources_dir.join(filename);
+            if std::fs::copy(&path, &dest).is_ok() {
+                println!("Bundled ONNX library: {}", filename_str);
+                copied_count += 1;
+
+                // Make executable on Unix
+                #[cfg(unix)]
+                {
+                    use std::os::unix::fs::PermissionsExt;
+                    if let Ok(metadata) = std::fs::metadata(&dest) {
+                        let mut perms = metadata.permissions();
+                        perms.set_mode(0o755);
+                        let _ = std::fs::set_permissions(&dest, perms);
+                    }
+                }
+            }
+        }
+    }
+
+    if copied_count == 0 {
+        println!("cargo:warning=No ONNX Runtime libraries found in {}", lib_dir.display());
+    } else {
+        println!("Successfully bundled {} ONNX library file(s)", copied_count);
+    }
 }
