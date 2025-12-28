@@ -10,7 +10,7 @@ import { KnowledgePanel } from './components/KnowledgePanel';
 import { ControlBar } from './components/ControlBar';
 import { TitleBar } from './components/TitleBar';
 import { InitMeetingModal } from './components/InitMeetingModal';
-import type { Settings } from './types';
+import type { Settings, MeetingContext } from './types';
 import { getTranslations } from './translations';
 import { generateMeetingGreeting } from './services/geminiService';
 import './App.css'; // Keep for global styles like scrollbar
@@ -154,7 +154,7 @@ function App() {
     setIsInitModalOpen(true);
   };
 
-  const handleSaveMeetingContext = (context: string) => {
+  const handleSaveMeetingContext = (context: string, structuredContext: MeetingContext) => {
     const newSettings: Settings = {
       ...settings,
       ai: {
@@ -162,6 +162,7 @@ function App() {
         api_key: settings.ai?.api_key || '',
         model: settings.ai?.model || 'gemini-2.5-flash',
         meeting_context: context,
+        structured_meeting_context: structuredContext,
       }
     };
     saveSettings(newSettings);
@@ -243,7 +244,7 @@ function App() {
         onInitMeeting={handleInitMeeting}
         onGenerateGreeting={handleGenerateGreeting}
         isGreetingLoading={isGreetingLoading}
-        hasMeetingContext={!!settings.ai?.meeting_context}
+        hasMeetingContext={!!settings.ai?.structured_meeting_context || !!settings.ai?.meeting_context}
         t={t}
         onAddCommandToChat={(command, text) => {
           setExternalCommand({ command, text: text || '' });
@@ -365,7 +366,7 @@ function App() {
         isOpen={isInitModalOpen}
         onClose={() => setIsInitModalOpen(false)}
         onSave={handleSaveMeetingContext}
-        initialValue={settings.ai?.meeting_context || ''}
+        initialContext={settings.ai?.structured_meeting_context}
       />
     </div>
   );

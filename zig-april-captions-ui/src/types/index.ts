@@ -5,12 +5,22 @@ export interface Caption {
   timestamp: number;
 }
 
+// Structured meeting context for better AI assistance
+export interface MeetingContext {
+  userRole: string;
+  userName: string;
+  meetingType: string;
+  meetingSize: number;
+  additionalContext: string;
+}
+
 // AI Settings for Gemini integration
 export interface AISettings {
   api_key: string;
   model: GeminiModel;
   translation_language?: TranslationLanguage;
-  meeting_context?: string; // User's meeting purpose/agenda
+  meeting_context?: string; // Legacy: User's meeting purpose/agenda (for backward compatibility)
+  structured_meeting_context?: MeetingContext; // New: Structured meeting context
 }
 
 export type GeminiModel =

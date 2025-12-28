@@ -1,30 +1,93 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
+import { MeetingContext } from '../types';
+import { USER_ROLES, MEETING_TYPES, MEETING_SIZES, formatMeetingContextForAI } from '../constants/meetingOptions';
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (context: string) => void;
-  initialValue?: string;
+  onSave: (context: string, structuredContext: MeetingContext) => void;
+  initialContext?: MeetingContext;
 }
 
-export function InitMeetingModal({ isOpen, onClose, onSave, initialValue = '' }: Props) {
-  const [context, setContext] = useState(initialValue);
+const DEFAULT_CONTEXT: MeetingContext = {
+  userRole: 'candidate',
+  userName: '',
+  meetingType: 'job_interview',
+  meetingSize: 2,
+  additionalContext: '',
+};
+
+const selectClassName = "w-full px-3 py-2 text-sm bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 dark:text-gray-100";
+const inputClassName = "w-full px-3 py-2 text-sm bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500";
+const labelClassName = "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1";
+
+export function InitMeetingModal({ isOpen, onClose, onSave, initialContext }: Props) {
+  const [formData, setFormData] = useState<MeetingContext>(initialContext || DEFAULT_CONTEXT);
+  const [customRole, setCustomRole] = useState('');
+  const [customMeetingType, setCustomMeetingType] = useState('');
+
+  // Reset form when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      if (initialContext) {
+        setFormData(initialContext);
+        // Check if the role is a custom one (not in predefined list)
+        const isCustomRole = !USER_ROLES.find(r => r.value === initialContext.userRole);
+        if (isCustomRole && initialContext.userRole) {
+          setCustomRole(initialContext.userRole);
+          setFormData(prev => ({ ...prev, userRole: 'other' }));
+        }
+        // Check if the meeting type is a custom one
+        const isCustomType = !MEETING_TYPES.find(t => t.value === initialContext.meetingType);
+        if (isCustomType && initialContext.meetingType) {
+          setCustomMeetingType(initialContext.meetingType);
+          setFormData(prev => ({ ...prev, meetingType: 'other' }));
+        }
+      } else {
+        setFormData(DEFAULT_CONTEXT);
+        setCustomRole('');
+        setCustomMeetingType('');
+      }
+    }
+  }, [isOpen, initialContext]);
 
   if (!isOpen) return null;
 
   const handleSave = () => {
-    if (context.trim()) {
-      onSave(context.trim());
-      onClose();
-    }
+    // Build the final context with custom values if needed
+    const finalContext: MeetingContext = {
+      ...formData,
+      userRole: formData.userRole === 'other' ? customRole : formData.userRole,
+      meetingType: formData.meetingType === 'other' ? customMeetingType : formData.meetingType,
+    };
+
+    // Generate formatted string for AI
+    const formattedContext = formatMeetingContextForAI(finalContext);
+
+    onSave(formattedContext, finalContext);
+    onClose();
   };
 
   const handleClear = () => {
-    setContext('');
-    onSave('');
+    setFormData(DEFAULT_CONTEXT);
+    setCustomRole('');
+    setCustomMeetingType('');
+    onSave('', DEFAULT_CONTEXT);
     onClose();
   };
+
+  const updateField = <K extends keyof MeetingContext>(field: K, value: MeetingContext[K]) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  // Check if form has meaningful data
+  const hasData = formData.userName.trim() ||
+    (formData.userRole && formData.userRole !== 'other') ||
+    (formData.userRole === 'other' && customRole.trim()) ||
+    (formData.meetingType && formData.meetingType !== 'other') ||
+    (formData.meetingType === 'other' && customMeetingType.trim()) ||
+    formData.additionalContext.trim();
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -45,33 +108,126 @@ export function InitMeetingModal({ isOpen, onClose, onSave, initialValue = '' }:
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-4">
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-            Describe what this meeting is about. This context will be used by AI to generate better suggestions, greetings, and responses throughout the meeting.
+            Set up your meeting context for better AI assistance. The AI will use this information to generate more relevant suggestions, greetings, and responses.
           </p>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Meeting Purpose/Agenda
-            </label>
-            <textarea
-              value={context}
-              onChange={(e) => setContext(e.target.value)}
-              placeholder="Example: I'm about to have a meeting with my operation team to discuss integrating payment API into our platform"
-              className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 resize-y min-h-[120px] focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-gray-400 dark:placeholder-gray-500"
-              rows={6}
-              autoFocus
-            />
+          {/* Form Grid */}
+          <div className="space-y-4">
+            {/* Row 1: Role and Name */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* User Role */}
+              <div>
+                <label className={labelClassName}>Your Role</label>
+                <select
+                  value={formData.userRole}
+                  onChange={(e) => updateField('userRole', e.target.value)}
+                  className={selectClassName}
+                >
+                  {USER_ROLES.map(role => (
+                    <option key={role.value} value={role.value}>
+                      {role.label}
+                    </option>
+                  ))}
+                </select>
+                {formData.userRole === 'other' && (
+                  <input
+                    type="text"
+                    value={customRole}
+                    onChange={(e) => setCustomRole(e.target.value)}
+                    placeholder="Enter your role..."
+                    className={`${inputClassName} mt-2`}
+                    autoFocus
+                  />
+                )}
+              </div>
+
+              {/* User Name */}
+              <div>
+                <label className={labelClassName}>Your Name</label>
+                <input
+                  type="text"
+                  value={formData.userName}
+                  onChange={(e) => updateField('userName', e.target.value)}
+                  placeholder="Enter your name..."
+                  className={inputClassName}
+                />
+              </div>
+            </div>
+
+            {/* Row 2: Meeting Type and Size */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Meeting Type */}
+              <div>
+                <label className={labelClassName}>Meeting Type</label>
+                <select
+                  value={formData.meetingType}
+                  onChange={(e) => updateField('meetingType', e.target.value)}
+                  className={selectClassName}
+                >
+                  {MEETING_TYPES.map(type => (
+                    <option key={type.value} value={type.value}>
+                      {type.label}
+                    </option>
+                  ))}
+                </select>
+                {formData.meetingType === 'other' && (
+                  <input
+                    type="text"
+                    value={customMeetingType}
+                    onChange={(e) => setCustomMeetingType(e.target.value)}
+                    placeholder="Enter meeting type..."
+                    className={`${inputClassName} mt-2`}
+                  />
+                )}
+              </div>
+
+              {/* Meeting Size */}
+              <div>
+                <label className={labelClassName}>Meeting Size</label>
+                <select
+                  value={formData.meetingSize}
+                  onChange={(e) => updateField('meetingSize', parseInt(e.target.value, 10))}
+                  className={selectClassName}
+                >
+                  {MEETING_SIZES.map(size => (
+                    <option key={size.value} value={size.value}>
+                      {size.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Additional Context */}
+            <div>
+              <label className={labelClassName}>
+                Additional Context <span className="text-gray-400 font-normal">(optional)</span>
+              </label>
+              <textarea
+                value={formData.additionalContext}
+                onChange={(e) => updateField('additionalContext', e.target.value)}
+                placeholder="Any additional context about the meeting, topics to discuss, or specific goals..."
+                className={`${inputClassName} resize-y min-h-[80px]`}
+                rows={3}
+              />
+            </div>
           </div>
 
-          {/* Examples */}
-          <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-900/50 rounded-md">
-            <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">Examples:</p>
-            <ul className="text-xs text-gray-500 dark:text-gray-500 space-y-1">
-              <li>• "Sprint planning meeting with development team for Q1 2024"</li>
-              <li>• "Client presentation about new product features"</li>
-              <li>• "Team retrospective to discuss project challenges"</li>
-              <li>• "Budget review with finance department"</li>
-            </ul>
-          </div>
+          {/* Preview */}
+          {hasData && (
+            <div className="mt-4 p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-md border border-indigo-200 dark:border-indigo-800">
+              <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 mb-1">
+                Context Preview:
+              </p>
+              <p className="text-sm text-indigo-700 dark:text-indigo-300">
+                {formatMeetingContextForAI({
+                  ...formData,
+                  userRole: formData.userRole === 'other' ? customRole : formData.userRole,
+                  meetingType: formData.meetingType === 'other' ? customMeetingType : formData.meetingType,
+                })}
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Footer */}
@@ -91,7 +247,7 @@ export function InitMeetingModal({ isOpen, onClose, onSave, initialValue = '' }:
             </button>
             <button
               onClick={handleSave}
-              disabled={!context.trim()}
+              disabled={!hasData}
               className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Save Context
