@@ -38,6 +38,36 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Update version from git tag
+        run: |
+          # Extract version from git tag (e.g., v0.2.0 -> 0.2.0)
+          VERSION="${GITHUB_REF#refs/tags/v}"
+          echo "Updating version to: $VERSION"
+
+          # Update version in package.json
+          node -e "
+          const fs = require('fs');
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          pkg.version = '$VERSION';
+          fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          console.log('Updated package.json version to $VERSION');
+          "
+
+          # Update version in tauri.conf.json
+          node -e "
+          const fs = require('fs');
+          const config = JSON.parse(fs.readFileSync('src-tauri/tauri.conf.json', 'utf8'));
+          config.version = '$VERSION';
+          fs.writeFileSync('src-tauri/tauri.conf.json', JSON.stringify(config, null, 2) + '\n');
+          console.log('Updated tauri.conf.json version to $VERSION');
+          "
+
+          # Verify the updates
+          echo "New version in package.json:"
+          cat package.json | grep '"version"'
+          echo "New version in tauri.conf.json:"
+          cat src-tauri/tauri.conf.json | grep '"version"'
+
       - name: Build Zig binary
         run: |
           cd ../zig-april-captions

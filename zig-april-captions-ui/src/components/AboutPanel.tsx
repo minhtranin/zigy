@@ -1,5 +1,7 @@
 import { Translations } from '../translations';
 import { Mail, Heart, Github, ExternalLink } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { getVersion } from '@tauri-apps/api/app';
 
 interface Props {
   t: Translations;
@@ -66,6 +68,12 @@ const LinkItem: React.FC<{
 );
 
 export function AboutPanel({ t }: Props) {
+  const [version, setVersion] = useState<string>('');
+
+  useEffect(() => {
+    getVersion().then(setVersion).catch(() => setVersion('Unknown'));
+  }, []);
+
   return (
     <div className="p-4 bg-white dark:bg-gray-800 rounded-lg text-sm">
       {/* App Info */}
@@ -73,6 +81,11 @@ export function AboutPanel({ t }: Props) {
         <h1 className="text-2xl font-bold text-indigo-600 dark:text-indigo-400 mb-2">
           {t.appName}
         </h1>
+        {version && (
+          <div className="text-xs text-gray-500 dark:text-gray-500 mb-2">
+            Version {version}
+          </div>
+        )}
         <p className="text-sm text-gray-600 dark:text-gray-400">
           Real-time AI-powered captions and meeting assistant
         </p>
