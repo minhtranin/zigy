@@ -15,6 +15,14 @@ fn main() {
 fn build_zig_binary() {
     println!("cargo:rerun-if-changed=../../zig-april-captions/src");
 
+    // Skip Zig build in CI - the workflow builds and patches the binary manually
+    // This prevents build.rs from overwriting the patched binary with a fresh unpatched one
+    if env::var("SKIP_ZIG_BUILD").is_ok() {
+        println!("SKIP_ZIG_BUILD is set - skipping Zig binary build (CI mode)");
+        println!("The workflow has already built and patched the binary");
+        return;
+    }
+
     let zig_project_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .parent()
         .unwrap()

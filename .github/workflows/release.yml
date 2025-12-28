@@ -590,6 +590,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           MACOSX_DEPLOYMENT_TARGET: "10.13"
+          SKIP_ZIG_BUILD: "1"  # Prevent build.rs from rebuilding and overwriting the patched binary
         with:
           releaseId: ${{ needs.create-release.outputs.release_id }}
           args: --target ${{ matrix.target }} --bundles ${{ matrix.bundle }}
