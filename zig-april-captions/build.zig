@@ -146,6 +146,10 @@ pub fn build(b: *std.Build) void {
     if (target.result.isDarwin()) {
         // macOS uses @loader_path
         exe.addRPath(.{ .cwd_relative = "@loader_path" });
+        // When bundled in Tauri app, look in Frameworks directory
+        exe.addRPath(.{ .cwd_relative = "@executable_path/../Frameworks" });
+        // When bundled in Tauri app, look in Resources directory
+        exe.addRPath(.{ .cwd_relative = "@executable_path/../Resources/resources" });
     } else {
         // Linux and others use $ORIGIN
         exe.addRPath(.{ .cwd_relative = "$$$ORIGIN" });

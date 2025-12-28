@@ -42,7 +42,11 @@
       "minimumSystemVersion": "10.13",
       "signingIdentity": null,
       "hardenedRuntime": true,
-      "entitlements": "entitlements.plist"
+      "entitlements": "entitlements.plist",
+      "frameworks": [
+        "resources/libonnxruntime.1.16.3.dylib",
+        "resources/libonnxruntime.dylib"
+      ]
     }
   }
 }

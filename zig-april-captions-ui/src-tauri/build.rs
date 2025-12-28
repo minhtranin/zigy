@@ -157,6 +157,12 @@ fn copy_onnx_libraries_if_present(resources_dir: &PathBuf) {
                         let _ = std::fs::set_permissions(&dest, perms);
                     }
                 }
+
+                // Fix rpath on macOS for dylibs
+                #[cfg(target_os = "macos")]
+                {
+                    fix_macos_dylib_rpath(&dest);
+                }
             }
         }
     }
@@ -165,5 +171,24 @@ fn copy_onnx_libraries_if_present(resources_dir: &PathBuf) {
         println!("cargo:warning=No ONNX Runtime libraries found in {}", lib_dir.display());
     } else {
         println!("Successfully bundled {} ONNX library file(s)", copied_count);
+    }
+}
+
+#[cfg(target_os = "macos")]
+fn fix_macos_dylib_rpath(dylib_path: &PathBuf) {
+    // Fix the install name to use @rpath instead of absolute path
+    let filename = dylib_path.file_name().unwrap().to_string_lossy();
+
+    // Change the dylib install name to @rpath/filename
+    let status = Command::new("install_name_tool")
+        .arg("-id")
+        .arg(format!("@rpath/{}", filename))
+        .arg(dylib_path)
+        .status();
+
+    if let Ok(s) = status {
+        if s.success() {
+            println!("Fixed install name for {}", filename);
+        }
     }
 }
