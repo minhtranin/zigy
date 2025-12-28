@@ -150,13 +150,15 @@ jobs:
 
                 # Fix rpath for deb installation
                 # Zig sets absolute build paths in rpath, we need to replace with $ORIGIN
+                # IMPORTANT: Patch the binary in zig-out/bin/ NOT in resources/
+                # because build.rs will copy from zig-out/bin/ during Tauri build
                 sudo apt-get install -y patchelf
-                CURRENT_RPATH=$(patchelf --print-rpath ../zig-april-captions-ui/src-tauri/resources/zig-april-captions || echo "")
+                CURRENT_RPATH=$(patchelf --print-rpath zig-out/bin/zig-april-captions || echo "")
                 echo "Current RPATH from Zig build: $CURRENT_RPATH"
 
                 # Always set rpath to $ORIGIN for deb (removes absolute build paths)
-                patchelf --set-rpath '$ORIGIN' ../zig-april-captions-ui/src-tauri/resources/zig-april-captions
-                NEW_RPATH=$(patchelf --print-rpath ../zig-april-captions-ui/src-tauri/resources/zig-april-captions || echo "")
+                patchelf --set-rpath '$ORIGIN' zig-out/bin/zig-april-captions
+                NEW_RPATH=$(patchelf --print-rpath zig-out/bin/zig-april-captions || echo "")
                 echo "Fixed RPATH to: $NEW_RPATH"
               fi
             else
@@ -178,15 +180,15 @@ jobs:
           echo "1. Files in resources directory:"
           ls -lah zig-april-captions-ui/src-tauri/resources/
 
-          # 2. Check binary rpath (should be $ORIGIN after patchelf)
+          # 2. Check binary rpath in zig-out/bin (source of truth - this is what build.rs will copy)
           echo ""
-          echo "2. Binary RPATH (should be \$ORIGIN):"
-          readelf -d zig-april-captions-ui/src-tauri/resources/zig-april-captions | grep -i "rpath\|runpath" || echo "No RPATH found!"
+          echo "2. Binary RPATH in zig-out/bin (should be \$ORIGIN after patchelf):"
+          readelf -d zig-april-captions/zig-out/bin/zig-april-captions | grep -i "rpath\|runpath" || echo "No RPATH found!"
 
           # 3. Check what libraries the binary needs
           echo ""
-          echo "3. Binary library dependencies:"
-          ldd zig-april-captions-ui/src-tauri/resources/zig-april-captions | grep -i onnx || echo "No ONNX dependency found!"
+          echo "3. Binary library dependencies (from zig-out/bin):"
+          ldd zig-april-captions/zig-out/bin/zig-april-captions | grep -i onnx || echo "No ONNX dependency found!"
 
           # 4. Verify ONNX Runtime libraries exist
           echo ""
@@ -199,10 +201,10 @@ jobs:
             exit 1
           fi
 
-          # 5. Check for hardcoded paths (should not exist after patchelf)
+          # 5. Check for hardcoded paths in zig-out/bin (should not exist after patchelf)
           echo ""
-          echo "5. Checking for hardcoded GitHub Actions paths (should be empty):"
-          readelf -d zig-april-captions-ui/src-tauri/resources/zig-april-captions | grep -i "runner/work" && echo "ERROR: Found hardcoded GitHub Actions paths!" && exit 1 || echo "✓ No hardcoded paths found"
+          echo "5. Checking for hardcoded GitHub Actions paths in zig-out/bin (should be empty):"
+          readelf -d zig-april-captions/zig-out/bin/zig-april-captions | grep -i "runner/work" && echo "ERROR: Found hardcoded GitHub Actions paths!" && exit 1 || echo "✓ No hardcoded paths found"
 
           echo ""
           echo "=================================="
