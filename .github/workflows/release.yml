@@ -248,9 +248,10 @@ jobs:
               install_name_tool -id "@rpath/libonnxruntime.dylib" ../zig-april-captions-ui/src-tauri/resources/libonnxruntime.dylib
 
               echo "Clearing and setting correct rpaths on zig-april-captions binary..."
+              # IMPORTANT: Fix the binary in zig-out/bin/ NOT in resources/
+              # because build.rs will copy from zig-out/bin/ during Tauri build
               # Delete all existing rpaths (Zig adds hardcoded build paths)
-              # We need to get the list and delete them one by one
-              BINARY="../zig-april-captions-ui/src-tauri/resources/zig-april-captions"
+              BINARY="zig-out/bin/zig-april-captions"
 
               # Get all rpath entries
               RPATHS=$(otool -l "$BINARY" | grep -A 2 "LC_RPATH" | grep "path" | awk '{print $2}')
@@ -287,15 +288,15 @@ jobs:
           echo "1. Files in resources directory:"
           ls -lah zig-april-captions-ui/src-tauri/resources/
 
-          # 2. Check binary rpaths
+          # 2. Check binary rpaths in zig-out/bin (source of truth - this is what build.rs will copy)
           echo ""
-          echo "2. Binary rpaths (should include @executable_path):"
-          otool -l zig-april-captions-ui/src-tauri/resources/zig-april-captions | grep -A 3 "LC_RPATH" || echo "No RPATH found!"
+          echo "2. Binary rpaths in zig-out/bin (should include @executable_path):"
+          otool -l zig-april-captions/zig-out/bin/zig-april-captions | grep -A 3 "LC_RPATH" || echo "No RPATH found!"
 
-          # 3. Check what libraries the binary needs
+          # 3. Check what libraries the binary needs (from zig-out/bin)
           echo ""
-          echo "3. Binary library dependencies:"
-          otool -L zig-april-captions-ui/src-tauri/resources/zig-april-captions | grep -i onnx || echo "No ONNX dependency found!"
+          echo "3. Binary library dependencies (from zig-out/bin):"
+          otool -L zig-april-captions/zig-out/bin/zig-april-captions | grep -i onnx || echo "No ONNX dependency found!"
 
           # 4. Check dylib install names
           echo ""
@@ -314,10 +315,10 @@ jobs:
             exit 1
           fi
 
-          # 5. Check for hardcoded paths (should not exist)
+          # 5. Check for hardcoded paths in zig-out/bin (should not exist)
           echo ""
-          echo "5. Checking for hardcoded GitHub Actions paths (should be empty):"
-          otool -l zig-april-captions-ui/src-tauri/resources/zig-april-captions | grep -i "runner/work" && echo "ERROR: Found hardcoded GitHub Actions paths!" && exit 1 || echo "✓ No hardcoded paths found"
+          echo "5. Checking for hardcoded GitHub Actions paths in zig-out/bin (should be empty):"
+          otool -l zig-april-captions/zig-out/bin/zig-april-captions | grep -i "runner/work" && echo "ERROR: Found hardcoded GitHub Actions paths!" && exit 1 || echo "✓ No hardcoded paths found"
 
           # 6. Check deployment target
           echo ""
