@@ -279,7 +279,7 @@ export function ChatPanel({ settings, sessionId, fontSize, t, externalCommand, o
   const [isLoadingDynamic, setIsLoadingDynamic] = useState(false);
   const [transcriptText, setTranscriptText] = useState('');
   const [translatingId, setTranslatingId] = useState<string | null>(null);
-  const [currentTip, setCurrentTip] = useState('');
+  const [currentTips, setCurrentTips] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const apiKey = settings.ai?.api_key || '';
@@ -337,11 +337,13 @@ export function ChatPanel({ settings, sessionId, fontSize, t, externalCommand, o
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Randomize loading tip when loading starts
+  // Randomize loading tips when loading starts - select 3-4 unique tips
   useEffect(() => {
     if (isLoading && t.chatTips && t.chatTips.length > 0) {
-      const randomIndex = Math.floor(Math.random() * t.chatTips.length);
-      setCurrentTip(t.chatTips[randomIndex]);
+      // Shuffle array and pick 3-4 unique tips
+      const shuffled = [...t.chatTips].sort(() => Math.random() - 0.5);
+      const tipCount = Math.floor(Math.random() * 2) + 3; // 3 or 4 tips
+      setCurrentTips(shuffled.slice(0, Math.min(tipCount, t.chatTips.length)));
     }
   }, [isLoading, t.chatTips]);
 
@@ -618,10 +620,12 @@ Generate questions I can ASK them:`;
     <div className="flex flex-col h-full bg-white dark:bg-gray-900">
       {/* Header */}
       {messages.length > 0 && (
-        <div className="flex items-center justify-end px-3 py-1 border-b border-gray-200 dark:border-gray-700">
-          {isCompacting && <span className="text-xs text-yellow-500 mr-2">compacting...</span>}
-          {isLoading && currentTip && <span className="text-xs text-gray-500 dark:text-gray-400 mr-2 italic">{currentTip}</span>}
-          <button onClick={clearHistory} className="text-xs text-red-500 hover:text-red-600">{t.clear}</button>
+        <div className="flex items-center justify-between px-3 py-1 border-b border-gray-200 dark:border-gray-700">
+          {currentTips.length > 0 && <span className="text-xs text-amber-700 dark:text-yellow-500 italic">Tips: {currentTips.join(' • ')}</span>}
+          <div className="flex items-center">
+            {isCompacting && <span className="text-xs text-yellow-500 mr-2">compacting...</span>}
+            <button onClick={clearHistory} className="text-xs text-red-500 hover:text-red-600">{t.clear}</button>
+          </div>
         </div>
       )}
 
