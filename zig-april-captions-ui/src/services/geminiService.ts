@@ -1,7 +1,7 @@
 import { GeminiModel, GeminiResponse } from '../types';
 import { buildCompressedContext, buildContextString, addChatEntry } from './contextService';
 
-const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
+const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1/models';
 
 const QUESTIONS_SYSTEM_PROMPT = `You are a helpful meeting assistant. Based on the meeting transcript provided, suggest 3 smart, relevant questions that the user could ask to contribute meaningfully to the discussion.
 
