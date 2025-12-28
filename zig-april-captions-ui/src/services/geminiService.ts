@@ -738,14 +738,15 @@ export async function validateApiKey(apiKey: string): Promise<boolean> {
 // Generate summary using compressed context (token optimized)
 export async function generateSummaryWithContext(
   apiKey: string,
-  model: GeminiModel = 'gemini-2.5-flash'
+  model: GeminiModel = 'gemini-2.5-flash',
+  meetingContext?: string
 ): Promise<string> {
   if (!apiKey) {
     throw new Error('API key is required');
   }
 
   // Build compressed context from chat history (exclude knowledge for summary)
-  const context = await buildCompressedContext(apiKey, model);
+  const context = await buildCompressedContext(apiKey, model, undefined, undefined, meetingContext);
   const contextStr = buildContextString(context, false);
 
   if (!contextStr.trim()) {
@@ -804,14 +805,15 @@ Generate a summary of the conversation above:`;
 // Generate questions using compressed context (token optimized)
 export async function generateQuestionsWithContext(
   apiKey: string,
-  model: GeminiModel = 'gemini-2.5-flash'
+  model: GeminiModel = 'gemini-2.5-flash',
+  meetingContext?: string
 ): Promise<string[]> {
   if (!apiKey) {
     throw new Error('API key is required');
   }
 
   // Build compressed context
-  const context = await buildCompressedContext(apiKey, model);
+  const context = await buildCompressedContext(apiKey, model, undefined, undefined, meetingContext);
   const contextStr = buildContextString(context);
 
   if (!contextStr.trim()) {
@@ -882,7 +884,8 @@ Based on the conversation above, generate 3 smart questions:`;
 export async function generateIdeaScriptWithContext(
   rawContent: string,
   apiKey: string,
-  model: GeminiModel = 'gemini-2.5-flash'
+  model: GeminiModel = 'gemini-2.5-flash',
+  meetingContext?: string
 ): Promise<{ title: string; script: string }> {
   if (!apiKey) {
     throw new Error('API key is required');
@@ -893,7 +896,7 @@ export async function generateIdeaScriptWithContext(
   }
 
   // Build compressed context
-  const context = await buildCompressedContext(apiKey, model);
+  const context = await buildCompressedContext(apiKey, model, undefined, undefined, meetingContext);
   const contextStr = buildContextString(context);
 
   const url = `${GEMINI_API_BASE}/${model}:generateContent?key=${apiKey}`;
@@ -965,7 +968,8 @@ SCRIPT: [your corrected speaking script here]`;
 export async function generateAnswerWithContext(
   question: string,
   apiKey: string,
-  model: GeminiModel = 'gemini-2.5-flash'
+  model: GeminiModel = 'gemini-2.5-flash',
+  meetingContext?: string
 ): Promise<string> {
   if (!apiKey) {
     throw new Error('API key is required');
@@ -976,7 +980,7 @@ export async function generateAnswerWithContext(
   }
 
   // Build compressed context
-  const context = await buildCompressedContext(apiKey, model);
+  const context = await buildCompressedContext(apiKey, model, undefined, undefined, meetingContext);
   const contextStr = buildContextString(context);
 
   const url = `${GEMINI_API_BASE}/${model}:generateContent?key=${apiKey}`;
@@ -1035,7 +1039,8 @@ Generate a natural speaking script to answer this question:`;
 export async function generateTalkScriptWithContext(
   specificLine: string,
   apiKey: string,
-  model: GeminiModel = 'gemini-2.5-flash'
+  model: GeminiModel = 'gemini-2.5-flash',
+  meetingContext?: string
 ): Promise<{ title: string; script: string }> {
   if (!apiKey) {
     throw new Error('API key is required');
@@ -1046,7 +1051,7 @@ export async function generateTalkScriptWithContext(
   }
 
   // Build compressed context
-  const context = await buildCompressedContext(apiKey, model);
+  const context = await buildCompressedContext(apiKey, model, undefined, undefined, meetingContext);
   const contextStr = buildContextString(context);
 
   const url = `${GEMINI_API_BASE}/${model}:generateContent?key=${apiKey}`;
@@ -1110,7 +1115,8 @@ Generate a natural speaking script that relates to this line and contributes to 
 export async function generateClarifyingQuestionsWithContext(
   specificLine: string,
   apiKey: string,
-  model: GeminiModel = 'gemini-2.5-flash'
+  model: GeminiModel = 'gemini-2.5-flash',
+  meetingContext?: string
 ): Promise<string[]> {
   if (!apiKey) {
     throw new Error('API key is required');
@@ -1121,7 +1127,7 @@ export async function generateClarifyingQuestionsWithContext(
   }
 
   // Build compressed context
-  const context = await buildCompressedContext(apiKey, model);
+  const context = await buildCompressedContext(apiKey, model, undefined, undefined, meetingContext);
   const contextStr = buildContextString(context);
 
   const url = `${GEMINI_API_BASE}/${model}:generateContent?key=${apiKey}`;
@@ -1200,15 +1206,24 @@ export async function generateMeetingGreeting(
 
   const url = `${GEMINI_API_BASE}/${model}:generateContent?key=${apiKey}`;
 
+  // Build context-aware prompt
+  let contextSection = '';
+  if (meetingContext && meetingContext.trim()) {
+    contextSection = `\n\nMeeting Context:\n${meetingContext}\n\nConsider the meeting context when generating ice-breakers. Tailor the questions to be appropriate for the meeting type and role.`;
+  }
+
   const prompt = `You are a conversation coach helping someone make small talk before a meeting or interview.
 
-Generate 4-5 simple ice-breaker questions or conversation starters.
+Generate 4-5 simple ice-breaker questions or conversation starters.${contextSection}
 
 Requirements:
 - Topics: weekend plans, work projects, weather, travel, hobbies, family, local events
 - Keep it simple and warm
 - Can be questions or short statements
 - Not too casual, not too formal
+- If the user is a candidate in an interview, keep it professional yet friendly
+- If the user is an interviewer, consider questions that put candidates at ease
+- For team meetings or standups, make them team-oriented
 
 Examples:
 1. How was your weekend?

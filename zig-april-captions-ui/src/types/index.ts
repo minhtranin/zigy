@@ -215,6 +215,7 @@ export interface CompressedContext {
   sessionSummary: string;      // From latest snapshot
   knowledgeBase: string;       // User's nominated knowledge
   recentHistory: string;       // Recent chat entries (full)
+  meetingContext: string;      // User's meeting context (role, type, etc.)
   estimatedTokens: number;
 }
 

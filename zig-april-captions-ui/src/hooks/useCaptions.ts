@@ -537,7 +537,8 @@ export function useCaptions() {
       // Always use context-aware version (includes old summaries via snapshot)
       const content = await generateSummaryWithContext(
         settings.ai.api_key,
-        settings.ai.model || 'gemini-2.5-flash'
+        settings.ai.model || 'gemini-2.5-flash',
+        settings.ai.meeting_context
       );
 
       const summaryContent = `[Manual] ${content}`;
@@ -587,7 +588,8 @@ export function useCaptions() {
         // Use context-aware version (token optimized)
         suggestedQuestions = await generateQuestionsWithContext(
           settings.ai.api_key,
-          settings.ai.model || 'gemini-2.5-flash'
+          settings.ai.model || 'gemini-2.5-flash',
+          settings.ai.meeting_context
         );
       } else {
         // Use original version (full transcript)
@@ -693,7 +695,8 @@ export function useCaptions() {
           // Generate summary to timeline
           const content = await generateSummaryWithContext(
             settings.ai.api_key,
-            settings.ai.model || 'gemini-2.5-flash'
+            settings.ai.model || 'gemini-2.5-flash',
+            settings.ai.meeting_context
           );
 
           const summaryContent = `[Auto] ${content}`;

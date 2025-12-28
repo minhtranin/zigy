@@ -94,7 +94,8 @@ export async function buildCompressedContext(
   apiKey: string,
   model: GeminiModel = 'gemini-2.5-flash',
   targetTokenLimit: number = DEFAULT_TOKEN_LIMIT,
-  recentMessageCount: number = DEFAULT_RECENT_MESSAGE_COUNT
+  recentMessageCount: number = DEFAULT_RECENT_MESSAGE_COUNT,
+  meetingContext?: string
 ): Promise<CompressedContext> {
   // Load chat history from backend
   const allEntries = await invoke<ChatHistoryEntry[]>('get_chat_history', {
@@ -108,8 +109,12 @@ export async function buildCompressedContext(
   const knowledgeBase = nominatedKnowledge.map(e => e.content).join('\n\n');
   const knowledgeTokens = estimateTokens(knowledgeBase);
 
+  // Calculate meeting context tokens
+  const meetingContextStr = meetingContext || '';
+  const meetingTokens = estimateTokens(meetingContextStr);
+
   // Adjust available tokens for context
-  const availableForHistory = targetTokenLimit - knowledgeTokens - 500; // Reserve 500 for prompt overhead
+  const availableForHistory = targetTokenLimit - knowledgeTokens - meetingTokens - 500; // Reserve 500 for prompt overhead
 
   // Check for saved snapshot (preserves context across clears)
   const latestSnapshot = await invoke<ContextSnapshot | null>('get_latest_snapshot');
@@ -121,14 +126,16 @@ export async function buildCompressedContext(
         sessionSummary: latestSnapshot.summary,
         knowledgeBase,
         recentHistory: '',
-        estimatedTokens: knowledgeTokens + latestSnapshot.compressed_token_count,
+        meetingContext: meetingContextStr,
+        estimatedTokens: knowledgeTokens + meetingTokens + latestSnapshot.compressed_token_count,
       };
     }
     return {
       sessionSummary: '',
       knowledgeBase,
       recentHistory: '',
-      estimatedTokens: knowledgeTokens,
+      meetingContext: meetingContextStr,
+      estimatedTokens: knowledgeTokens + meetingTokens,
     };
   }
 
@@ -143,7 +150,8 @@ export async function buildCompressedContext(
       sessionSummary: latestSnapshot?.summary || '',
       knowledgeBase,
       recentHistory,
-      estimatedTokens: knowledgeTokens + historyTokens + (latestSnapshot?.compressed_token_count || 0),
+      meetingContext: meetingContextStr,
+      estimatedTokens: knowledgeTokens + meetingTokens + historyTokens + (latestSnapshot?.compressed_token_count || 0),
     };
   }
 
@@ -167,7 +175,8 @@ export async function buildCompressedContext(
       sessionSummary: '',
       knowledgeBase,
       recentHistory: fullHistory,
-      estimatedTokens: knowledgeTokens + recentTokens + oldTokens,
+      meetingContext: meetingContextStr,
+      estimatedTokens: knowledgeTokens + meetingTokens + recentTokens + oldTokens,
     };
   }
 
@@ -180,7 +189,8 @@ export async function buildCompressedContext(
       sessionSummary: latestSnapshot.summary,
       knowledgeBase,
       recentHistory,
-      estimatedTokens: knowledgeTokens + latestSnapshot.compressed_token_count + recentTokens,
+      meetingContext: meetingContextStr,
+      estimatedTokens: knowledgeTokens + meetingTokens + latestSnapshot.compressed_token_count + recentTokens,
     };
   }
 
@@ -209,7 +219,8 @@ export async function buildCompressedContext(
         sessionSummary: summary,
         knowledgeBase,
         recentHistory,
-        estimatedTokens: knowledgeTokens + estimateTokens(summary) + recentTokens,
+        meetingContext: meetingContextStr,
+        estimatedTokens: knowledgeTokens + meetingTokens + estimateTokens(summary) + recentTokens,
       };
     }
   }
@@ -219,7 +230,8 @@ export async function buildCompressedContext(
     sessionSummary: '',
     knowledgeBase,
     recentHistory,
-    estimatedTokens: knowledgeTokens + recentTokens,
+    meetingContext: meetingContextStr,
+    estimatedTokens: knowledgeTokens + meetingTokens + recentTokens,
   };
 }
 
@@ -296,6 +308,10 @@ export async function createSessionSnapshot(
 // Build context string for Gemini API calls
 export function buildContextString(context: CompressedContext, includeKnowledge: boolean = true): string {
   let contextStr = '';
+
+  if (context.meetingContext) {
+    contextStr += `Meeting Context:\n${context.meetingContext}\n\n`;
+  }
 
   if (context.sessionSummary) {
     contextStr += `Previous Session Context:\n${context.sessionSummary}\n\n`;
