@@ -165,6 +165,50 @@ jobs:
           fi
           cd ..
 
+      - name: Verify Linux Bundle (Debug)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          echo "=================================="
+          echo "Linux Bundle Verification"
+          echo "=================================="
+
+          # 1. Check files in resources directory
+          echo ""
+          echo "1. Files in resources directory:"
+          ls -lah zig-april-captions-ui/src-tauri/resources/
+
+          # 2. Check binary rpath (should be $ORIGIN after patchelf)
+          echo ""
+          echo "2. Binary RPATH (should be \$ORIGIN):"
+          readelf -d zig-april-captions-ui/src-tauri/resources/zig-april-captions | grep -i "rpath\|runpath" || echo "No RPATH found!"
+
+          # 3. Check what libraries the binary needs
+          echo ""
+          echo "3. Binary library dependencies:"
+          ldd zig-april-captions-ui/src-tauri/resources/zig-april-captions | grep -i onnx || echo "No ONNX dependency found!"
+
+          # 4. Verify ONNX Runtime libraries exist
+          echo ""
+          echo "4. Checking for ONNX Runtime libraries:"
+          if [ -f "zig-april-captions-ui/src-tauri/resources/libonnxruntime.so.1.16.3" ]; then
+            echo "✓ Found libonnxruntime.so.1.16.3"
+            ls -lah zig-april-captions-ui/src-tauri/resources/libonnxruntime.so.1.16.3
+          else
+            echo "ERROR: libonnxruntime.so.1.16.3 not found!"
+            exit 1
+          fi
+
+          # 5. Check for hardcoded paths (should not exist after patchelf)
+          echo ""
+          echo "5. Checking for hardcoded GitHub Actions paths (should be empty):"
+          readelf -d zig-april-captions-ui/src-tauri/resources/zig-april-captions | grep -i "runner/work" && echo "ERROR: Found hardcoded GitHub Actions paths!" && exit 1 || echo "✓ No hardcoded paths found"
+
+          echo ""
+          echo "=================================="
+          echo "✓ Linux Bundle Verification Passed!"
+          echo "=================================="
+
       - name: Build zig-april-captions binary (macOS)
         if: runner.os == 'macOS'
         shell: bash
@@ -212,6 +256,80 @@ jobs:
             echo "Warning: ONNX Runtime library not found"
           fi
           cd ..
+
+      - name: Verify macOS Bundle (Debug)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          echo "=================================="
+          echo "macOS Bundle Verification"
+          echo "=================================="
+
+          # 1. Check files in resources directory
+          echo ""
+          echo "1. Files in resources directory:"
+          ls -lah zig-april-captions-ui/src-tauri/resources/
+
+          # 2. Check binary rpaths
+          echo ""
+          echo "2. Binary rpaths (should include @executable_path):"
+          otool -l zig-april-captions-ui/src-tauri/resources/zig-april-captions | grep -A 3 "LC_RPATH" || echo "No RPATH found!"
+
+          # 3. Check what libraries the binary needs
+          echo ""
+          echo "3. Binary library dependencies:"
+          otool -L zig-april-captions-ui/src-tauri/resources/zig-april-captions | grep -i onnx || echo "No ONNX dependency found!"
+
+          # 4. Check dylib install names
+          echo ""
+          echo "4. ONNX Runtime dylib install names (should use @rpath):"
+          if [ -f "zig-april-captions-ui/src-tauri/resources/libonnxruntime.1.16.3.dylib" ]; then
+            otool -D zig-april-captions-ui/src-tauri/resources/libonnxruntime.1.16.3.dylib
+          else
+            echo "ERROR: libonnxruntime.1.16.3.dylib not found!"
+            exit 1
+          fi
+
+          if [ -f "zig-april-captions-ui/src-tauri/resources/libonnxruntime.dylib" ]; then
+            otool -D zig-april-captions-ui/src-tauri/resources/libonnxruntime.dylib
+          else
+            echo "ERROR: libonnxruntime.dylib not found!"
+            exit 1
+          fi
+
+          # 5. Check for hardcoded paths (should not exist)
+          echo ""
+          echo "5. Checking for hardcoded GitHub Actions paths (should be empty):"
+          otool -l zig-april-captions-ui/src-tauri/resources/zig-april-captions | grep -i "runner/work" && echo "ERROR: Found hardcoded GitHub Actions paths!" && exit 1 || echo "✓ No hardcoded paths found"
+
+          # 6. Check deployment target
+          echo ""
+          echo "6. macOS Deployment Target (should be 10.13 or similar):"
+          otool -l zig-april-captions-ui/src-tauri/resources/zig-april-captions | grep -A 3 "LC_VERSION_MIN_MACOSX\|LC_BUILD_VERSION" || echo "Could not determine deployment target"
+
+          # 7. Verify rpaths contain required paths
+          echo ""
+          echo "7. Verifying required rpaths are present:"
+          RPATH_OUTPUT=$(otool -l zig-april-captions-ui/src-tauri/resources/zig-april-captions | grep -A 2 "LC_RPATH")
+
+          if echo "$RPATH_OUTPUT" | grep -q "@executable_path/../Frameworks"; then
+            echo "✓ Found @executable_path/../Frameworks"
+          else
+            echo "ERROR: Missing @executable_path/../Frameworks rpath!"
+            exit 1
+          fi
+
+          if echo "$RPATH_OUTPUT" | grep -q "@executable_path/../Resources/resources"; then
+            echo "✓ Found @executable_path/../Resources/resources"
+          else
+            echo "ERROR: Missing @executable_path/../Resources/resources rpath!"
+            exit 1
+          fi
+
+          echo ""
+          echo "=================================="
+          echo "✓ macOS Bundle Verification Passed!"
+          echo "=================================="
 
       - name: Install ONNX Runtime (Windows)
         if: runner.os == 'Windows'
