@@ -281,6 +281,17 @@ jobs:
                 exit 1
               fi
 
+              # Copy libsndfile (required by libpulsecommon)
+              echo "Copying libsndfile..."
+              SNDFILE=$(find /opt/homebrew/Cellar/libsndfile /opt/homebrew/opt/libsndfile -name "libsndfile.*.dylib" 2>/dev/null | head -1)
+              if [ -n "$SNDFILE" ]; then
+                cp "$SNDFILE" ../zig-april-captions-ui/src-tauri/resources/
+                echo "✓ Copied $(basename "$SNDFILE") from $(dirname "$SNDFILE")"
+              else
+                echo "ERROR: libsndfile not found (required by libpulsecommon)"
+                exit 1
+              fi
+
               # Copy libintl (gettext dependency)
               if [ -f "/opt/homebrew/opt/gettext/lib/libintl.8.dylib" ]; then
                 cp "/opt/homebrew/opt/gettext/lib/libintl.8.dylib" ../zig-april-captions-ui/src-tauri/resources/
@@ -836,6 +847,16 @@ jobs:
             otool -D "$PULSECOMMON" | tail -1
           else
             echo "ERROR: libpulsecommon-*.dylib not found (REQUIRED by libpulse.0.dylib)"
+            hdiutil detach "$MOUNT_POINT"
+            exit 1
+          fi
+
+          SNDFILE=$(find "$FRAMEWORKS_PATH" "$RESOURCES_PATH" 2>/dev/null -name "libsndfile.*.dylib" | head -1)
+          if [ -n "$SNDFILE" ]; then
+            echo "✓ Found $(basename "$SNDFILE") in $(dirname "$SNDFILE" | xargs basename)"
+            otool -D "$SNDFILE" | tail -1
+          else
+            echo "ERROR: libsndfile.*.dylib not found (REQUIRED by libpulsecommon)"
             hdiutil detach "$MOUNT_POINT"
             exit 1
           fi
