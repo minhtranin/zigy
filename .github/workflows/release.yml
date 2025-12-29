@@ -294,11 +294,16 @@ jobs:
                 if [ -f "$dylib" ]; then
                   echo "Processing $(basename "$dylib")..."
                   # Get all dependencies
-                  otool -L "$dylib" | grep "/opt/homebrew" | awk '{print $1}' | while read -r lib; do
-                    LIBNAME=$(basename "$lib")
-                    echo "  Fixing reference to $LIBNAME..."
-                    install_name_tool -change "$lib" "@rpath/$LIBNAME" "$dylib" 2>/dev/null || true
-                  done
+                  DYLIB_REFS=$(otool -L "$dylib" | grep "/opt/homebrew" || true)
+                  if [ -n "$DYLIB_REFS" ]; then
+                    echo "$DYLIB_REFS" | awk '{print $1}' | while read -r lib; do
+                      LIBNAME=$(basename "$lib")
+                      echo "  Fixing reference to $LIBNAME..."
+                      install_name_tool -change "$lib" "@rpath/$LIBNAME" "$dylib" 2>/dev/null || true
+                    done
+                  else
+                    echo "  No /opt/homebrew references found"
+                  fi
                 fi
               done
 
@@ -329,11 +334,17 @@ jobs:
               install_name_tool -change "/opt/homebrew/opt/pulseaudio/lib/libpulse-simple.0.dylib" "@rpath/libpulse-simple.0.dylib" "$BINARY" 2>/dev/null || echo "libpulse-simple.0.dylib reference not found (may already be correct)"
 
               # Also check for any other homebrew lib references
-              otool -L "$BINARY" | grep "/opt/homebrew" | awk '{print $1}' | while read -r lib; do
-                LIBNAME=$(basename "$lib")
-                echo "Fixing reference to $LIBNAME..."
-                install_name_tool -change "$lib" "@rpath/$LIBNAME" "$BINARY" 2>/dev/null || true
-              done
+              echo "Checking for remaining /opt/homebrew references..."
+              HOMEBREW_REFS=$(otool -L "$BINARY" | grep "/opt/homebrew" || true)
+              if [ -n "$HOMEBREW_REFS" ]; then
+                echo "$HOMEBREW_REFS" | awk '{print $1}' | while read -r lib; do
+                  LIBNAME=$(basename "$lib")
+                  echo "Fixing reference to $LIBNAME..."
+                  install_name_tool -change "$lib" "@rpath/$LIBNAME" "$BINARY" 2>/dev/null || true
+                done
+              else
+                echo "✓ No additional /opt/homebrew references found"
+              fi
 
               echo "macOS dylib and binary rpath fixes applied"
             fi
