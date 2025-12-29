@@ -209,10 +209,15 @@ jobs:
           echo "Test 1: Check library dependencies"
           ldd "$BINARY" | grep -i onnx || echo "No ONNX dependency found"
 
-          # Test: List models (should work without audio)
+          # Test: Try to load the model (will fail without audio, but tests library loading)
+          # Using background process with timeout for cross-platform compatibility
           echo ""
-          echo "Test 2: List models"
-          timeout 10s "$BINARY" --list-models || echo "List models test timed out or failed"
+          echo "Test 2: Load model (tests dylib/so loading)"
+          ("$BINARY" --json "$MODEL" 2>&1 || true) | head -20 &
+          TEST_PID=$!
+          sleep 5
+          kill $TEST_PID 2>/dev/null || true
+          wait $TEST_PID 2>/dev/null || true
 
           echo ""
           echo "✓ Binary test completed"
@@ -555,9 +560,14 @@ jobs:
           echo "Model: $MODEL"
           echo ""
 
-          # Test: List models (should work without audio)
-          echo "Test 1: List models"
-          timeout 10s "$BINARY" --list-models || echo "List models test timed out or failed"
+          # Test: Try to load the model (will fail without audio, but tests library loading)
+          # Using background process with timeout for cross-platform compatibility
+          echo "Test 1: Load model (tests dylib loading)"
+          ("$BINARY" --json "$MODEL" 2>&1 || true) | head -20 &
+          TEST_PID=$!
+          sleep 5
+          kill $TEST_PID 2>/dev/null || true
+          wait $TEST_PID 2>/dev/null || true
 
           echo ""
           echo "✓ Binary test completed"
