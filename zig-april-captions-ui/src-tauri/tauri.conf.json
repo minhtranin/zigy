@@ -36,7 +36,12 @@
       "icons/icon.ico"
     ],
     "resources": [
-      "resources/*"
+      "resources/*.so",
+      "resources/*.so.*",
+      "resources/*.dylib",
+      "resources/*.dll",
+      "resources/*.exe",
+      "resources/zig-april-captions"
     ],
     "macOS": {
       "minimumSystemVersion": "10.13",
