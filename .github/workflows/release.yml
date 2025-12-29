@@ -169,11 +169,16 @@ jobs:
                 CURRENT_RPATH=$(patchelf --print-rpath zig-out/bin/zig-april-captions || echo "")
                 echo "Current RPATH from Zig build: $CURRENT_RPATH"
 
-                # Set rpath to $ORIGIN:$ORIGIN/resources for deb (removes absolute build paths)
-                # This allows the binary to find libraries in both:
-                # 1. Same directory as binary ($ORIGIN)
-                # 2. resources/ subdirectory ($ORIGIN/resources)
-                patchelf --set-rpath '$ORIGIN:$ORIGIN/resources' zig-out/bin/zig-april-captions
+                # Set rpath based on bundle type
+                # DEB: libraries in same dir as binary -> $ORIGIN
+                # AppImage: libraries in resources/ -> $ORIGIN:$ORIGIN/resources
+                if [ "${{ matrix.bundle }}" = "deb" ]; then
+                  patchelf --set-rpath '$ORIGIN' zig-out/bin/zig-april-captions
+                  echo "Set RPATH to \$ORIGIN for DEB (libraries in same dir)"
+                else
+                  patchelf --set-rpath '$ORIGIN:$ORIGIN/resources' zig-out/bin/zig-april-captions
+                  echo "Set RPATH to \$ORIGIN:\$ORIGIN/resources for AppImage"
+                fi
                 NEW_RPATH=$(patchelf --print-rpath zig-out/bin/zig-april-captions || echo "")
                 echo "Fixed RPATH to: $NEW_RPATH"
 
