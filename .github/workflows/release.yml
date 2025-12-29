@@ -760,8 +760,13 @@ jobs:
             exit 1
           fi
 
-          echo "1. Files in app bundle Resources/resources:"
-          ls -lah "$APP_BUNDLE/Contents/Resources/resources/"
+          echo "1. Files in app bundle:"
+          echo ""
+          echo "Resources/resources:"
+          ls -lah "$APP_BUNDLE/Contents/Resources/resources/" 2>/dev/null || echo "  (empty or doesn't exist)"
+          echo ""
+          echo "Frameworks:"
+          ls -lah "$APP_BUNDLE/Contents/Frameworks/" 2>/dev/null || echo "  (empty or doesn't exist)"
           echo ""
 
           echo "2. Binary rpaths in final app:"
@@ -776,46 +781,47 @@ jobs:
           echo ""
 
           echo "4. Checking dylib files exist:"
-          DYLIB_PATH="$APP_BUNDLE/Contents/Resources/resources"
+          RESOURCES_PATH="$APP_BUNDLE/Contents/Resources/resources"
+          FRAMEWORKS_PATH="$APP_BUNDLE/Contents/Frameworks"
 
-          # Check ONNX Runtime
-          if [ -f "$DYLIB_PATH/libonnxruntime.1.16.3.dylib" ]; then
-            echo "✓ libonnxruntime.1.16.3.dylib exists"
-            otool -D "$DYLIB_PATH/libonnxruntime.1.16.3.dylib" | tail -1
+          # Check ONNX Runtime (in Frameworks)
+          if [ -f "$FRAMEWORKS_PATH/libonnxruntime.1.16.3.dylib" ]; then
+            echo "✓ libonnxruntime.1.16.3.dylib exists (in Frameworks)"
+            otool -D "$FRAMEWORKS_PATH/libonnxruntime.1.16.3.dylib" | tail -1
           else
-            echo "ERROR: libonnxruntime.1.16.3.dylib not found!"
+            echo "ERROR: libonnxruntime.1.16.3.dylib not found in Frameworks!"
             hdiutil detach "$MOUNT_POINT"
             exit 1
           fi
 
-          # Check PulseAudio
-          if [ -f "$DYLIB_PATH/libpulse.0.dylib" ]; then
-            echo "✓ libpulse.0.dylib exists"
-            otool -D "$DYLIB_PATH/libpulse.0.dylib" | tail -1
+          # Check PulseAudio (in Frameworks)
+          if [ -f "$FRAMEWORKS_PATH/libpulse.0.dylib" ]; then
+            echo "✓ libpulse.0.dylib exists (in Frameworks)"
+            otool -D "$FRAMEWORKS_PATH/libpulse.0.dylib" | tail -1
           else
-            echo "ERROR: libpulse.0.dylib not found!"
+            echo "ERROR: libpulse.0.dylib not found in Frameworks!"
             hdiutil detach "$MOUNT_POINT"
             exit 1
           fi
 
-          if [ -f "$DYLIB_PATH/libpulse-simple.0.dylib" ]; then
-            echo "✓ libpulse-simple.0.dylib exists"
-            otool -D "$DYLIB_PATH/libpulse-simple.0.dylib" | tail -1
+          if [ -f "$FRAMEWORKS_PATH/libpulse-simple.0.dylib" ]; then
+            echo "✓ libpulse-simple.0.dylib exists (in Frameworks)"
+            otool -D "$FRAMEWORKS_PATH/libpulse-simple.0.dylib" | tail -1
           else
-            echo "ERROR: libpulse-simple.0.dylib not found!"
+            echo "ERROR: libpulse-simple.0.dylib not found in Frameworks!"
             hdiutil detach "$MOUNT_POINT"
             exit 1
           fi
 
-          # Check PulseAudio dependencies (allow any version)
-          PULSECOMMON=$(find "$DYLIB_PATH" -name "libpulsecommon-*.dylib" 2>/dev/null | head -1)
+          # Check PulseAudio dependencies (allow any version, check both locations)
+          PULSECOMMON=$(find "$FRAMEWORKS_PATH" "$RESOURCES_PATH" -name "libpulsecommon-*.dylib" 2>/dev/null | head -1)
           if [ -n "$PULSECOMMON" ]; then
             echo "✓ Found $(basename "$PULSECOMMON")"
           else
             echo "WARNING: libpulsecommon-*.dylib not found (may not be required)"
           fi
 
-          LIBINTL=$(find "$DYLIB_PATH" -name "libintl.*.dylib" 2>/dev/null | head -1)
+          LIBINTL=$(find "$FRAMEWORKS_PATH" "$RESOURCES_PATH" -name "libintl.*.dylib" 2>/dev/null | head -1)
           if [ -n "$LIBINTL" ]; then
             echo "✓ Found $(basename "$LIBINTL")"
           else
