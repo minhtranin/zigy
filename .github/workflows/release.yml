@@ -265,12 +265,19 @@ jobs:
 
               # Copy PulseAudio dependencies (if they exist)
               echo "Copying PulseAudio dependencies..."
-              for dep in libpulsecommon-*.dylib; do
-                if [ -f "$PULSE_DIR/$dep" ]; then
-                  cp "$PULSE_DIR/$dep" ../zig-april-captions-ui/src-tauri/resources/
-                  echo "✓ Copied $dep"
+              # Copy libpulsecommon
+              for dep in "$PULSE_DIR"/libpulsecommon-*.dylib; do
+                if [ -f "$dep" ]; then
+                  cp "$dep" ../zig-april-captions-ui/src-tauri/resources/
+                  echo "✓ Copied $(basename "$dep")"
                 fi
               done
+
+              # Copy libintl (gettext dependency)
+              if [ -f "/opt/homebrew/opt/gettext/lib/libintl.8.dylib" ]; then
+                cp "/opt/homebrew/opt/gettext/lib/libintl.8.dylib" ../zig-april-captions-ui/src-tauri/resources/
+                echo "✓ Copied libintl.8.dylib"
+              fi
 
               # Fix dylib install names and binary rpaths for Tauri bundle
               echo "Fixing dylib install names with install_name_tool..."
@@ -278,6 +285,12 @@ jobs:
               install_name_tool -id "@rpath/libonnxruntime.dylib" ../zig-april-captions-ui/src-tauri/resources/libonnxruntime.dylib
               install_name_tool -id "@rpath/libpulse.0.dylib" ../zig-april-captions-ui/src-tauri/resources/libpulse.0.dylib
               install_name_tool -id "@rpath/libpulse-simple.0.dylib" ../zig-april-captions-ui/src-tauri/resources/libpulse-simple.0.dylib
+
+              # Fix libintl
+              if [ -f "../zig-april-captions-ui/src-tauri/resources/libintl.8.dylib" ]; then
+                install_name_tool -id "@rpath/libintl.8.dylib" ../zig-april-captions-ui/src-tauri/resources/libintl.8.dylib
+                echo "✓ Fixed install name for libintl.8.dylib"
+              fi
 
               # Fix any pulsecommon libraries
               for dep in ../zig-april-captions-ui/src-tauri/resources/libpulsecommon-*.dylib; do
@@ -790,6 +803,23 @@ jobs:
             otool -D "$DYLIB_PATH/libpulse-simple.0.dylib" | tail -1
           else
             echo "ERROR: libpulse-simple.0.dylib not found!"
+            hdiutil detach "$MOUNT_POINT"
+            exit 1
+          fi
+
+          # Check PulseAudio dependencies
+          if [ -f "$DYLIB_PATH/libpulsecommon-17.0.dylib" ]; then
+            echo "✓ libpulsecommon-17.0.dylib exists"
+          else
+            echo "ERROR: libpulsecommon-17.0.dylib not found!"
+            hdiutil detach "$MOUNT_POINT"
+            exit 1
+          fi
+
+          if [ -f "$DYLIB_PATH/libintl.8.dylib" ]; then
+            echo "✓ libintl.8.dylib exists"
+          else
+            echo "ERROR: libintl.8.dylib not found!"
             hdiutil detach "$MOUNT_POINT"
             exit 1
           fi
