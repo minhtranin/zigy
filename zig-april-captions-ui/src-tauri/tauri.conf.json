@@ -47,6 +47,13 @@
         "resources/libonnxruntime.1.16.3.dylib",
         "resources/libonnxruntime.dylib"
       ]
+    },
+    "linux": {
+      "deb": {
+        "files": {
+          "resources/*": "/usr/lib/zigy/resources/"
+        }
+      }
     }
   }
 }

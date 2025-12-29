@@ -6,5 +6,7 @@
 # will have schema files for capabilities auto-completion
 /gen/schemas
 
-# Generated resources (Zig binary)
-/resources/
+# Generated resources (Zig binary) - keep bundled libraries
+# Only ignore the binary itself, not the bundled model/libraries
+/resources/zig-april-captions
+/resources/zig-april-captions.exe
