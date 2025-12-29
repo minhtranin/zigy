@@ -870,33 +870,26 @@ jobs:
             console.log('- resources: []');
             "
           elif [ "$RUNNER_OS" = "Linux" ] && [ "${{ matrix.bundle }}" = "appimage" ]; then
-            # For AppImage: use resources to bundle binary
-            # Don't use deb.files
+            # For AppImage: use resources to bundle binary and ALL libraries
             node -e "
             const fs = require('fs');
             const config = JSON.parse(fs.readFileSync('tauri.conf.json', 'utf8'));
 
-            // Find the ONNX Runtime library file names
             const { execSync } = require('child_process');
-            let onnxLibFile = null;
-            let onnxVersionedFile = null;
-
-            try {
-              const files = execSync('ls resources/libonnxruntime.so* 2>/dev/null', { encoding: 'utf8' }).trim().split('\\n');
-              onnxLibFile = files.find(f => f.match(/libonnxruntime\\.so$/));
-              onnxVersionedFile = files.find(f => f.match(/libonnxruntime\\.so\\./));
-            } catch (e) {
-              console.log('No ONNX Runtime library files found');
-            }
 
             // Use resources to bundle everything into AppImage
             const resourceFiles = ['resources/zig-april-captions'];
 
-            if (onnxLibFile) {
-              resourceFiles.push(onnxLibFile);
-            }
-            if (onnxVersionedFile) {
-              resourceFiles.push(onnxVersionedFile);
+            // Add all .so files from resources (ONNX Runtime + PulseAudio)
+            try {
+              const allLibs = execSync('ls resources/*.so* 2>/dev/null', { encoding: 'utf8' }).trim().split('\\n');
+              for (const lib of allLibs) {
+                if (lib.length > 0) {
+                  resourceFiles.push(lib);
+                }
+              }
+            } catch (e) {
+              console.log('No library files found');
             }
 
             config.bundle.resources = resourceFiles;
