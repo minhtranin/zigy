@@ -279,34 +279,36 @@ jobs:
                 echo "✓ Copied libintl.8.dylib"
               fi
 
-              # Fix dylib install names and binary rpaths for Tauri bundle
+              # Dynamically add all copied dylibs to tauri.conf.json frameworks array
+              echo "Updating tauri.conf.json with actual dylib filenames..."
+              cd ../zig-april-captions-ui/src-tauri
+
+              # Build array of all dylib files
+              DYLIB_FILES=$(ls resources/*.dylib 2>/dev/null | jq -R -s -c 'split("\n") | map(select(length > 0))')
+
+              # Update tauri.conf.json
+              jq ".bundle.macOS.frameworks = $DYLIB_FILES" tauri.conf.json > tauri.conf.json.tmp
+              mv tauri.conf.json.tmp tauri.conf.json
+              echo "Updated frameworks array with:"
+              jq '.bundle.macOS.frameworks' tauri.conf.json
+              cd ../..
+
+              # Fix install names for ALL dylibs in resources/
               echo "Fixing dylib install names with install_name_tool..."
-              install_name_tool -id "@rpath/libonnxruntime.1.16.3.dylib" ../zig-april-captions-ui/src-tauri/resources/libonnxruntime.1.16.3.dylib
-              install_name_tool -id "@rpath/libonnxruntime.dylib" ../zig-april-captions-ui/src-tauri/resources/libonnxruntime.dylib
-              install_name_tool -id "@rpath/libpulse.0.dylib" ../zig-april-captions-ui/src-tauri/resources/libpulse.0.dylib
-              install_name_tool -id "@rpath/libpulse-simple.0.dylib" ../zig-april-captions-ui/src-tauri/resources/libpulse-simple.0.dylib
-
-              # Fix libintl
-              if [ -f "../zig-april-captions-ui/src-tauri/resources/libintl.8.dylib" ]; then
-                install_name_tool -id "@rpath/libintl.8.dylib" ../zig-april-captions-ui/src-tauri/resources/libintl.8.dylib
-                echo "✓ Fixed install name for libintl.8.dylib"
-              fi
-
-              # Fix any pulsecommon libraries
-              for dep in ../zig-april-captions-ui/src-tauri/resources/libpulsecommon-*.dylib; do
-                if [ -f "$dep" ]; then
-                  DEPNAME=$(basename "$dep")
-                  install_name_tool -id "@rpath/$DEPNAME" "$dep"
-                  echo "✓ Fixed install name for $DEPNAME"
+              for dylib in ../zig-april-captions-ui/src-tauri/resources/*.dylib; do
+                if [ -f "$dylib" ]; then
+                  DYLIBNAME=$(basename "$dylib")
+                  install_name_tool -id "@rpath/$DYLIBNAME" "$dylib"
+                  echo "✓ Fixed install name for $DYLIBNAME"
                 fi
               done
 
-              # Fix internal references in PulseAudio dylibs to use @rpath
-              echo "Fixing PulseAudio dylib internal references..."
-              for dylib in ../zig-april-captions-ui/src-tauri/resources/libpulse*.dylib; do
+              # Fix internal references in ALL dylibs to use @rpath
+              echo "Fixing dylib internal references..."
+              for dylib in ../zig-april-captions-ui/src-tauri/resources/*.dylib; do
                 if [ -f "$dylib" ]; then
                   echo "Processing $(basename "$dylib")..."
-                  # Get all dependencies
+                  # Get all Homebrew dependencies
                   DYLIB_REFS=$(otool -L "$dylib" | grep "/opt/homebrew" || true)
                   if [ -n "$DYLIB_REFS" ]; then
                     echo "$DYLIB_REFS" | awk '{print $1}' | while read -r lib; do
@@ -813,19 +815,27 @@ jobs:
             exit 1
           fi
 
-          # Check PulseAudio dependencies (allow any version, check both locations)
-          PULSECOMMON=$(find "$FRAMEWORKS_PATH" "$RESOURCES_PATH" -name "libpulsecommon-*.dylib" 2>/dev/null | head -1)
+          # Check PulseAudio dependencies (required!)
+          echo ""
+          echo "Checking PulseAudio dependencies:"
+          PULSECOMMON=$(find "$FRAMEWORKS_PATH" "$RESOURCES_PATH" 2>/dev/null -name "libpulsecommon-*.dylib" | head -1)
           if [ -n "$PULSECOMMON" ]; then
-            echo "✓ Found $(basename "$PULSECOMMON")"
+            echo "✓ Found $(basename "$PULSECOMMON") in $(dirname "$PULSECOMMON" | xargs basename)"
+            otool -D "$PULSECOMMON" | tail -1
           else
-            echo "WARNING: libpulsecommon-*.dylib not found (may not be required)"
+            echo "ERROR: libpulsecommon-*.dylib not found in Frameworks or Resources!"
+            hdiutil detach "$MOUNT_POINT"
+            exit 1
           fi
 
-          LIBINTL=$(find "$FRAMEWORKS_PATH" "$RESOURCES_PATH" -name "libintl.*.dylib" 2>/dev/null | head -1)
+          LIBINTL=$(find "$FRAMEWORKS_PATH" "$RESOURCES_PATH" 2>/dev/null -name "libintl.*.dylib" | head -1)
           if [ -n "$LIBINTL" ]; then
-            echo "✓ Found $(basename "$LIBINTL")"
+            echo "✓ Found $(basename "$LIBINTL") in $(dirname "$LIBINTL" | xargs basename)"
+            otool -D "$LIBINTL" | tail -1
           else
-            echo "WARNING: libintl.*.dylib not found (may not be required)"
+            echo "ERROR: libintl.*.dylib not found in Frameworks or Resources!"
+            hdiutil detach "$MOUNT_POINT"
+            exit 1
           fi
           echo ""
 
