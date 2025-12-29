@@ -340,8 +340,10 @@ jobs:
               for dylib in "$RESOURCES_DIR"/*.dylib; do
                 if [ -f "$dylib" ]; then
                   echo "Checking dependencies of $(basename "$dylib")..."
-                  otool -L "$dylib" | grep "/opt/homebrew" | awk '{print $1}' | while read -r dep; do
-                    bundle_dylib "$dep"
+                  otool -L "$dylib" | grep "/opt/homebrew" || true | awk '{print $1}' | while read -r dep; do
+                    if [ -n "$dep" ]; then
+                      bundle_dylib "$dep"
+                    fi
                   done
                 fi
               done
