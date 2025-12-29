@@ -263,15 +263,20 @@ jobs:
                 exit 1
               fi
 
-              # Copy PulseAudio dependencies (if they exist)
+              # Copy PulseAudio dependencies (required!)
               echo "Copying PulseAudio dependencies..."
-              # Copy libpulsecommon
-              for dep in "$PULSE_DIR"/libpulsecommon-*.dylib; do
-                if [ -f "$dep" ]; then
-                  cp "$dep" ../zig-april-captions-ui/src-tauri/resources/
-                  echo "✓ Copied $(basename "$dep")"
-                fi
-              done
+
+              # Find and copy libpulsecommon (might be in lib/pulseaudio/ subdirectory)
+              PULSECOMMON=$(find /opt/homebrew/opt/pulseaudio -name "libpulsecommon-*.dylib" 2>/dev/null | head -1)
+              if [ -n "$PULSECOMMON" ]; then
+                cp "$PULSECOMMON" ../zig-april-captions-ui/src-tauri/resources/
+                echo "✓ Copied $(basename "$PULSECOMMON") from $(dirname "$PULSECOMMON")"
+              else
+                echo "ERROR: libpulsecommon-*.dylib not found (required by libpulse.0.dylib)"
+                echo "Searching in Homebrew directories..."
+                find /opt/homebrew -name "libpulsecommon-*.dylib" 2>/dev/null
+                exit 1
+              fi
 
               # Copy libintl (gettext dependency)
               if [ -f "/opt/homebrew/opt/gettext/lib/libintl.8.dylib" ]; then
@@ -819,7 +824,7 @@ jobs:
             exit 1
           fi
 
-          # Check PulseAudio dependencies
+          # Check PulseAudio dependencies (REQUIRED!)
           echo ""
           echo "Checking PulseAudio dependencies:"
           PULSECOMMON=$(find "$FRAMEWORKS_PATH" "$RESOURCES_PATH" 2>/dev/null -name "libpulsecommon-*.dylib" | head -1)
@@ -827,7 +832,9 @@ jobs:
             echo "✓ Found $(basename "$PULSECOMMON") in $(dirname "$PULSECOMMON" | xargs basename)"
             otool -D "$PULSECOMMON" | tail -1
           else
-            echo "⚠ WARNING: libpulsecommon-*.dylib not found (may be statically linked into libpulse)"
+            echo "ERROR: libpulsecommon-*.dylib not found (REQUIRED by libpulse.0.dylib)"
+            hdiutil detach "$MOUNT_POINT"
+            exit 1
           fi
 
           LIBINTL=$(find "$FRAMEWORKS_PATH" "$RESOURCES_PATH" 2>/dev/null -name "libintl.*.dylib" | head -1)
