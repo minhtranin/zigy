@@ -47,9 +47,7 @@
         "resources/libonnxruntime.1.16.3.dylib",
         "resources/libonnxruntime.dylib",
         "resources/libpulse.0.dylib",
-        "resources/libpulse-simple.0.dylib",
-        "resources/libpulsecommon-17.0.dylib",
-        "resources/libintl.8.dylib"
+        "resources/libpulse-simple.0.dylib"
       ]
     }
   }
