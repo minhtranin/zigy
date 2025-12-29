@@ -81,6 +81,29 @@ export function useCaptions() {
     loadSettings();
     loadTranscript();
 
+    // Check for bundled model and set as default if no model is selected
+    const checkBundledModel = async () => {
+      try {
+        const bundledPath = await invoke<string | null>('get_bundled_model_path');
+        if (bundledPath) {
+          console.log('Found bundled model:', bundledPath);
+          // Load settings to check if model_path is already set
+          const currentSettings = await invoke<Settings>('get_settings');
+          if (!currentSettings.model_path) {
+            console.log('No model set, using bundled model');
+            await invoke('save_settings', {
+              settings: { ...currentSettings, model_path: bundledPath }
+            });
+            // Reload settings to pick up the bundled model
+            loadSettings();
+          }
+        }
+      } catch (e) {
+        console.error('Failed to check for bundled model:', e);
+      }
+    };
+    checkBundledModel();
+
     // Load timeline from backend ideas
     const loadTimeline = async () => {
       try {

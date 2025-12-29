@@ -602,6 +602,39 @@ async fn get_binary_path(app_handle: AppHandle) -> Result<String, String> {
     get_zig_binary_path(&app_handle)
 }
 
+/// Get the path to the bundled April ASR model
+#[tauri::command]
+async fn get_bundled_model_path(app_handle: AppHandle) -> Result<Option<String>, String> {
+    let model_name = "april-english-dev-01110_en.april";
+
+    // Get the resource directory
+    let resource_dir = app_handle
+        .path()
+        .resolve("", tauri::path::BaseDirectory::Resource)
+        .map_err(|e| format!("Failed to get resource directory: {}", e))?;
+
+    // Check multiple possible locations for the bundled model
+    let mut model_candidates = vec![
+        resource_dir.join("resources").join(model_name),  // In resources/ subdirectory
+        resource_dir.join(model_name),                   // Direct in resource dir
+    ];
+
+    #[cfg(target_os = "linux")]
+    {
+        // For .deb installations: check /usr/lib/zigy/resources/
+        model_candidates.push(Path::new("/usr/lib/zigy/resources").join(model_name));
+    }
+
+    for model_path in model_candidates {
+        if model_path.exists() {
+            return Ok(Some(model_path.to_string_lossy().to_string()));
+        }
+    }
+
+    // No bundled model found
+    Ok(None)
+}
+
 #[tauri::command]
 async fn get_binary_debug_info(app_handle: AppHandle) -> Result<String, String> {
     #[cfg(target_os = "windows")]
@@ -1776,6 +1809,7 @@ pub fn run() {
             select_model_file,
             check_binary_exists,
             get_binary_path,
+            get_bundled_model_path,
             get_binary_debug_info,
             get_transcript,
             add_transcript_line,
