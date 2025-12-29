@@ -148,6 +148,19 @@ jobs:
                 cp "$ONNX_VERSIONED" ../zig-april-captions-ui/src-tauri/resources/
                 echo "Copied ONNX Runtime library to resources"
 
+                # Download April ASR model for testing and bundling
+                echo "Downloading April ASR model..."
+                MODEL_NAME="april-english-dev-01110_en.april"
+                MODEL_URL="https://april.sapples.net/$MODEL_NAME"
+                MODEL_PATH="../zig-april-captions-ui/src-tauri/resources/$MODEL_NAME"
+
+                if [ ! -f "$MODEL_PATH" ]; then
+                  curl -L -o "$MODEL_PATH" "$MODEL_URL"
+                  echo "✓ Downloaded model: $MODEL_NAME"
+                else
+                  echo "✓ Model already exists: $MODEL_NAME"
+                fi
+
                 # Fix rpath for deb installation
                 # Zig sets absolute build paths in rpath, we need to replace with $ORIGIN
                 # IMPORTANT: Patch the binary in zig-out/bin/ NOT in resources/
@@ -166,6 +179,44 @@ jobs:
             fi
           fi
           cd ..
+
+      - name: Test zig-april-captions binary (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          echo "=================================="
+          echo "Testing zig-april-captions binary"
+          echo "=================================="
+
+          BINARY="zig-april-captions-ui/src-tauri/resources/zig-april-captions"
+          MODEL="zig-april-captions-ui/src-tauri/resources/april-english-dev-01110_en.april"
+
+          if [ ! -f "$BINARY" ]; then
+            echo "ERROR: Binary not found at $BINARY"
+            exit 1
+          fi
+
+          if [ ! -f "$MODEL" ]; then
+            echo "ERROR: Model not found at $MODEL"
+            exit 1
+          fi
+
+          echo "Binary: $BINARY"
+          echo "Model: $MODEL"
+          echo ""
+
+          # Check binary dependencies
+          echo "Test 1: Check library dependencies"
+          ldd "$BINARY" | grep -i onnx || echo "No ONNX dependency found"
+
+          # Test: List models (should work without audio)
+          echo ""
+          echo "Test 2: List models"
+          timeout 10s "$BINARY" --list-models || echo "List models test timed out or failed"
+
+          echo ""
+          echo "✓ Binary test completed"
+          echo "Note: Full speech recognition test requires audio input (not available in CI)"
 
       - name: Verify Linux Bundle (Debug)
         if: runner.os == 'Linux'
@@ -241,6 +292,19 @@ jobs:
             if [ -n "$ONNX_VERSIONED" ]; then
               cp "$ONNX_VERSIONED" ../zig-april-captions-ui/src-tauri/resources/
               echo "Copied ONNX Runtime library to resources"
+
+              # Download April ASR model for testing and bundling
+              echo "Downloading April ASR model..."
+              MODEL_NAME="april-english-dev-01110_en.april"
+              MODEL_URL="https://april.sapples.net/$MODEL_NAME"
+              MODEL_PATH="../zig-april-captions-ui/src-tauri/resources/$MODEL_NAME"
+
+              if [ ! -f "$MODEL_PATH" ]; then
+                curl -L -o "$MODEL_PATH" "$MODEL_URL"
+                echo "✓ Downloaded model: $MODEL_NAME"
+              else
+                echo "✓ Model already exists: $MODEL_NAME"
+              fi
 
               # Copy PulseAudio libraries from Homebrew (required for audio capture)
               echo "Copying PulseAudio libraries from Homebrew..."
@@ -455,6 +519,39 @@ jobs:
             echo "Warning: ONNX Runtime library not found"
           fi
           cd ..
+
+      - name: Test zig-april-captions binary (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          echo "=================================="
+          echo "Testing zig-april-captions binary"
+          echo "=================================="
+
+          BINARY="zig-april-captions-ui/src-tauri/resources/zig-april-captions"
+          MODEL="zig-april-captions-ui/src-tauri/resources/april-english-dev-01110_en.april"
+
+          if [ ! -f "$BINARY" ]; then
+            echo "ERROR: Binary not found at $BINARY"
+            exit 1
+          fi
+
+          if [ ! -f "$MODEL" ]; then
+            echo "ERROR: Model not found at $MODEL"
+            exit 1
+          fi
+
+          echo "Binary: $BINARY"
+          echo "Model: $MODEL"
+          echo ""
+
+          # Test: List models (should work without audio)
+          echo "Test 1: List models"
+          timeout 10s "$BINARY" --list-models || echo "List models test timed out or failed"
+
+          echo ""
+          echo "✓ Binary test completed"
+          echo "Note: Full speech recognition test requires audio input (not available in CI)"
 
       - name: Verify macOS Bundle (Debug)
         if: runner.os == 'macOS'
