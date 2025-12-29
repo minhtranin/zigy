@@ -266,15 +266,18 @@ jobs:
               # Copy PulseAudio dependencies (required!)
               echo "Copying PulseAudio dependencies..."
 
-              # Find and copy libpulsecommon (might be in lib/pulseaudio/ subdirectory)
-              PULSECOMMON=$(find /opt/homebrew/opt/pulseaudio -name "libpulsecommon-*.dylib" 2>/dev/null | head -1)
+              # Find and copy libpulsecommon (in lib/pulseaudio/ subdirectory)
+              # Search in both /opt/homebrew/opt and /opt/homebrew/Cellar
+              PULSECOMMON=$(find /opt/homebrew/Cellar/pulseaudio -name "libpulsecommon-*.dylib" 2>/dev/null | head -1)
+              if [ -z "$PULSECOMMON" ]; then
+                PULSECOMMON=$(find /opt/homebrew/opt/pulseaudio -name "libpulsecommon-*.dylib" 2>/dev/null | head -1)
+              fi
+
               if [ -n "$PULSECOMMON" ]; then
                 cp "$PULSECOMMON" ../zig-april-captions-ui/src-tauri/resources/
                 echo "✓ Copied $(basename "$PULSECOMMON") from $(dirname "$PULSECOMMON")"
               else
                 echo "ERROR: libpulsecommon-*.dylib not found (required by libpulse.0.dylib)"
-                echo "Searching in Homebrew directories..."
-                find /opt/homebrew -name "libpulsecommon-*.dylib" 2>/dev/null
                 exit 1
               fi
 
