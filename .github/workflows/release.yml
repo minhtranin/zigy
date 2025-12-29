@@ -298,6 +298,16 @@ jobs:
                 echo "✓ Copied libintl.8.dylib"
               fi
 
+              # Copy libiomp5.dylib (Intel OpenMP - required by ONNX Runtime)
+              echo "Copying libiomp5.dylib (Intel OpenMP)..."
+              IOMP5=$(find /opt/homebrew/Cellar/libiomp /opt/homebrew/opt/libiomp ~/onnxruntime -name "libiomp5.dylib" 2>/dev/null | head -1)
+              if [ -n "$IOMP5" ]; then
+                cp "$IOMP5" ../zig-april-captions-ui/src-tauri/resources/
+                echo "✓ Copied libiomp5.dylib from $(dirname "$IOMP5")"
+              else
+                echo "⚠ Warning: libiomp5.dylib not found (may be built into ONNX Runtime)"
+              fi
+
               # Recursively bundle ALL transitive dependencies
               echo "Recursively bundling all dependencies..."
               RESOURCES_DIR="../zig-april-captions-ui/src-tauri/resources"
