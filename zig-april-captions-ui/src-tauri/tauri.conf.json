@@ -45,15 +45,18 @@
       "entitlements": "entitlements.plist",
       "frameworks": [
         "resources/libonnxruntime.1.16.3.dylib",
-        "resources/libonnxruntime.dylib"
+        "resources/libonnxruntime.dylib",
+        "resources/libpulse.0.dylib",
+        "resources/libpulse-simple.0.dylib",
+        "resources/libpulsecommon-16.1.dylib",
+        "resources/libsndfile.1.dylib",
+        "resources/libFLAC.8.dylib",
+        "resources/libvorbis.0.dylib",
+        "resources/libvorbisenc.2.dylib",
+        "resources/libogg.0.dylib",
+        "resources/libintl.8.dylib",
+        "resources/libiomp5.dylib"
       ]
-    },
-    "linux": {
-      "deb": {
-        "files": {
-          "resources/*": "/usr/lib/zigy/resources/"
-        }
-      }
     }
   }
 }
