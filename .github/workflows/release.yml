@@ -53,10 +53,9 @@ jobs:
           - platform: 'ubuntu-22.04'
             target: 'x86_64-unknown-linux-gnu'
             bundle: 'deb'
-          # Temporarily disabled - linuxdeploy failing
-          # - platform: 'ubuntu-22.04'
-          #   target: 'x86_64-unknown-linux-gnu'
-          #   bundle: 'appimage'
+          - platform: 'ubuntu-22.04'
+            target: 'x86_64-unknown-linux-gnu'
+            bundle: 'appimage'
           - platform: 'macos-latest'
             target: 'aarch64-apple-darwin'
             bundle: 'dmg'
@@ -850,15 +849,16 @@ jobs:
               console.log('No additional library files found');
             }
 
-            // Add the model file (321MB!)
-            try {
-              const modelFile = execSync('ls resources/*.april 2>/dev/null', { encoding: 'utf8' }).trim();
-              if (modelFile) {
-                debFiles['/usr/lib/zigy/resources/' + modelFile.replace('resources/', '')] = modelFile;
-              }
-            } catch (e) {
-              console.log('No model file found');
-            }
+            // Note: Model is downloaded for testing but NOT bundled in DEB
+            // Users will download model separately
+            // try {
+            //   const modelFile = execSync('ls resources/*.april 2>/dev/null', { encoding: 'utf8' }).trim();
+            //   if (modelFile) {
+            //     debFiles['/usr/lib/zigy/resources/' + modelFile.replace('resources/', '')] = modelFile;
+            //   }
+            // } catch (e) {
+            //   console.log('No model file found');
+            // }
 
             config.bundle.linux.deb.files = debFiles;
             // Keep resources empty for deb to avoid conflicts
