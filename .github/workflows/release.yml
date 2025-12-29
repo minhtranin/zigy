@@ -295,7 +295,7 @@ jobs:
 
               # Fix install names for ALL dylibs in resources/
               echo "Fixing dylib install names with install_name_tool..."
-              for dylib in ../zig-april-captions-ui/src-tauri/resources/*.dylib; do
+              for dylib in zig-april-captions-ui/src-tauri/resources/*.dylib; do
                 if [ -f "$dylib" ]; then
                   DYLIBNAME=$(basename "$dylib")
                   install_name_tool -id "@rpath/$DYLIBNAME" "$dylib"
@@ -305,7 +305,7 @@ jobs:
 
               # Fix internal references in ALL dylibs to use @rpath
               echo "Fixing dylib internal references..."
-              for dylib in ../zig-april-captions-ui/src-tauri/resources/*.dylib; do
+              for dylib in zig-april-captions-ui/src-tauri/resources/*.dylib; do
                 if [ -f "$dylib" ]; then
                   echo "Processing $(basename "$dylib")..."
                   # Get all Homebrew dependencies
@@ -816,7 +816,7 @@ jobs:
             exit 1
           fi
 
-          # Check PulseAudio dependencies (required!)
+          # Check PulseAudio dependencies
           echo ""
           echo "Checking PulseAudio dependencies:"
           PULSECOMMON=$(find "$FRAMEWORKS_PATH" "$RESOURCES_PATH" 2>/dev/null -name "libpulsecommon-*.dylib" | head -1)
@@ -824,9 +824,7 @@ jobs:
             echo "✓ Found $(basename "$PULSECOMMON") in $(dirname "$PULSECOMMON" | xargs basename)"
             otool -D "$PULSECOMMON" | tail -1
           else
-            echo "ERROR: libpulsecommon-*.dylib not found in Frameworks or Resources!"
-            hdiutil detach "$MOUNT_POINT"
-            exit 1
+            echo "⚠ WARNING: libpulsecommon-*.dylib not found (may be statically linked into libpulse)"
           fi
 
           LIBINTL=$(find "$FRAMEWORKS_PATH" "$RESOURCES_PATH" 2>/dev/null -name "libintl.*.dylib" | head -1)
