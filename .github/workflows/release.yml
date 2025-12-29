@@ -944,6 +944,14 @@ jobs:
           echo "New version in tauri.conf.json:"
           cat src-tauri/tauri.conf.json | grep -A 1 '"version"'
 
+      - name: Remove model from AppImage build (too large)
+        if: matrix.bundle == 'appimage'
+        shell: bash
+        run: |
+          echo "Removing April ASR model from resources (AppImage only)..."
+          rm -f zig-april-captions-ui/src-tauri/resources/*.april
+          echo "✓ Model removed - AppImage users will download on first run"
+
       - name: Build Tauri App
         uses: tauri-apps/tauri-action@v0
         env:
