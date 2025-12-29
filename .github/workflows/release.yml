@@ -339,10 +339,13 @@ jobs:
               done
 
               # Add only the correct rpaths for Tauri bundle
+              # Binary is at: Contents/Resources/resources/zig-april-captions
+              # Frameworks are at: Contents/Frameworks/
+              # So we need to go up 2 levels: ../../Frameworks
               echo "Adding correct rpaths..."
               install_name_tool -add_rpath "@loader_path" "$BINARY"
-              install_name_tool -add_rpath "@executable_path/../Frameworks" "$BINARY"
-              install_name_tool -add_rpath "@executable_path/../Resources/resources" "$BINARY"
+              install_name_tool -add_rpath "@executable_path/../../Frameworks" "$BINARY"
+              install_name_tool -add_rpath "@executable_path" "$BINARY"
 
               # Fix PulseAudio library references in binary to use @rpath
               echo "Fixing PulseAudio library references in binary..."
@@ -860,18 +863,18 @@ jobs:
           echo "6. Verify required rpaths present in final app:"
           RPATH_OUTPUT=$(otool -l "$BINARY" | grep -A 2 "LC_RPATH")
 
-          if echo "$RPATH_OUTPUT" | grep -q "@executable_path/../Frameworks"; then
-            echo "✓ Found @executable_path/../Frameworks"
+          if echo "$RPATH_OUTPUT" | grep -q "@executable_path/../../Frameworks"; then
+            echo "✓ Found @executable_path/../../Frameworks"
           else
-            echo "ERROR: Missing @executable_path/../Frameworks in final app!"
+            echo "ERROR: Missing @executable_path/../../Frameworks in final app!"
             hdiutil detach "$MOUNT_POINT"
             exit 1
           fi
 
-          if echo "$RPATH_OUTPUT" | grep -q "@executable_path/../Resources/resources"; then
-            echo "✓ Found @executable_path/../Resources/resources"
+          if echo "$RPATH_OUTPUT" | grep "@executable_path" | grep -v "Frameworks" > /dev/null; then
+            echo "✓ Found @executable_path (for ONNX Runtime in Resources)"
           else
-            echo "ERROR: Missing @executable_path/../Resources/resources in final app!"
+            echo "ERROR: Missing @executable_path in final app!"
             hdiutil detach "$MOUNT_POINT"
             exit 1
           fi
