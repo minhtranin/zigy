@@ -326,7 +326,8 @@ jobs:
               # IMPORTANT: Fix the binary in zig-out/bin/ NOT in resources/
               # because build.rs will copy from zig-out/bin/ during Tauri build
               # Delete all existing rpaths (Zig adds hardcoded build paths)
-              BINARY="zig-out/bin/zig-april-captions"
+              # After cd ../.. we're in workspace root, so path needs zig-april-captions/ prefix
+              BINARY="zig-april-captions/zig-out/bin/zig-april-captions"
 
               # Get all rpath entries
               RPATHS=$(otool -l "$BINARY" | grep -A 2 "LC_RPATH" | grep "path" | awk '{print $2}')
