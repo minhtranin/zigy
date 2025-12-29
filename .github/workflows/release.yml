@@ -242,10 +242,65 @@ jobs:
               cp "$ONNX_VERSIONED" ../zig-april-captions-ui/src-tauri/resources/
               echo "Copied ONNX Runtime library to resources"
 
+              # Copy PulseAudio libraries from Homebrew (required for audio capture)
+              echo "Copying PulseAudio libraries from Homebrew..."
+              PULSE_DIR="/opt/homebrew/opt/pulseaudio/lib"
+
+              # Copy main PulseAudio libraries
+              if [ -f "$PULSE_DIR/libpulse.0.dylib" ]; then
+                cp "$PULSE_DIR/libpulse.0.dylib" ../zig-april-captions-ui/src-tauri/resources/
+                echo "✓ Copied libpulse.0.dylib"
+              else
+                echo "ERROR: libpulse.0.dylib not found"
+                exit 1
+              fi
+
+              if [ -f "$PULSE_DIR/libpulse-simple.0.dylib" ]; then
+                cp "$PULSE_DIR/libpulse-simple.0.dylib" ../zig-april-captions-ui/src-tauri/resources/
+                echo "✓ Copied libpulse-simple.0.dylib"
+              else
+                echo "ERROR: libpulse-simple.0.dylib not found"
+                exit 1
+              fi
+
+              # Copy PulseAudio dependencies (if they exist)
+              echo "Copying PulseAudio dependencies..."
+              for dep in libpulsecommon-*.dylib; do
+                if [ -f "$PULSE_DIR/$dep" ]; then
+                  cp "$PULSE_DIR/$dep" ../zig-april-captions-ui/src-tauri/resources/
+                  echo "✓ Copied $dep"
+                fi
+              done
+
               # Fix dylib install names and binary rpaths for Tauri bundle
               echo "Fixing dylib install names with install_name_tool..."
               install_name_tool -id "@rpath/libonnxruntime.1.16.3.dylib" ../zig-april-captions-ui/src-tauri/resources/libonnxruntime.1.16.3.dylib
               install_name_tool -id "@rpath/libonnxruntime.dylib" ../zig-april-captions-ui/src-tauri/resources/libonnxruntime.dylib
+              install_name_tool -id "@rpath/libpulse.0.dylib" ../zig-april-captions-ui/src-tauri/resources/libpulse.0.dylib
+              install_name_tool -id "@rpath/libpulse-simple.0.dylib" ../zig-april-captions-ui/src-tauri/resources/libpulse-simple.0.dylib
+
+              # Fix any pulsecommon libraries
+              for dep in ../zig-april-captions-ui/src-tauri/resources/libpulsecommon-*.dylib; do
+                if [ -f "$dep" ]; then
+                  DEPNAME=$(basename "$dep")
+                  install_name_tool -id "@rpath/$DEPNAME" "$dep"
+                  echo "✓ Fixed install name for $DEPNAME"
+                fi
+              done
+
+              # Fix internal references in PulseAudio dylibs to use @rpath
+              echo "Fixing PulseAudio dylib internal references..."
+              for dylib in ../zig-april-captions-ui/src-tauri/resources/libpulse*.dylib; do
+                if [ -f "$dylib" ]; then
+                  echo "Processing $(basename "$dylib")..."
+                  # Get all dependencies
+                  otool -L "$dylib" | grep "/opt/homebrew" | awk '{print $1}' | while read -r lib; do
+                    LIBNAME=$(basename "$lib")
+                    echo "  Fixing reference to $LIBNAME..."
+                    install_name_tool -change "$lib" "@rpath/$LIBNAME" "$dylib" 2>/dev/null || true
+                  done
+                fi
+              done
 
               echo "Clearing and setting correct rpaths on zig-april-captions binary..."
               # IMPORTANT: Fix the binary in zig-out/bin/ NOT in resources/
@@ -267,6 +322,18 @@ jobs:
               install_name_tool -add_rpath "@loader_path" "$BINARY"
               install_name_tool -add_rpath "@executable_path/../Frameworks" "$BINARY"
               install_name_tool -add_rpath "@executable_path/../Resources/resources" "$BINARY"
+
+              # Fix PulseAudio library references in binary to use @rpath
+              echo "Fixing PulseAudio library references in binary..."
+              install_name_tool -change "/opt/homebrew/opt/pulseaudio/lib/libpulse.0.dylib" "@rpath/libpulse.0.dylib" "$BINARY" 2>/dev/null || echo "libpulse.0.dylib reference not found (may already be correct)"
+              install_name_tool -change "/opt/homebrew/opt/pulseaudio/lib/libpulse-simple.0.dylib" "@rpath/libpulse-simple.0.dylib" "$BINARY" 2>/dev/null || echo "libpulse-simple.0.dylib reference not found (may already be correct)"
+
+              # Also check for any other homebrew lib references
+              otool -L "$BINARY" | grep "/opt/homebrew" | awk '{print $1}' | while read -r lib; do
+                LIBNAME=$(basename "$lib")
+                echo "Fixing reference to $LIBNAME..."
+                install_name_tool -change "$lib" "@rpath/$LIBNAME" "$BINARY" 2>/dev/null || true
+              done
 
               echo "macOS dylib and binary rpath fixes applied"
             fi
@@ -296,11 +363,33 @@ jobs:
           # 3. Check what libraries the binary needs (from zig-out/bin)
           echo ""
           echo "3. Binary library dependencies (from zig-out/bin):"
+          echo "ONNX Runtime:"
           otool -L zig-april-captions/zig-out/bin/zig-april-captions | grep -i onnx || echo "No ONNX dependency found!"
+          echo "PulseAudio:"
+          otool -L zig-april-captions/zig-out/bin/zig-april-captions | grep -i pulse || echo "No PulseAudio dependency found!"
 
-          # 4. Check dylib install names
+          # 4. Verify PulseAudio libraries are present
           echo ""
-          echo "4. ONNX Runtime dylib install names (should use @rpath):"
+          echo "4. Checking for PulseAudio libraries:"
+          if [ -f "zig-april-captions-ui/src-tauri/resources/libpulse.0.dylib" ]; then
+            echo "✓ Found libpulse.0.dylib"
+            otool -D zig-april-captions-ui/src-tauri/resources/libpulse.0.dylib
+          else
+            echo "ERROR: libpulse.0.dylib not found!"
+            exit 1
+          fi
+
+          if [ -f "zig-april-captions-ui/src-tauri/resources/libpulse-simple.0.dylib" ]; then
+            echo "✓ Found libpulse-simple.0.dylib"
+            otool -D zig-april-captions-ui/src-tauri/resources/libpulse-simple.0.dylib
+          else
+            echo "ERROR: libpulse-simple.0.dylib not found!"
+            exit 1
+          fi
+
+          # 5. Check ONNX Runtime dylib install names
+          echo ""
+          echo "5. ONNX Runtime dylib install names (should use @rpath):"
           if [ -f "zig-april-captions-ui/src-tauri/resources/libonnxruntime.1.16.3.dylib" ]; then
             otool -D zig-april-captions-ui/src-tauri/resources/libonnxruntime.1.16.3.dylib
           else
@@ -315,19 +404,22 @@ jobs:
             exit 1
           fi
 
-          # 5. Check for hardcoded paths in zig-out/bin (should not exist)
+          # 6. Check for hardcoded paths in zig-out/bin (should not exist)
           echo ""
-          echo "5. Checking for hardcoded GitHub Actions paths in zig-out/bin (should be empty):"
-          otool -l zig-april-captions/zig-out/bin/zig-april-captions | grep -i "runner/work" && echo "ERROR: Found hardcoded GitHub Actions paths!" && exit 1 || echo "✓ No hardcoded paths found"
+          echo "6. Checking for hardcoded paths in zig-out/bin (should be empty):"
+          echo "Checking for /opt/homebrew paths:"
+          otool -L zig-april-captions/zig-out/bin/zig-april-captions | grep "/opt/homebrew" && echo "ERROR: Found hardcoded Homebrew paths!" && exit 1 || echo "✓ No /opt/homebrew paths"
+          echo "Checking for GitHub Actions paths:"
+          otool -l zig-april-captions/zig-out/bin/zig-april-captions | grep -i "runner/work" && echo "ERROR: Found hardcoded GitHub Actions paths!" && exit 1 || echo "✓ No GitHub Actions paths"
 
-          # 6. Check deployment target (from zig-out/bin)
+          # 7. Check deployment target (from zig-out/bin)
           echo ""
-          echo "6. macOS Deployment Target (should be 10.13 or similar):"
+          echo "7. macOS Deployment Target (should be 10.13 or similar):"
           otool -l zig-april-captions/zig-out/bin/zig-april-captions | grep -A 3 "LC_VERSION_MIN_MACOSX\|LC_BUILD_VERSION" || echo "Could not determine deployment target"
 
-          # 7. Verify rpaths contain required paths (check zig-out/bin - source of truth)
+          # 8. Verify rpaths contain required paths (check zig-out/bin - source of truth)
           echo ""
-          echo "7. Verifying required rpaths are present in zig-out/bin:"
+          echo "8. Verifying required rpaths are present in zig-out/bin:"
           RPATH_OUTPUT=$(otool -l zig-april-captions/zig-out/bin/zig-april-captions | grep -A 2 "LC_RPATH")
 
           if echo "$RPATH_OUTPUT" | grep -q "@executable_path/../Frameworks"; then
@@ -653,11 +745,16 @@ jobs:
           echo ""
 
           echo "3. Binary library dependencies:"
+          echo "ONNX Runtime:"
           otool -L "$BINARY" | grep -i onnx
+          echo "PulseAudio:"
+          otool -L "$BINARY" | grep -i pulse
           echo ""
 
           echo "4. Checking dylib files exist:"
           DYLIB_PATH="$APP_BUNDLE/Contents/Resources/resources"
+
+          # Check ONNX Runtime
           if [ -f "$DYLIB_PATH/libonnxruntime.1.16.3.dylib" ]; then
             echo "✓ libonnxruntime.1.16.3.dylib exists"
             otool -D "$DYLIB_PATH/libonnxruntime.1.16.3.dylib" | tail -1
@@ -666,9 +763,37 @@ jobs:
             hdiutil detach "$MOUNT_POINT"
             exit 1
           fi
+
+          # Check PulseAudio
+          if [ -f "$DYLIB_PATH/libpulse.0.dylib" ]; then
+            echo "✓ libpulse.0.dylib exists"
+            otool -D "$DYLIB_PATH/libpulse.0.dylib" | tail -1
+          else
+            echo "ERROR: libpulse.0.dylib not found!"
+            hdiutil detach "$MOUNT_POINT"
+            exit 1
+          fi
+
+          if [ -f "$DYLIB_PATH/libpulse-simple.0.dylib" ]; then
+            echo "✓ libpulse-simple.0.dylib exists"
+            otool -D "$DYLIB_PATH/libpulse-simple.0.dylib" | tail -1
+          else
+            echo "ERROR: libpulse-simple.0.dylib not found!"
+            hdiutil detach "$MOUNT_POINT"
+            exit 1
+          fi
           echo ""
 
-          echo "5. Final check - No hardcoded GitHub paths:"
+          echo "5. Final check - No hardcoded paths:"
+          echo "Checking for /opt/homebrew paths:"
+          if otool -L "$BINARY" | grep "/opt/homebrew"; then
+            echo "ERROR: Found hardcoded Homebrew paths in final DMG!"
+            hdiutil detach "$MOUNT_POINT"
+            exit 1
+          else
+            echo "✓ No /opt/homebrew paths"
+          fi
+          echo "Checking for GitHub Actions paths:"
           if otool -l "$BINARY" | grep -i "runner/work"; then
             echo "ERROR: Found hardcoded GitHub Actions paths in final DMG!"
             hdiutil detach "$MOUNT_POINT"
