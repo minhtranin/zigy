@@ -305,7 +305,8 @@ jobs:
               # Function to find and bundle a dylib
               bundle_dylib() {
                 local DYLIB_NAME="$1"
-                local BUNDLED_FILE="$RESOURCES_DIR/$(basename "$DYLIB_NAME")"
+                local BASENAME=$(basename "$DYLIB_NAME")
+                local BUNDLED_FILE="$RESOURCES_DIR/$BASENAME"
 
                 # Skip if already bundled
                 if [ -f "$BUNDLED_FILE" ]; then
@@ -313,26 +314,29 @@ jobs:
                 fi
 
                 # Find the dylib in Homebrew
-                local FOUND_DYLIB=$(find /opt/homebrew/Cellar /opt/homebrew/opt -name "$(basename "$DYLIB_NAME")" 2>/dev/null | head -1)
+                local FOUND_DYLIB=$(find /opt/homebrew/Cellar /opt/homebrew/opt -name "$BASENAME" 2>/dev/null | head -1)
 
                 if [ -z "$FOUND_DYLIB" ]; then
-                  echo "  ⚠ Warning: $(basename "$DYLIB_NAME") not found in Homebrew"
+                  echo "  ⚠ Warning: $BASENAME not found in Homebrew"
                   return 1
                 fi
 
                 # Copy it
                 cp "$FOUND_DYLIB" "$BUNDLED_FILE"
-                echo "  ✓ Bundled $(basename "$DYLIB_NAME") from $(dirname "$FOUND_DYLIB")"
+                echo "  ✓ Bundled $BASENAME from $(dirname "$FOUND_DYLIB")"
 
                 # Fix its install name
-                install_name_tool -id "@rpath/$(basename "$DYLIB_NAME")" "$BUNDLED_FILE" 2>/dev/null || true
+                install_name_tool -id "@rpath/$BASENAME" "$BUNDLED_FILE" 2>/dev/null || true
 
-                # Fix its references to other dylibs
-                otool -L "$BUNDLED_FILE" | grep "/opt/homebrew" | awk '{print $1}' | while read -r dep; do
-                  local DEP_NAME=$(basename "$dep")
-                  install_name_tool -change "$dep" "@rpath/$DEP_NAME" "$BUNDLED_FILE" 2>/dev/null || true
-                  # Recursively bundle this dependency
-                  bundle_dylib "$DEP_NAME"
+                # Fix its references to other dylibs - use for loop instead of while
+                local DEPS=$(otool -L "$BUNDLED_FILE" | grep "/opt/homebrew" 2>/dev/null | awk '{print $1}' || true)
+                for dep in $DEPS; do
+                  if [ -n "$dep" ]; then
+                    local DEP_NAME=$(basename "$dep")
+                    install_name_tool -change "$dep" "@rpath/$DEP_NAME" "$BUNDLED_FILE" 2>/dev/null || true
+                    # Recursively bundle this dependency
+                    bundle_dylib "$DEP_NAME"
+                  fi
                 done
               }
 
@@ -340,7 +344,8 @@ jobs:
               for dylib in "$RESOURCES_DIR"/*.dylib; do
                 if [ -f "$dylib" ]; then
                   echo "Checking dependencies of $(basename "$dylib")..."
-                  otool -L "$dylib" | grep "/opt/homebrew" || true | awk '{print $1}' | while read -r dep; do
+                  local DEPS=$(otool -L "$dylib" | grep "/opt/homebrew" 2>/dev/null | awk '{print $1}' || true)
+                  for dep in $DEPS; do
                     if [ -n "$dep" ]; then
                       bundle_dylib "$dep"
                     fi
