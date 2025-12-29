@@ -788,8 +788,8 @@ jobs:
           # Use node to update tauri.conf.json
           # Different strategies for deb vs AppImage vs other platforms
           if [ "$RUNNER_OS" = "Linux" ] && [ "${{ matrix.bundle }}" = "deb" ]; then
-            # For .deb: use deb.files to install binary to /usr/lib/zigy/
-            # Keep resources empty to avoid conflicts
+            # For .deb: use deb.files to install binary and ALL libraries to /usr/lib/zigy/
+            # Including the model (321MB) and ALL PulseAudio dependencies
             node -e "
             const fs = require('fs');
             const config = JSON.parse(fs.readFileSync('tauri.conf.json', 'utf8'));
@@ -811,7 +811,7 @@ jobs:
               console.log('No ONNX Runtime library files found');
             }
 
-            // Use deb.files to install the binary and library directly to /usr/lib/zigy/
+            // Use deb.files to install the binary and ALL libraries to /usr/lib/zigy/
             // The binary uses \$ORIGIN rpath to find the library relative to itself
             const debFiles = {
               '/usr/lib/zigy/zig-april-captions': 'resources/zig-april-captions'
@@ -823,6 +823,41 @@ jobs:
             if (onnxVersionedFile) {
               const version = onnxVersionedFile.match(/libonnxruntime\\.so\\.(.+)/)[1];
               debFiles['/usr/lib/zigy/libonnxruntime.so.' + version] = onnxVersionedFile;
+            }
+
+            // Add ALL PulseAudio libraries and dependencies
+            const pulseLibs = [
+              'libpulse.so.0',
+              'libpulse-simple.so.0',
+              'libpulsecommon',
+              'libsndfile.so.1',
+              'libFLAC.so.8',
+              'libvorbis.so.0',
+              'libogg.so.0',
+              'libvorbisenc.so.2'
+            ];
+
+            // Find all PulseAudio-related libraries in resources
+            try {
+              const allFiles = execSync('ls resources/*.so* 2>/dev/null', { encoding: 'utf8' }).trim().split('\\n');
+              for (const lib of allFiles) {
+                const basename = lib.replace('resources/', '');
+                if (pulseLibs.some(pattern => basename.startsWith(pattern.replace('\\*', '')))) {
+                  debFiles['/usr/lib/zigy/' + basename] = lib;
+                }
+              }
+            } catch (e) {
+              console.log('No additional library files found');
+            }
+
+            // Add the model file (321MB!)
+            try {
+              const modelFile = execSync('ls resources/*.april 2>/dev/null', { encoding: 'utf8' }).trim();
+              if (modelFile) {
+                debFiles['/usr/lib/zigy/resources/' + modelFile.replace('resources/', '')] = modelFile;
+              }
+            } catch (e) {
+              console.log('No model file found');
             }
 
             config.bundle.linux.deb.files = debFiles;
