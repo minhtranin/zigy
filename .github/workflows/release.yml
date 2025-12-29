@@ -364,7 +364,17 @@ jobs:
 
               # Copy libiomp5.dylib (Intel OpenMP - required by ONNX Runtime)
               echo "Copying libiomp5.dylib (Intel OpenMP)..."
-              IOMP5=$(find /opt/homebrew/Cellar/libiomp /opt/homebrew/opt/libiomp ~/onnxruntime -name "libiomp5.dylib" 2>/dev/null | head -1)
+              IOMP5=""
+              for dir in /opt/homebrew/Cellar/libiomp /opt/homebrew/opt/libiomp ~/onnxruntime; do
+                if [ -d "$dir" ]; then
+                  FOUND=$(find "$dir" -name "libiomp5.dylib" 2>/dev/null || true)
+                  if [ -n "$FOUND" ]; then
+                    IOMP5="$FOUND"
+                    break
+                  fi
+                fi
+              done
+
               if [ -n "$IOMP5" ]; then
                 cp "$IOMP5" ../zig-april-captions-ui/src-tauri/resources/
                 echo "✓ Copied libiomp5.dylib from $(dirname "$IOMP5")"
