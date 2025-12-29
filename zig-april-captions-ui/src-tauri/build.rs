@@ -95,6 +95,9 @@ fn prepare_binary_for_bundling() {
     // The binary's RPATH is set to $ORIGIN (Linux) / @loader_path (macOS)
     // so it expects libraries in the same directory
     copy_onnx_libraries_if_present(&resources_dir);
+
+    // Copy PulseAudio libraries if present (bundled by CI)
+    copy_pulseaudio_libraries_if_present(&resources_dir);
 }
 
 fn copy_onnx_libraries_if_present(resources_dir: &PathBuf) {
@@ -198,5 +201,67 @@ fn fix_macos_dylib_rpath(dylib_path: &PathBuf) {
         if s.success() {
             println!("Fixed install name for {}", filename);
         }
+    }
+}
+
+// Copy PulseAudio libraries if they exist in resources directory (bundled by CI)
+// This is for Linux DEB/AppImage - macOS handles PulseAudio differently
+fn copy_pulseaudio_libraries_if_present(resources_dir: &PathBuf) {
+    // List of PulseAudio libraries to bundle (same as CI copies)
+    let pulseaudio_libs = [
+        "libpulse.so.0",
+        "libpulse-simple.so.0",
+        "libpulsecommon",
+        "libsndfile.so.1",
+        "libFLAC.so.8",
+        "libvorbis.so.0",
+        "libogg.so.0",
+        "libvorbisenc.so.2",
+    ];
+
+    // Check if any PulseAudio libraries exist in resources
+    // (They would have been copied there by the CI build)
+    let Ok(entries) = std::fs::read_dir(resources_dir) else {
+        return;
+    };
+
+    let mut copied_count = 0;
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if !path.is_file() {
+            continue;
+        }
+
+        let Some(filename) = path.file_name() else {
+            continue;
+        };
+        let filename_str = filename.to_string_lossy();
+
+        // Check if this is a PulseAudio library we want to bundle
+        let is_pulseaudio_lib = pulseaudio_libs.iter().any(|lib| {
+            filename_str.starts_with(lib) || filename_str.contains("pulse")
+        });
+
+        if is_pulseaudio_lib {
+            // Already in resources, just log it
+            println!("Found bundled PulseAudio library: {}", filename_str);
+            copied_count += 1;
+
+            // Make executable on Unix
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::PermissionsExt;
+                if let Ok(metadata) = std::fs::metadata(&path) {
+                    let mut perms = metadata.permissions();
+                    perms.set_mode(0o755);
+                    let _ = std::fs::set_permissions(&path, perms);
+                }
+            }
+        }
+    }
+
+    if copied_count > 0 {
+        println!("Found {} bundled PulseAudio library file(s)", copied_count);
+        println!("These will be included in the app bundle");
     }
 }

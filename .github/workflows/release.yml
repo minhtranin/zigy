@@ -169,10 +169,46 @@ jobs:
                 CURRENT_RPATH=$(patchelf --print-rpath zig-out/bin/zig-april-captions || echo "")
                 echo "Current RPATH from Zig build: $CURRENT_RPATH"
 
-                # Always set rpath to $ORIGIN for deb (removes absolute build paths)
-                patchelf --set-rpath '$ORIGIN' zig-out/bin/zig-april-captions
+                # Set rpath to $ORIGIN:$ORIGIN/resources for deb (removes absolute build paths)
+                # This allows the binary to find libraries in both:
+                # 1. Same directory as binary ($ORIGIN)
+                # 2. resources/ subdirectory ($ORIGIN/resources)
+                patchelf --set-rpath '$ORIGIN:$ORIGIN/resources' zig-out/bin/zig-april-captions
                 NEW_RPATH=$(patchelf --print-rpath zig-out/bin/zig-april-captions || echo "")
                 echo "Fixed RPATH to: $NEW_RPATH"
+
+                # Copy PulseAudio libraries for bundling (like macOS)
+                echo "Copying PulseAudio libraries for bundling..."
+                RESOURCE_DIR="../zig-april-captions-ui/src-tauri/resources"
+
+                # Copy main PulseAudio libraries
+                for lib in libpulse.so.0 libpulse-simple.so.0; do
+                  if [ -f "/usr/lib/x86_64-linux-gnu/$lib" ]; then
+                    cp "/usr/lib/x86_64-linux-gnu/$lib" "$RESOURCE_DIR/"
+                    echo "✓ Copied $lib"
+                  fi
+                done
+
+                # Copy libpulsecommon (shared module)
+                PULSECOMMON=$(find /usr/lib/x86_64-linux-gnu -name "libpulsecommon-*.so" 2>/dev/null | head -1)
+                if [ -n "$PULSECOMMON" ]; then
+                  cp "$PULSECOMMON" "$RESOURCE_DIR/"
+                  echo "✓ Copied $(basename "$PULSECOMMON")"
+                fi
+
+                # Copy libsndfile (dependency for PulseAudio)
+                if [ -f "/usr/lib/x86_64-linux-gnu/libsndfile.so.1" ]; then
+                  cp "/usr/lib/x86_64-linux-gnu/libsndfile.so.1" "$RESOURCE_DIR/"
+                  echo "✓ Copied libsndfile.so.1"
+                fi
+
+                # Copy other dependencies that PulseAudio needs
+                for lib in libFLAC.so.8 libvorbis.so.0 libogg.so.0 libvorbisenc.so.2; do
+                  if [ -f "/usr/lib/x86_64-linux-gnu/$lib" ]; then
+                    cp "/usr/lib/x86_64-linux-gnu/$lib" "$RESOURCE_DIR/"
+                    echo "✓ Copied $lib"
+                  fi
+                done
               fi
             else
               echo "Warning: ONNX Runtime library not found"
