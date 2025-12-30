@@ -100,7 +100,7 @@ pub const AudioCapture = struct {
         };
 
         const status = c.AudioObjectGetPropertyData(
-            c.kAudioObjectSystemObject,
+            kAudioObjectSystemObject,
             @ptrCast(&prop_addr),
             0,
             null,
