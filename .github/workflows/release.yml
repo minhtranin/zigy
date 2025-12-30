@@ -821,15 +821,17 @@ jobs:
           if [ -f "$BINARY" ]; then
             echo "Fixing rpaths on: $BINARY"
 
+            # Remove code signature to allow modifications
+            codesign --remove-signature "$BINARY" 2>/dev/null || echo "  (no signature to remove)"
+
             # Remove development rpaths
             install_name_tool -delete_rpath /opt/homebrew/lib "$BINARY" 2>/dev/null || true
             install_name_tool -delete_rpath /Users/runner/onnxruntime/lib "$BINARY" 2>/dev/null || true
             echo "✓ Removed development rpaths"
 
-            # The correct rpaths should already be set
-            RPATH_OUTPUT=$(otool -l "$BINARY" | grep -A 2 "LC_RPATH")
-            echo "Current rpaths:"
-            echo "$RPATH_OUTPUT"
+            # Verify the fix
+            echo "Verifying rpaths after fix:"
+            otool -l "$BINARY" | grep -A 2 "LC_RPATH" | grep -E "(path|LC_RPATH)"
           else
             echo "Binary not found at: $BINARY"
           fi
@@ -901,9 +903,9 @@ jobs:
 
           echo "3. Binary library dependencies:"
           echo "ONNX Runtime:"
-          otool -L "$BINARY" | grep -i onnx
+          otool -L "$BINARY" | grep -i onnx || echo "  (not found)"
           echo "PulseAudio:"
-          otool -L "$BINARY" | grep -i pulse
+          otool -L "$BINARY" | grep -i pulse || echo "  (not found - expected on macOS)"
           echo ""
 
           echo "4. Checking dylib files exist:"
