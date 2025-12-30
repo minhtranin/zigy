@@ -61,44 +61,50 @@ pub const AudioCapture = struct {
     pub fn read(self: *Self, buffer: []i16) ![]i16 {
         if (builtin.os.tag == .macos) {
             return self.coreaudio_capture.read(buffer);
-        } else if (builtin.os.tag == .windows) {
-            return self.wasapi_capture.read(buffer);
-        } else {
-            return self.pulse_capture.read(buffer);
         }
+        // Linux and Windows: Direct call (no extra branches)
+        if (builtin.os.tag == .windows) {
+            return self.wasapi_capture.read(buffer);
+        }
+        return self.pulse_capture.read(buffer);
     }
 
     /// Stop capture
     pub fn stop(self: *Self) void {
         if (builtin.os.tag == .macos) {
             self.coreaudio_capture.stop();
-        } else if (builtin.os.tag == .windows) {
-            self.wasapi_capture.stop();
-        } else {
-            self.pulse_capture.stop();
+            return;
         }
+        // Linux and Windows: Direct call
+        if (builtin.os.tag == .windows) {
+            self.wasapi_capture.stop();
+            return;
+        }
+        self.pulse_capture.stop();
     }
 
     /// Check if still running
     pub fn isRunning(self: *Self) bool {
         if (builtin.os.tag == .macos) {
             return self.coreaudio_capture.isRunning();
-        } else if (builtin.os.tag == .windows) {
-            return self.wasapi_capture.isRunning();
-        } else {
-            return self.pulse_capture.isRunning();
         }
+        // Linux and Windows: Direct call
+        if (builtin.os.tag == .windows) {
+            return self.wasapi_capture.isRunning();
+        }
+        return self.pulse_capture.isRunning();
     }
 
     /// Get the sample rate
     pub fn getSampleRate(self: *Self) u32 {
         if (builtin.os.tag == .macos) {
             return self.coreaudio_capture.getSampleRate();
-        } else if (builtin.os.tag == .windows) {
-            return self.wasapi_capture.getSampleRate();
-        } else {
-            return self.pulse_capture.getSampleRate();
         }
+        // Linux and Windows: Direct call
+        if (builtin.os.tag == .windows) {
+            return self.wasapi_capture.getSampleRate();
+        }
+        return self.pulse_capture.getSampleRate();
     }
 
     /// Get the audio source type
@@ -108,28 +114,32 @@ pub const AudioCapture = struct {
                 .microphone => .microphone,
                 .monitor => .monitor,
             };
-        } else if (builtin.os.tag == .windows) {
+        }
+        // Linux and Windows: Direct call
+        if (builtin.os.tag == .windows) {
             return switch (self.wasapi_capture.getSource()) {
                 .microphone => .microphone,
                 .monitor => .monitor,
             };
-        } else {
-            return switch (self.pulse_capture.getSource()) {
-                .microphone => .microphone,
-                .monitor => .monitor,
-            };
         }
+        return switch (self.pulse_capture.getSource()) {
+            .microphone => .microphone,
+            .monitor => .monitor,
+        };
     }
 
     /// Clean up resources
     pub fn deinit(self: *Self) void {
         if (builtin.os.tag == .macos) {
             self.coreaudio_capture.deinit();
-        } else if (builtin.os.tag == .windows) {
-            self.wasapi_capture.deinit();
-        } else {
-            self.pulse_capture.deinit();
+            return;
         }
+        // Linux and Windows: Direct call
+        if (builtin.os.tag == .windows) {
+            self.wasapi_capture.deinit();
+            return;
+        }
+        self.pulse_capture.deinit();
     }
 
     /// Start capture (for platforms that need explicit start)
