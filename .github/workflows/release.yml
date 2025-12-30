@@ -112,8 +112,8 @@ jobs:
           mkdir -p ~/onnxruntime
           mv onnxruntime-osx-universal2-1.16.3/* ~/onnxruntime/
 
-      - name: Build zig-april-captions binary (Unix only)
-        if: runner.os != 'Windows'
+      - name: Build zig-april-captions binary (Linux only)
+        if: runner.os == 'Linux'
         shell: bash
         run: |
           cd zig-april-captions
