@@ -5,7 +5,7 @@ const std = @import("std");
 const builtin = @import("builtin");
 
 // Platform-specific implementations
-const coreaudio = if (builtin.os.tag == .macos) @import("coreaudio") else void;
+const coreaudio = if (builtin.os.tag == .macos) @import("coreaudio.zig") else void;
 const pulse = if (builtin.os.tag == .linux) @import("pulse.zig") else void;
 const wasapi = if (builtin.os.tag == .windows) @import("wasapi.zig") else void;
 
