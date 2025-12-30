@@ -47,6 +47,7 @@ const kAudioObjectPropertyScopeOutput = if (is_macos) @as(u32, 0x02) else 0;
 const kAudioObjectPropertyScopeGlobal = if (is_macos) @as(u32, 0x00) else 0;
 
 const kAudioHardwarePropertyDefaultInputDevice = if (is_macos) @as(u32, 0x6473696c) else 0;
+const kAudioObjectSystemObject = if (is_macos) @as(u32, 1) else 0;
 
 const kAudioFormatLinearPCM = if (is_macos) @as(u32, 0x6c70636d) else 0;
 const kLinearPCMFormatFlagIsSignedInteger = if (is_macos) @as(u32, 1 << 1) else 0;
@@ -98,7 +99,7 @@ pub const AudioCapture = struct {
         };
 
         const status = c.AudioObjectGetPropertyData(
-            @ptrCast(c.kAudioObjectSystemObject),
+            c.kAudioObjectSystemObject,
             &prop_addr,
             0,
             null,
