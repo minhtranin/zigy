@@ -783,6 +783,61 @@ jobs:
           args: --target ${{ matrix.target }} --bundles ${{ matrix.bundle }}
           projectPath: zig-april-captions-ui
 
+      - name: Fix rpaths in macOS DMG
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          echo "Fixing rpaths in macOS DMG..."
+
+          # Find the built DMG file
+          DMG_FILE=$(find zig-april-captions-ui/src-tauri/target -name "*.dmg" -type f | head -1)
+
+          if [ -z "$DMG_FILE" ]; then
+            echo "No DMG file found (skipping fix)"
+            exit 0
+          fi
+
+          echo "Found DMG: $DMG_FILE"
+
+          # Mount the DMG readwrite to make changes
+          MOUNT_POINT="/tmp/zigy-fix-$$"
+          mkdir -p "$MOUNT_POINT"
+          hdiutil attach "$DMG_FILE" -mountpoint "$MOUNT_POINT" -nobrowse
+
+          # Find the .app bundle
+          APP_BUNDLE=$(find "$MOUNT_POINT" -name "*.app" -maxdepth 1 | head -1)
+
+          if [ -z "$APP_BUNDLE" ]; then
+            echo "No .app bundle found in DMG!"
+            hdiutil detach "$MOUNT_POINT"
+            exit 1
+          fi
+
+          echo "Found app bundle: $APP_BUNDLE"
+
+          # Fix rpaths on the binary in the mounted DMG
+          BINARY="$APP_BUNDLE/Contents/Resources/resources/zig-april-captions"
+
+          if [ -f "$BINARY" ]; then
+            echo "Fixing rpaths on: $BINARY"
+
+            # Remove development rpaths
+            install_name_tool -delete_rpath /opt/homebrew/lib "$BINARY" 2>/dev/null || true
+            install_name_tool -delete_rpath /Users/runner/onnxruntime/lib "$BINARY" 2>/dev/null || true
+            echo "✓ Removed development rpaths"
+
+            # The correct rpaths should already be set
+            RPATH_OUTPUT=$(otool -l "$BINARY" | grep -A 2 "LC_RPATH")
+            echo "Current rpaths:"
+            echo "$RPATH_OUTPUT"
+          else
+            echo "Binary not found at: $BINARY"
+          fi
+
+          # Unmount
+          hdiutil detach "$MOUNT_POINT"
+          echo "✓ Fixed rpaths in DMG"
+
       - name: Final Verification - Inspect DMG/App Bundle (macOS)
         if: runner.os == 'macOS'
         shell: bash
