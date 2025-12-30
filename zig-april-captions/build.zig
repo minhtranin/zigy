@@ -6,7 +6,6 @@ pub fn build(b: *std.Build) void {
 
     const is_windows = target.result.os.tag == .windows;
     const is_macos = target.result.os.tag == .macos;
-    const is_linux = target.result.os.tag == .linux;
 
     // For macOS build, add a custom compile step that excludes coreaudio.zig on other platforms
     // This is needed because Zig compiles all .zig files in src/ even if conditionally imported
