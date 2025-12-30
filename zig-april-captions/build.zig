@@ -5,7 +5,6 @@ pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{});
 
     const is_windows = target.result.os.tag == .windows;
-    const is_macos = target.result.os.tag == .macos;
 
     // =========================================
     // Build April ASR library from source
