@@ -128,8 +128,12 @@ pub fn build(b: *std.Build) void {
         exe.linkSystemLibrary("pthread");
         exe.linkSystemLibrary("m");
     } else if (target.result.os.tag == .macos) {
-        // macOS: CoreAudio (system frameworks, no extra linking needed)
-        // Just link standard POSIX libraries
+        // macOS: CoreAudio frameworks
+        exe.linkFramework("CoreAudio");
+        exe.linkFramework("AudioToolbox");
+        exe.linkFramework("CoreFoundation");
+
+        // Standard POSIX libraries
         exe.linkSystemLibrary("pthread");
         exe.linkSystemLibrary("m");
 
