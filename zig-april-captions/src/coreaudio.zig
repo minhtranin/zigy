@@ -146,7 +146,7 @@ const RingBuffer = struct {
 // Global context for render callback
 const CaptureContext = struct {
     ring_buffer: *RingBuffer,
-    running: *std.atomic.Value(bool),
+    running: *const std.atomic.Value(bool), // Pointer to AudioCapture's running flag
 };
 
 pub const AudioCapture = struct {
@@ -156,7 +156,7 @@ pub const AudioCapture = struct {
     running: std.atomic.Value(bool),
     allocator: std.mem.Allocator,
     ring_buffer: *RingBuffer,
-    capture_context: CaptureContext,
+    capture_context: *CaptureContext, // Pointer to context used by callback
 
     const Self = @This();
 
@@ -195,6 +195,18 @@ pub const AudioCapture = struct {
     }
 
     /// Audio render callback - called by CoreAudio when audio data is available
+    ///
+    /// WARNING: This callback relies on undocumented CoreAudio behavior.
+    /// For HALOutput input callbacks, Apple's documentation states that input
+    /// data must be pulled using AudioUnitRender(), not read from ioData.
+    /// However, on many macOS versions/drivers, Apple internally fills ioData
+    /// anyway. This implementation reads from ioData for simplicity, but may
+    /// break on:
+    /// - Future macOS versions
+    /// - External USB/Bluetooth devices
+    /// - Aggregate devices
+    ///
+    /// TODO: Implement proper AudioUnitRender pull model for production use.
     fn audioCallback(
         inRefCon: ?*anyopaque,
         ioActionFlags: [*c]c.AudioUnitRenderActionFlags,
@@ -379,8 +391,8 @@ pub const AudioCapture = struct {
             .inputProcRefCon = undefined, // Will set after creating capture_context
         };
 
-        // Create capture context (will be owned by AudioCapture)
-        // We need to set up the structure before we can get the pointer
+        // Create capture context (owned by AudioCapture)
+        // running will be set after creating AudioCapture
         const capture_context_ptr = try allocator.create(CaptureContext);
         capture_context_ptr.* = CaptureContext{
             .ring_buffer = ring_buffer,
@@ -418,17 +430,20 @@ pub const AudioCapture = struct {
             return CoreAudioError.InitializeFailed;
         }
 
+        // Create AudioCapture with running flag
+        const running = std.atomic.Value(bool).init(false);
+
+        // Now set the running pointer in capture_context
+        capture_context_ptr.running = &running;
+
         return Self{
             .audio_unit = audio_unit,
             .format = format,
             .source = .microphone,
-            .running = std.atomic.Value(bool).init(false),
+            .running = running,
             .allocator = allocator,
             .ring_buffer = ring_buffer,
-            .capture_context = .{
-                .ring_buffer = ring_buffer,
-                .running = undefined, // Will set below
-            },
+            .capture_context = capture_context_ptr,
         };
     }
 
@@ -447,9 +462,6 @@ pub const AudioCapture = struct {
     }
 
     pub fn start(self: *Self) !void {
-        // Update capture context reference
-        self.capture_context.running = &self.running;
-
         const status = c.AudioOutputUnitStart(self.audio_unit);
         if (status != 0) {
             std.log.err("Failed to start audio unit, status: {d}", .{status});
@@ -488,7 +500,7 @@ pub const AudioCapture = struct {
 
         self.ring_buffer.deinit(self.allocator);
         self.allocator.destroy(self.ring_buffer);
-        self.allocator.destroy(&self.capture_context);
+        self.allocator.destroy(self.capture_context);
     }
 };
 
