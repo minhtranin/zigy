@@ -126,8 +126,8 @@ pub const AudioCapture = struct {
         // macOS doesn't easily support loopback/mode monitoring without extra permissions
         // Fall back to microphone for monitor source
         const effective_source = switch (source) {
-            .microphone => .microphone,
-            .monitor => .microphone, // Fallback
+            .microphone => AudioSource.microphone,
+            .monitor => AudioSource.microphone, // Fallback
         };
 
         _ = effective_source;
@@ -292,7 +292,7 @@ pub const AudioCapture = struct {
 
     pub fn getSource(self: *Self) AudioSource {
         _ = self;
-        return .microphone;
+        return AudioSource.microphone;
     }
 
     pub fn deinit(self: *Self) void {
