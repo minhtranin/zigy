@@ -25,14 +25,14 @@ pub const AudioCapture = struct {
     const Self = @This();
 
     /// Initialize audio capture
-    pub fn init(allocator: std.mem.Allocator, sample_rate: u32, source: AudioSource) !Self {
+    pub fn init(allocator: std.mem.Allocator, sample_rate: u32, source: AudioSource, verbose: bool) !Self {
         if (builtin.os.tag == .macos) {
             // macOS: Use CoreAudio (monitor falls back to microphone)
             return Self{
                 .coreaudio_capture = try coreaudio.AudioCapture.init(allocator, sample_rate, switch (source) {
                     .microphone => .microphone,
                     .monitor => .monitor,
-                }),
+                }, verbose),
                 .pulse_capture = undefined,
                 .wasapi_capture = undefined,
             };
@@ -42,7 +42,7 @@ pub const AudioCapture = struct {
             return Self{
                 .coreaudio_capture = undefined,
                 .pulse_capture = undefined,
-                .wasapi_capture = try wasapi.AudioCapture.init(sample_rate, .microphone),
+                .wasapi_capture = try wasapi.AudioCapture.init(sample_rate, .microphone, verbose),
             };
         } else {
             // Linux: Use PulseAudio (supports both mic and monitor)
@@ -51,7 +51,7 @@ pub const AudioCapture = struct {
                 .pulse_capture = try pulse.AudioCapture.init(sample_rate, switch (source) {
                     .microphone => .microphone,
                     .monitor => .monitor,
-                }),
+                }, verbose),
                 .wasapi_capture = undefined,
             };
         }

@@ -135,7 +135,8 @@ pub const AudioCapture = struct {
     const Self = @This();
 
     /// Initialize audio capture
-    pub fn init(sample_rate: u32, source: AudioSource) WasapiError!Self {
+    pub fn init(sample_rate: u32, source: AudioSource, verbose: bool) WasapiError!Self {
+        _ = verbose; // Unused for WASAPI
         const format = AudioFormat{
             .sample_rate = sample_rate,
             .channels = 1,

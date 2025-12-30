@@ -61,8 +61,10 @@ pub const AudioCapture = struct {
     /// Initialize audio capture
     /// @param sample_rate: Sample rate in Hz (usually 16000 for speech)
     /// @param source: AudioSource.microphone or AudioSource.monitor
+    /// @param verbose: Enable verbose logging (unused for PulseAudio)
     /// Reference: LiveCaptions audiocap-pa.c - create_audio_thread_pa()
-    pub fn init(sample_rate: u32, source: AudioSource) PulseError!Self {
+    pub fn init(sample_rate: u32, source: AudioSource, verbose: bool) PulseError!Self {
+        _ = verbose; // Unused for PulseAudio
         const format = AudioFormat{ .sample_rate = sample_rate };
         var sample_spec = format.toPaSampleSpec();
         var buffer_attr = getBufferAttr(sample_rate);

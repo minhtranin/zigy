@@ -36,6 +36,7 @@ pub fn main() !void {
     var model_path: ?[]const u8 = null;
     var audio_source = audio.AudioSource.microphone;
     var output_mode = OutputMode.terminal;
+    var verbose = false;
 
     var i: usize = 1;
     while (i < args.len) : (i += 1) {
@@ -53,6 +54,8 @@ pub fn main() !void {
             audio_source = audio.AudioSource.microphone;
         } else if (std.mem.eql(u8, arg, "--json") or std.mem.eql(u8, arg, "-j")) {
             output_mode = OutputMode.json;
+        } else if (std.mem.eql(u8, arg, "--verbose") or std.mem.eql(u8, arg, "-V")) {
+            verbose = true;
         } else if (arg[0] != '-') {
             model_path = arg;
         } else {
@@ -117,7 +120,7 @@ pub fn main() !void {
     if (output_mode == .terminal) {
         std.debug.print("Initializing {s}...\n", .{source_name});
     }
-    var audio_capture = audio.AudioCapture.init(allocator, @intCast(processor.getSampleRate()), audio_source) catch |err| {
+    var audio_capture = audio.AudioCapture.init(allocator, @intCast(processor.getSampleRate()), audio_source, verbose) catch |err| {
         if (output_mode == .json) {
             stdout.print("{{\"type\":\"error\",\"message\":\"Failed to open {s}: {}\"}}\n", .{ source_name, err }) catch {};
         } else {

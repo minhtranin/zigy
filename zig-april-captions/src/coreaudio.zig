@@ -158,11 +158,12 @@ pub const AudioCapture = struct {
     allocator: std.mem.Allocator,
     ring_buffer: *RingBuffer,
     capture_context: *CaptureContext, // Pointer to context used by callback
+    verbose: bool,
 
     const Self = @This();
 
     /// Get the default input device ID
-    fn getDefaultInputDevice() !AudioDeviceID {
+    fn getDefaultInputDevice(self: *Self) !AudioDeviceID {
         if (!is_macos) return error.DeviceNotFound;
 
         var device_id: AudioDeviceID = 0;
@@ -178,7 +179,9 @@ pub const AudioCapture = struct {
             .mElement = kAudioObjectPropertyElementMain,
         };
 
-        std.log.debug("Querying default input device...", .{});
+        if (self.verbose) {
+            std.log.debug("Querying default input device...", .{});
+        }
 
         const status = c.AudioObjectGetPropertyData(
             kAudioObjectSystemObject,
@@ -190,23 +193,29 @@ pub const AudioCapture = struct {
         );
 
         if (status != 0) {
-            std.log.err("Failed to get default input device (status: {d})", .{status});
-            std.log.err("Trying to enumerate all audio devices...", .{});
+            if (self.verbose) {
+                std.log.err("Failed to get default input device (status: {d})", .{status});
+                std.log.err("Trying to enumerate all audio devices...", .{});
+            }
             // Fallback: try to enumerate all devices
-            return findAnyInputDevice();
+            return self.findAnyInputDevice();
         }
 
         if (device_id == 0) {
-            std.log.err("Default input device ID is 0, trying enumeration...", .{});
-            return findAnyInputDevice();
+            if (self.verbose) {
+                std.log.err("Default input device ID is 0, trying enumeration...", .{});
+            }
+            return self.findAnyInputDevice();
         }
 
-        std.log.debug("Found default input device: {d}", .{device_id});
+        if (self.verbose) {
+            std.log.debug("Found default input device: {d}", .{device_id});
+        }
         return device_id;
     }
 
     /// Fallback: enumerate all audio devices and find first input device
-    fn findAnyInputDevice() !AudioDeviceID {
+    fn findAnyInputDevice(self: *Self) !AudioDeviceID {
         if (!is_macos) return error.DeviceNotFound;
 
         // First, get all devices
@@ -231,15 +240,21 @@ pub const AudioCapture = struct {
         );
 
         if (size_status != 0) {
-            std.log.err("Failed to get devices array size (status: {d})", .{size_status});
+            if (self.verbose) {
+                std.log.err("Failed to get devices array size (status: {d})", .{size_status});
+            }
             return CoreAudioError.DeviceNotFound;
         }
 
         const device_count = devices_size / @sizeOf(AudioDeviceID);
-        std.log.debug("Found {d} audio devices, checking for input...", .{device_count});
+        if (self.verbose) {
+            std.log.debug("Found {d} audio devices, checking for input...", .{device_count});
+        }
 
         if (device_count == 0) {
-            std.log.err("No audio devices found on system", .{});
+            if (self.verbose) {
+                std.log.err("No audio devices found on system", .{});
+            }
             return CoreAudioError.DeviceNotFound;
         }
 
@@ -260,27 +275,34 @@ pub const AudioCapture = struct {
         );
 
         if (size_status != 0) {
-            std.log.err("Failed to get devices array (status: {d})", .{size_status});
+            if (self.verbose) {
+                std.log.err("Failed to get devices array (status: {d})", .{size_status});
+            }
             return CoreAudioError.DeviceNotFound;
         }
 
         // Check each device for input capability
         for (devices[0..device_count]) |dev_id| {
-            if (try deviceHasInput(dev_id)) {
-                std.log.debug("Found input device: {d}", .{dev_id});
+            if (try self.deviceHasInput(dev_id)) {
+                if (self.verbose) {
+                    std.log.debug("Found input device: {d}", .{dev_id});
+                }
                 return dev_id;
             }
         }
 
-        std.log.err("No input-capable audio device found", .{});
-        std.log.err("Possible causes:", .{});
-        std.log.err("  1. No microphone connected", .{});
-        std.log.err("  2. Microphone permission denied (System Settings → Privacy & Security → Microphone)", .{});
+        if (self.verbose) {
+            std.log.err("No input-capable audio device found", .{});
+            std.log.err("Possible causes:", .{});
+            std.log.err("  1. No microphone connected", .{});
+            std.log.err("  2. Microphone permission denied (System Settings → Privacy & Security → Microphone)", .{});
+        }
         return CoreAudioError.DeviceNotFound;
     }
 
     /// Check if a device has input capability
-    fn deviceHasInput(device_id: AudioDeviceID) !bool {
+    fn deviceHasInput(self: *Self, device_id: AudioDeviceID) !bool {
+        _ = self; // Keep self parameter for consistency with other instance methods
         var size: u32 = @sizeOf(u32);
         var input_channels: u32 = 0;
 
@@ -353,7 +375,7 @@ pub const AudioCapture = struct {
     }
 
     /// Initialize audio capture
-    pub fn init(allocator: std.mem.Allocator, sample_rate: u32, source: AudioSource) CoreAudioError!Self {
+    pub fn init(allocator: std.mem.Allocator, sample_rate: u32, source: AudioSource, verbose: bool) CoreAudioError!Self {
         if (!is_macos) {
             @compileError("CoreAudio is only available on macOS");
         }
@@ -368,8 +390,21 @@ pub const AudioCapture = struct {
         };
         _ = effective_source;
 
+        // Create a temporary self to call instance methods for device lookup
+        // (we'll create the real one later with all fields)
+        var temp_self = Self{
+            .audio_unit = undefined,
+            .format = format,
+            .source = .microphone,
+            .running = std.atomic.Value(bool).init(false),
+            .allocator = allocator,
+            .ring_buffer = undefined,
+            .capture_context = undefined,
+            .verbose = verbose,
+        };
+
         // Find the default input device
-        const device_id = try getDefaultInputDevice();
+        const device_id = try temp_self.getDefaultInputDevice();
 
         // Create AudioComponentDescription
         const desc = AudioComponentDescription{
@@ -559,6 +594,7 @@ pub const AudioCapture = struct {
             .allocator = allocator,
             .ring_buffer = ring_buffer,
             .capture_context = capture_context_ptr,
+            .verbose = verbose,
         };
     }
 
