@@ -236,6 +236,7 @@ pub const AudioCapture = struct {
             kAudioObjectSystemObject,
             @ptrCast(&get_size_addr),
             0,
+            null,
             &devices_size,
         );
 
