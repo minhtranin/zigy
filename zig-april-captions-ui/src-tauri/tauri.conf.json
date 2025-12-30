@@ -45,8 +45,7 @@
       "entitlements": "entitlements.plist",
       "frameworks": [
         "resources/libonnxruntime.1.16.3.dylib",
-        "resources/libonnxruntime.dylib",
-        "resources/libiomp5.dylib"
+        "resources/libonnxruntime.dylib"
       ]
     }
   }
