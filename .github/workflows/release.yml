@@ -317,23 +317,23 @@ jobs:
           # Set deployment target to support older macOS versions
           echo "Building for macOS deployment target: $MACOSX_DEPLOYMENT_TARGET"
           zig build -Doptimize=ReleaseFast -Dcpu=baseline
+
+          # Fix rpaths on the built binary BEFORE copying
+          # Clear development rpaths FIRST to free up space in binary header
+          install_name_tool -delete_rpath /opt/homebrew/lib zig-out/bin/zig-april-captions 2>/dev/null || true
+          install_name_tool -delete_rpath /Users/runner/onnxruntime/lib zig-out/bin/zig-april-captions 2>/dev/null || true
+          echo "✓ Removed development rpaths from build output"
+
+          # Set production rpaths for macOS app bundle
+          install_name_tool -add_rpath @executable_path/../../Frameworks zig-out/bin/zig-april-captions
+          install_name_tool -add_rpath @executable_path zig-out/bin/zig-april-captions
+          echo "✓ Set production rpaths on build output"
+
           # Copy binary to Tauri resources and ensure it's executable
           if [ -f "zig-out/bin/zig-april-captions" ]; then
             cp zig-out/bin/zig-april-captions ../zig-april-captions-ui/src-tauri/resources/
             chmod +x ../zig-april-captions-ui/src-tauri/resources/zig-april-captions
             echo "Binary copied and made executable"
-
-            # Clear development rpaths FIRST to free up space in binary header
-            install_name_tool -delete_rpath /opt/homebrew/lib ../zig-april-captions-ui/src-tauri/resources/zig-april-captions 2>/dev/null || true
-            install_name_tool -delete_rpath /Users/runner/onnxruntime/lib ../zig-april-captions-ui/src-tauri/resources/zig-april-captions 2>/dev/null || true
-            echo "✓ Removed development rpaths"
-
-            # Set production rpaths for macOS app bundle
-            # @executable_path/../../Frameworks for when bundled in .app
-            # @executable_path for finding dylibs in Resources
-            install_name_tool -add_rpath @executable_path/../../Frameworks ../zig-april-captions-ui/src-tauri/resources/zig-april-captions
-            install_name_tool -add_rpath @executable_path ../zig-april-captions-ui/src-tauri/resources/zig-april-captions
-            echo "✓ Set production rpaths"
           fi
 
           # Copy ONNX Runtime shared library to resources for macOS
