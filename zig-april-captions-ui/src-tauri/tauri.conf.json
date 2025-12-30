@@ -46,7 +46,10 @@
       "frameworks": [
         "resources/libonnxruntime.1.16.3.dylib",
         "resources/libonnxruntime.dylib"
-      ]
+      ],
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "Zigy needs microphone access to provide real-time speech recognition captions."
+      }
     }
   }
 }
