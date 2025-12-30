@@ -681,11 +681,11 @@ jobs:
 
             // Add all .so files from resources (ONNX Runtime + PulseAudio)
             try {
-              const allLibs = execSync('ls src-tauri/resources/*.so* 2>/dev/null', { encoding: 'utf8' }).trim().split('\\n');
+              const allLibs = execSync('ls resources/*.so* 2>/dev/null', { encoding: 'utf8' }).trim().split('\\n');
               for (const lib of allLibs) {
                 if (lib.length > 0) {
-                  // Remove 'src-tauri/resources/' prefix for resource paths
-                  const libPath = lib.replace('src-tauri/resources/', '');
+                  // Remove 'resources/' prefix for resource paths
+                  const libPath = lib.replace('resources/', '');
                   resourceFiles.push('resources/' + libPath);
                 }
               }
