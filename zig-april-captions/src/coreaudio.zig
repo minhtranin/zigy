@@ -8,7 +8,6 @@ const builtin = @import("builtin");
 const is_macos = builtin.os.tag == .macos;
 
 // Only define macOS types when actually on macOS
-const macos = if (is_macos) std.os.macos else struct {};
 const c = if (is_macos) @cImport({
     @cInclude("CoreFoundation/CoreFoundation.h");
     @cInclude("AudioUnit/AudioUnit.h");
@@ -98,8 +97,8 @@ pub const AudioCapture = struct {
             .mElement = 0,
         };
 
-        const status = macos.AudioObjectGetPropertyData(
-            @ptrCast(macos.kAudioObjectSystemObject),
+        const status = c.AudioObjectGetPropertyData(
+            @ptrCast(c.kAudioObjectSystemObject),
             &prop_addr,
             0,
             null,
@@ -144,7 +143,7 @@ pub const AudioCapture = struct {
             .componentFlagsMask = 0,
         };
 
-        const component = macos.AudioComponentFindNext(null, &desc);
+        const component = c.AudioComponentFindNext(null, &desc);
         if (component == null) {
             std.log.err("Failed to find HAL output component", .{});
             return CoreAudioError.DeviceNotFound;
@@ -152,7 +151,7 @@ pub const AudioCapture = struct {
 
         // Create AudioUnit instance
         var audio_unit: AudioUnit = undefined;
-        var status = macos.AudioComponentInstanceNew(component, &audio_unit);
+        var status = c.AudioComponentInstanceNew(component, &audio_unit);
         if (status != 0) {
             std.log.err("Failed to create audio unit, status: {d}", .{status});
             return CoreAudioError.InitializeFailed;
@@ -161,7 +160,7 @@ pub const AudioCapture = struct {
         // Enable input on the audio unit
         var enable: u32 = 1;
 
-        status = macos.AudioUnitSetProperty(
+        status = c.AudioUnitSetProperty(
             audio_unit,
             kAudioUnitProperty_EnableIO,
             kAudioObjectPropertyScopeInput,
@@ -172,7 +171,7 @@ pub const AudioCapture = struct {
 
         if (status != 0) {
             std.log.err("Failed to enable input, status: {d}", .{status});
-            _ = macos.AudioComponentInstanceDispose(audio_unit);
+            _ = c.AudioComponentInstanceDispose(audio_unit);
             return CoreAudioError.InitializeFailed;
         }
 
@@ -199,7 +198,7 @@ pub const AudioCapture = struct {
             .mReserved = 0,
         };
 
-        status = macos.AudioUnitSetProperty(
+        status = c.AudioUnitSetProperty(
             audio_unit,
             kAudioUnitProperty_StreamFormat,
             kAudioObjectPropertyScopeInput,
@@ -210,12 +209,12 @@ pub const AudioCapture = struct {
 
         if (status != 0) {
             std.log.err("Failed to set stream format, status: {d}", .{status});
-            _ = macos.AudioComponentInstanceDispose(audio_unit);
+            _ = c.AudioComponentInstanceDispose(audio_unit);
             return CoreAudioError.FormatMismatch;
         }
 
         // Set the current device
-        status = macos.AudioUnitSetProperty(
+        status = c.AudioUnitSetProperty(
             audio_unit,
             0x6476646c, // kAudioOutputUnitProperty_CurrentDevice = 'dvdl'
             kAudioObjectPropertyScopeGlobal,
@@ -226,13 +225,13 @@ pub const AudioCapture = struct {
 
         if (status != 0) {
             std.log.err("Failed to set current device, status: {d}", .{status});
-            _ = macos.AudioComponentInstanceDispose(audio_unit);
+            _ = c.AudioComponentInstanceDispose(audio_unit);
             return CoreAudioError.DeviceNotFound;
         }
 
         // Set buffer size (50ms = 800 frames at 16kHz)
         const buffer_frames = (sample_rate * 50) / 1000;
-        status = macos.AudioUnitSetProperty(
+        status = c.AudioUnitSetProperty(
             audio_unit,
             0x6273697a, // kAudioDevicePropertyBufferFrameSize = 'bsiz'
             kAudioObjectPropertyScopeInput,
