@@ -322,6 +322,18 @@ jobs:
             cp zig-out/bin/zig-april-captions ../zig-april-captions-ui/src-tauri/resources/
             chmod +x ../zig-april-captions-ui/src-tauri/resources/zig-april-captions
             echo "Binary copied and made executable"
+
+            # Set production rpaths for macOS app bundle
+            # @executable_path/../../Frameworks for when bundled in .app
+            # @executable_path for finding dylibs in Resources
+            install_name_tool -add_rpath @executable_path/../../Frameworks ../zig-april-captions-ui/src-tauri/resources/zig-april-captions
+            install_name_tool -add_rpath @executable_path ../zig-april-captions-ui/src-tauri/resources/zig-april-captions
+            echo "✓ Set production rpaths"
+
+            # Clear development rpaths (hardcoded paths from Zig build)
+            install_name_tool -delete_rpath /opt/homebrew/lib ../zig-april-captions-ui/src-tauri/resources/zig-april-captions 2>/dev/null || true
+            install_name_tool -delete_rpath /Users/runner/onnxruntime/lib ../zig-april-captions-ui/src-tauri/resources/zig-april-captions 2>/dev/null || true
+            echo "✓ Removed development rpaths"
           fi
 
           # Copy ONNX Runtime shared library to resources for macOS
