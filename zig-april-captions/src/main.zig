@@ -117,7 +117,7 @@ pub fn main() !void {
     if (output_mode == .terminal) {
         std.debug.print("Initializing {s}...\n", .{source_name});
     }
-    var audio_capture = audio.AudioCapture.init(@intCast(processor.getSampleRate()), audio_source) catch |err| {
+    var audio_capture = audio.AudioCapture.init(allocator, @intCast(processor.getSampleRate()), audio_source) catch |err| {
         if (output_mode == .json) {
             stdout.print("{{\"type\":\"error\",\"message\":\"Failed to open {s}: {}\"}}\n", .{ source_name, err }) catch {};
         } else {
@@ -133,6 +133,16 @@ pub fn main() !void {
         return;
     };
     defer audio_capture.deinit();
+
+    // Start audio capture (required for CoreAudio on macOS)
+    audio_capture.start() catch |err| {
+        if (output_mode == .json) {
+            stdout.print("{{\"type\":\"error\",\"message\":\"Failed to start audio: {}\"}}\n", .{err}) catch {};
+        } else {
+            std.debug.print("Error: Failed to start audio - {}\n", .{err});
+        }
+        return;
+    };
 
     // Setup signal handler for graceful exit
     setupSignalHandler(&audio_capture);
