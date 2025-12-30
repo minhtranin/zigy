@@ -23,6 +23,7 @@ pub const CoreAudioError = error{
     BufferError,
     PropertyError,
     OutOfMemory,
+    Terminated,
 };
 
 /// Audio source type
@@ -57,6 +58,7 @@ const kAudioFormatFlagsNativeEndian = if (is_macos) @as(u32, 0 << 2) else 0;
 
 const kAudioUnitProperty_StreamFormat = if (is_macos) @as(u32, 10) else 0;
 const kAudioUnitProperty_EnableIO = if (is_macos) @as(u32, 5) else 0;
+const kAudioUnitProperty_SetRenderCallback = if (is_macos) @as(u32, 6) else 0;
 
 const kAudioOutputUnitRange_Input = if (is_macos) @as(u32, 1) else 0;
 const kAudioOutputUnitRange_Output = if (is_macos) @as(u32, 0) else 0;
@@ -70,6 +72,82 @@ const AudioStreamBasicDescription = if (is_macos) c.AudioStreamBasicDescription 
 const AudioBuffer = if (is_macos) c.AudioBuffer else extern struct {};
 const AudioBufferList = if (is_macos) c.AudioBufferList else extern struct {};
 const AudioTimeStamp = if (is_macos) c.AudioTimeStamp else extern struct {};
+const AURenderCallbackStruct = if (is_macos) c.AURenderCallbackStruct else extern struct {};
+
+/// Thread-safe ring buffer for audio data
+const RingBuffer = struct {
+    data: []i16,
+    write_pos: usize,
+    read_pos: usize,
+    capacity: usize,
+    mutex: std.Thread.Mutex,
+    condition: std.Thread.Condition,
+
+    const Self = @This();
+
+    fn init(allocator: std.mem.Allocator, capacity: usize) !Self {
+        const data = try allocator.alloc(i16, capacity);
+        return Self{
+            .data = data,
+            .write_pos = 0,
+            .read_pos = 0,
+            .capacity = capacity,
+            .mutex = .{},
+            .condition = .{},
+        };
+    }
+
+    fn deinit(self: *Self, allocator: std.mem.Allocator) void {
+        allocator.free(self.data);
+    }
+
+    fn write(self: *Self, samples: []const i16) void {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+
+        for (samples) |sample| {
+            self.data[self.write_pos] = sample;
+            self.write_pos = (self.write_pos + 1) % self.capacity;
+
+            // Advance read_pos if buffer is full (drop old data)
+            if (self.write_pos == self.read_pos) {
+                self.read_pos = (self.read_pos + 1) % self.capacity;
+            }
+        }
+
+        self.condition.signal();
+    }
+
+    fn read(self: *Self, buffer: []i16) usize {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+
+        var count: usize = 0;
+        while (count < buffer.len and self.read_pos != self.write_pos) : (count += 1) {
+            buffer[count] = self.data[self.read_pos];
+            self.read_pos = (self.read_pos + 1) % self.capacity;
+        }
+
+        return count;
+    }
+
+    fn available(self: *Self) usize {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+
+        if (self.write_pos >= self.read_pos) {
+            return self.write_pos - self.read_pos;
+        } else {
+            return self.capacity - self.read_pos + self.write_pos;
+        }
+    }
+};
+
+// Global context for render callback
+const CaptureContext = struct {
+    ring_buffer: *RingBuffer,
+    running: *std.atomic.Value(bool),
+};
 
 pub const AudioCapture = struct {
     audio_unit: AudioUnit,
@@ -77,8 +155,8 @@ pub const AudioCapture = struct {
     source: AudioSource,
     running: std.atomic.Value(bool),
     allocator: std.mem.Allocator,
-    buffer: []i16,
-    buffer_size: usize,
+    ring_buffer: *RingBuffer,
+    capture_context: CaptureContext,
 
     const Self = @This();
 
@@ -116,6 +194,37 @@ pub const AudioCapture = struct {
         return device_id;
     }
 
+    /// Audio render callback - called by CoreAudio when audio data is available
+    fn audioCallback(
+        inRefCon: ?*anyopaque,
+        ioActionFlags: ?*anyopaque,
+        inTimeStamp: [*c]const AudioTimeStamp,
+        inBusNumber: u32,
+        inNumberFrames: u32,
+        ioData: [*c]AudioBufferList,
+    ) callconv(.C) c_int {
+        _ = ioActionFlags;
+        _ = inTimeStamp;
+        _ = inBusNumber;
+
+        const context = @as(*CaptureContext, @ptrCast(@alignCast(inRefCon)));
+
+        if (!context.running.load(.acquire)) {
+            return 0;
+        }
+
+        const buffer_list = ioData[0];
+        if (buffer_list.mNumberBuffers < 1) return 0;
+
+        const buffer = &buffer_list.mBuffers[0];
+        const samples = @as([*]i16, @ptrCast(@alignCast(buffer.mData)))[0..inNumberFrames];
+
+        // Write samples to ring buffer
+        context.ring_buffer.write(samples);
+
+        return 0;
+    }
+
     /// Initialize audio capture
     pub fn init(allocator: std.mem.Allocator, sample_rate: u32, source: AudioSource) CoreAudioError!Self {
         if (!is_macos) {
@@ -124,13 +233,12 @@ pub const AudioCapture = struct {
 
         const format = AudioFormat{ .sample_rate = sample_rate };
 
-        // macOS doesn't easily support loopback/mode monitoring without extra permissions
+        // macOS doesn't easily support loopback/monitoring without extra permissions
         // Fall back to microphone for monitor source
         const effective_source = switch (source) {
             .microphone => AudioSource.microphone,
             .monitor => AudioSource.microphone, // Fallback
         };
-
         _ = effective_source;
 
         // Find the default input device
@@ -161,7 +269,6 @@ pub const AudioCapture = struct {
 
         // Enable input on the audio unit
         var enable: u32 = 1;
-
         status = c.AudioUnitSetProperty(
             audio_unit,
             kAudioUnitProperty_EnableIO,
@@ -175,6 +282,21 @@ pub const AudioCapture = struct {
             std.log.err("Failed to enable input, status: {d}", .{status});
             _ = c.AudioComponentInstanceDispose(audio_unit);
             return CoreAudioError.InitializeFailed;
+        }
+
+        // Disable output (we only want input)
+        enable = 0;
+        status = c.AudioUnitSetProperty(
+            audio_unit,
+            kAudioUnitProperty_EnableIO,
+            kAudioObjectPropertyScopeOutput,
+            kAudioOutputUnitRange_Output,
+            &enable,
+            @sizeOf(u32),
+        );
+
+        if (status != 0) {
+            std.log.warn("Failed to disable output (non-fatal), status: {d}", .{status});
         }
 
         // Set the audio format
@@ -206,7 +328,7 @@ pub const AudioCapture = struct {
             kAudioObjectPropertyScopeInput,
             kAudioOutputUnitRange_Input,
             &stream_format,
-            @sizeOf(extern struct { mSampleRate: f64, mFormatID: u32, mFormatFlags: u32, mBytesPerPacket: u32, mFramesPerPacket: u32, mBytesPerFrame: u32, mChannelsPerFrame: u32, mBitsPerChannel: u32, mReserved: u32 }),
+            @sizeOf(@TypeOf(stream_format)),
         );
 
         if (status != 0) {
@@ -246,8 +368,55 @@ pub const AudioCapture = struct {
             std.log.warn("Failed to set buffer size (non-fatal), status: {d}", .{status});
         }
 
-        // Allocate buffer for audio data
-        const buffer = try allocator.alloc(i16, buffer_frames);
+        // Create ring buffer (capacity = 2 seconds of audio)
+        const ring_buffer_capacity = sample_rate * 2;
+        const ring_buffer = try allocator.create(RingBuffer);
+        ring_buffer.* = try RingBuffer.init(allocator, ring_buffer_capacity);
+
+        // Set up render callback
+        var callback_struct = AURenderCallbackStruct{
+            .inputProc = audioCallback,
+            .inputProcRefCon = undefined, // Will set after creating capture_context
+        };
+
+        // Create capture context (will be owned by AudioCapture)
+        // We need to set up the structure before we can get the pointer
+        const capture_context_ptr = try allocator.create(CaptureContext);
+        capture_context_ptr.* = CaptureContext{
+            .ring_buffer = ring_buffer,
+            .running = undefined, // Will set after creating AudioCapture
+        };
+
+        callback_struct.inputProcRefCon = capture_context_ptr;
+
+        status = c.AudioUnitSetProperty(
+            audio_unit,
+            kAudioUnitProperty_SetRenderCallback,
+            kAudioObjectPropertyScopeInput,
+            kAudioOutputUnitRange_Input,
+            &callback_struct,
+            @sizeOf(AURenderCallbackStruct),
+        );
+
+        if (status != 0) {
+            std.log.err("Failed to set render callback, status: {d}", .{status});
+            ring_buffer.deinit(allocator);
+            allocator.destroy(ring_buffer);
+            allocator.destroy(capture_context_ptr);
+            _ = c.AudioComponentInstanceDispose(audio_unit);
+            return CoreAudioError.InitializeFailed;
+        }
+
+        // Initialize the AudioUnit
+        status = c.AudioUnitInitialize(audio_unit);
+        if (status != 0) {
+            std.log.err("Failed to initialize audio unit, status: {d}", .{status});
+            ring_buffer.deinit(allocator);
+            allocator.destroy(ring_buffer);
+            allocator.destroy(capture_context_ptr);
+            _ = c.AudioComponentInstanceDispose(audio_unit);
+            return CoreAudioError.InitializeFailed;
+        }
 
         return Self{
             .audio_unit = audio_unit,
@@ -255,49 +424,71 @@ pub const AudioCapture = struct {
             .source = .microphone,
             .running = std.atomic.Value(bool).init(false),
             .allocator = allocator,
-            .buffer = buffer,
-            .buffer_size = buffer_frames * @sizeOf(i16),
+            .ring_buffer = ring_buffer,
+            .capture_context = .{
+                .ring_buffer = ring_buffer,
+                .running = undefined, // Will set below
+            },
         };
     }
 
     pub fn read(self: *Self, buffer: []i16) CoreAudioError![]i16 {
-        _ = self;
-        _ = buffer;
-        if (!is_macos) {
-            return CoreAudioError.ReadFailed;
+        const count = self.ring_buffer.read(buffer);
+
+        if (count == 0) {
+            // No data available yet
+            if (!self.running.load(.acquire)) {
+                return CoreAudioError.Terminated;
+            }
+            return buffer[0..0];
         }
-        return CoreAudioError.ReadFailed;
+
+        return buffer[0..count];
     }
 
     pub fn start(self: *Self) !void {
-        _ = self;
-        if (!is_macos) {
+        // Update capture context reference
+        self.capture_context.running = &self.running;
+
+        const status = c.AudioOutputUnitStart(self.audio_unit);
+        if (status != 0) {
+            std.log.err("Failed to start audio unit, status: {d}", .{status});
             return CoreAudioError.StartFailed;
         }
-        return CoreAudioError.StartFailed;
+
+        self.running.store(true, .release);
     }
 
     pub fn stop(self: *Self) void {
-        _ = self;
+        self.running.store(false, .release);
+
+        const status = c.AudioOutputUnitStop(self.audio_unit);
+        if (status != 0) {
+            std.log.warn("Failed to stop audio unit cleanly, status: {d}", .{status});
+        }
     }
 
     pub fn isRunning(self: *Self) bool {
-        _ = self;
-        return false;
+        return self.running.load(.acquire);
     }
 
     pub fn getSampleRate(self: *Self) u32 {
-        _ = self;
-        return 16000;
+        return self.format.sample_rate;
     }
 
     pub fn getSource(self: *Self) AudioSource {
-        _ = self;
-        return AudioSource.microphone;
+        return self.source;
     }
 
     pub fn deinit(self: *Self) void {
-        _ = self;
+        self.stop();
+
+        _ = c.AudioUnitUninitialize(self.audio_unit);
+        _ = c.AudioComponentInstanceDispose(self.audio_unit);
+
+        self.ring_buffer.deinit(self.allocator);
+        self.allocator.destroy(self.ring_buffer);
+        self.allocator.destroy(&self.capture_context);
     }
 };
 
