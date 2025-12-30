@@ -86,7 +86,7 @@ pub const AudioCapture = struct {
         if (!is_macos) return error.DeviceNotFound;
 
         var device_id: AudioDeviceID = 0;
-        var size: usize = @sizeOf(AudioDeviceID);
+        var size: u32 = @sizeOf(AudioDeviceID);
 
         const prop_addr = extern struct {
             mSelector: u32,
