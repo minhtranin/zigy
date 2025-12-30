@@ -5,6 +5,11 @@ pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{});
 
     const is_windows = target.result.os.tag == .windows;
+    const is_macos = target.result.os.tag == .macos;
+    const is_linux = target.result.os.tag == .linux;
+
+    // For macOS build, add a custom compile step that excludes coreaudio.zig on other platforms
+    // This is needed because Zig compiles all .zig files in src/ even if conditionally imported
 
     // =========================================
     // Build April ASR library from source
@@ -103,6 +108,12 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
+
+    // Add macOS-specific source files only for macOS builds
+    if (is_macos) {
+        // Add a module path for src/macos so coreaudio.zig can be imported
+        exe.root_module.addImportPath("coreaudio", b.path("src/macos/coreaudio.zig"));
+    }
 
     // Link April ASR (built from source)
     exe.linkLibrary(april_lib);
