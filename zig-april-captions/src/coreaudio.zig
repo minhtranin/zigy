@@ -197,10 +197,10 @@ pub const AudioCapture = struct {
     /// Audio render callback - called by CoreAudio when audio data is available
     fn audioCallback(
         inRefCon: ?*anyopaque,
-        ioActionFlags: ?*anyopaque,
+        ioActionFlags: [*c]u32,
         inTimeStamp: [*c]const AudioTimeStamp,
-        inBusNumber: u32,
-        inNumberFrames: u32,
+        inBusNumber: c_uint,
+        inNumberFrames: c_uint,
         ioData: [*c]AudioBufferList,
     ) callconv(.C) c_int {
         _ = ioActionFlags;
