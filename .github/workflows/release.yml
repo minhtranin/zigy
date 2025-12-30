@@ -178,38 +178,9 @@ jobs:
                 NEW_RPATH=$(patchelf --print-rpath zig-out/bin/zig-april-captions || echo "")
                 echo "Fixed RPATH to: $NEW_RPATH"
 
-                # Copy PulseAudio libraries for bundling (like macOS)
-                echo "Copying PulseAudio libraries for bundling..."
-                RESOURCE_DIR="../zig-april-captions-ui/src-tauri/resources"
-
-                # Copy main PulseAudio libraries
-                for lib in libpulse.so.0 libpulse-simple.so.0; do
-                  if [ -f "/usr/lib/x86_64-linux-gnu/$lib" ]; then
-                    cp "/usr/lib/x86_64-linux-gnu/$lib" "$RESOURCE_DIR/"
-                    echo "✓ Copied $lib"
-                  fi
-                done
-
-                # Copy libpulsecommon (shared module)
-                PULSECOMMON=$(find /usr/lib/x86_64-linux-gnu -name "libpulsecommon-*.so" 2>/dev/null | head -1)
-                if [ -n "$PULSECOMMON" ]; then
-                  cp "$PULSECOMMON" "$RESOURCE_DIR/"
-                  echo "✓ Copied $(basename "$PULSECOMMON")"
-                fi
-
-                # Copy libsndfile (dependency for PulseAudio)
-                if [ -f "/usr/lib/x86_64-linux-gnu/libsndfile.so.1" ]; then
-                  cp "/usr/lib/x86_64-linux-gnu/libsndfile.so.1" "$RESOURCE_DIR/"
-                  echo "✓ Copied libsndfile.so.1"
-                fi
-
-                # Copy other dependencies that PulseAudio needs
-                for lib in libFLAC.so.8 libvorbis.so.0 libogg.so.0 libvorbisenc.so.2; do
-                  if [ -f "/usr/lib/x86_64-linux-gnu/$lib" ]; then
-                    cp "/usr/lib/x86_64-linux-gnu/$lib" "$RESOURCE_DIR/"
-                    echo "✓ Copied $lib"
-                  fi
-                done
+                # NOTE: Not bundling PulseAudio libraries
+                # Using system PulseAudio ensures best compatibility
+                # and proper buffer negotiation with user's audio server
               fi
             else
               echo "Warning: ONNX Runtime library not found"
@@ -623,30 +594,8 @@ jobs:
               debFiles['/usr/lib/zigy/libonnxruntime.so.' + version] = onnxVersionedFile;
             }
 
-            // Add ALL PulseAudio libraries and dependencies
-            const pulseLibs = [
-              'libpulse.so.0',
-              'libpulse-simple.so.0',
-              'libpulsecommon',
-              'libsndfile.so.1',
-              'libFLAC.so.8',
-              'libvorbis.so.0',
-              'libogg.so.0',
-              'libvorbisenc.so.2'
-            ];
-
-            // Find all PulseAudio-related libraries in resources
-            try {
-              const allFiles = execSync('ls src-tauri/resources/*.so* 2>/dev/null', { encoding: 'utf8' }).trim().split('\\n');
-              for (const lib of allFiles) {
-                const basename = lib.replace('src-tauri/resources/', '');
-                if (pulseLibs.some(pattern => basename.startsWith(pattern.replace('\\*', '')))) {
-                  debFiles['/usr/lib/zigy/' + basename] = lib;
-                }
-              }
-            } catch (e) {
-              console.log('No additional library files found');
-            }
+            // NOTE: Not bundling PulseAudio - using system libraries
+            // This ensures best compatibility and proper buffer negotiation
 
             // Note: Model is downloaded for testing but NOT bundled in DEB
             // Users will download model separately
@@ -676,10 +625,11 @@ jobs:
 
             const { execSync } = require('child_process');
 
-            // Use resources to bundle everything into AppImage
+            // Use resources to bundle binary + ONNX Runtime into AppImage
+            // NOTE: PulseAudio uses system libraries (not bundled) for best compatibility
             const resourceFiles = ['resources/zig-april-captions'];
 
-            // Add all .so files from resources (ONNX Runtime + PulseAudio)
+            // Add all .so files from resources (ONNX Runtime only now)
             try {
               const allLibs = execSync('ls resources/*.so* 2>/dev/null', { encoding: 'utf8' }).trim().split('\\n');
               for (const lib of allLibs) {
