@@ -6,8 +6,14 @@ fn main() {
     // Build the Zig binary before building Tauri app
     build_zig_binary();
 
-    // Copy binary to resources directory for bundling
-    prepare_binary_for_bundling();
+    // Copy binary to resources directory ONLY for release builds
+    // Dev mode doesn't need resources - it causes infinite rebuild loops
+    let is_release = env::var("PROFILE").unwrap_or_default() == "release";
+    if is_release {
+        prepare_binary_for_bundling();
+    } else {
+        println!("Dev mode detected - skipping binary bundling to avoid watch loops");
+    }
 
     tauri_build::build()
 }
