@@ -29,7 +29,10 @@ pub const AudioCapture = struct {
         if (builtin.os.tag == .macos) {
             // macOS: Use CoreAudio (monitor falls back to microphone)
             return Self{
-                .coreaudio_capture = try coreaudio.AudioCapture.init(allocator, sample_rate, source),
+                .coreaudio_capture = try coreaudio.AudioCapture.init(allocator, sample_rate, switch (source) {
+                    .microphone => .microphone,
+                    .monitor => .monitor,
+                }),
                 .pulse_capture = undefined,
                 .wasapi_capture = undefined,
             };
