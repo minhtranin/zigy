@@ -386,7 +386,7 @@ jobs:
           # Test: Try to load the model (will fail without audio, but tests library loading)
           # Using background process with timeout for cross-platform compatibility
           echo "Test 1: Load model (tests dylib loading)"
-          ("$BINARY" --json "$MODEL" 2>&1 || true) | head -20 &
+          ("$BINARY" --json --verbose "$MODEL" 2>&1 || true) | head -30 &
           TEST_PID=$!
           sleep 5
           kill $TEST_PID 2>/dev/null || true
