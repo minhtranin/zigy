@@ -174,7 +174,7 @@ pub const AudioCapture = struct {
             .microphone => .microphone,
             .monitor => {
                 std.log.warn("Monitor mode not supported on macOS, using microphone instead", .{});
-                .microphone
+                break : .microphone;
             },
         };
 
