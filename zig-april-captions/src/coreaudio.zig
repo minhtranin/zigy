@@ -50,6 +50,7 @@ const kAudioObjectPropertyScopeGlobal = if (is_macos) @as(u32, 0x00) else 0;
 
 const kAudioHardwarePropertyDefaultInputDevice = if (is_macos) @as(u32, 0x6473696c) else 0;
 const kAudioObjectSystemObject = if (is_macos) @as(u32, 1) else 0;
+const kAudioObjectPropertyElementMain = if (is_macos) @as(u32, 0) else 0;
 
 const kAudioFormatLinearPCM = if (is_macos) @as(u32, 0x6c70636d) else 0;
 const kLinearPCMFormatFlagIsSignedInteger = if (is_macos) @as(u32, 1 << 1) else 0;
@@ -174,8 +175,10 @@ pub const AudioCapture = struct {
         }{
             .mSelector = kAudioHardwarePropertyDefaultInputDevice,
             .mScope = kAudioObjectPropertyScopeGlobal,
-            .mElement = 0,
+            .mElement = kAudioObjectPropertyElementMain,
         };
+
+        std.log.debug("Querying default input device...", .{});
 
         const status = c.AudioObjectGetPropertyData(
             kAudioObjectSystemObject,
@@ -187,11 +190,123 @@ pub const AudioCapture = struct {
         );
 
         if (status != 0) {
-            std.log.err("Failed to get default input device, status: {d}", .{status});
+            std.log.err("Failed to get default input device (status: {d})", .{status});
+            std.log.err("Trying to enumerate all audio devices...", .{});
+            // Fallback: try to enumerate all devices
+            return findAnyInputDevice();
+        }
+
+        if (device_id == 0) {
+            std.log.err("Default input device ID is 0, trying enumeration...", .{});
+            return findAnyInputDevice();
+        }
+
+        std.log.debug("Found default input device: {d}", .{device_id});
+        return device_id;
+    }
+
+    /// Fallback: enumerate all audio devices and find first input device
+    fn findAnyInputDevice() !AudioDeviceID {
+        if (!is_macos) return error.DeviceNotFound;
+
+        // First, get all devices
+        var devices_size: u32 = 0;
+
+        const get_size_addr = extern struct {
+            mSelector: u32,
+            mScope: u32,
+            mElement: u32,
+        }{
+            .mSelector = 0x64656c69, // kAudioHardwarePropertyDevices = 'deli'
+            .mScope = kAudioObjectPropertyScopeGlobal,
+            .mElement = kAudioObjectPropertyElementMain,
+        };
+
+        // Get size of devices array
+        var size_status = c.AudioObjectGetPropertyDataSize(
+            kAudioObjectSystemObject,
+            @ptrCast(&get_size_addr),
+            0,
+            &devices_size,
+        );
+
+        if (size_status != 0) {
+            std.log.err("Failed to get devices array size (status: {d})", .{size_status});
             return CoreAudioError.DeviceNotFound;
         }
 
-        return device_id;
+        const device_count = devices_size / @sizeOf(AudioDeviceID);
+        std.log.debug("Found {d} audio devices, checking for input...", .{device_count});
+
+        if (device_count == 0) {
+            std.log.err("No audio devices found on system", .{});
+            return CoreAudioError.DeviceNotFound;
+        }
+
+        // Allocate array for devices
+        const devices = try std.heap.page_allocator.alloc(AudioDeviceID, device_count);
+        defer std.heap.page_allocator.free(devices);
+
+        devices_size = @intCast(devices_size);
+
+        // Get all devices
+        size_status = c.AudioObjectGetPropertyData(
+            kAudioObjectSystemObject,
+            @ptrCast(&get_size_addr),
+            0,
+            null,
+            &devices_size,
+            devices.ptr,
+        );
+
+        if (size_status != 0) {
+            std.log.err("Failed to get devices array (status: {d})", .{size_status});
+            return CoreAudioError.DeviceNotFound;
+        }
+
+        // Check each device for input capability
+        for (devices[0..device_count]) |dev_id| {
+            if (try deviceHasInput(dev_id)) {
+                std.log.debug("Found input device: {d}", .{dev_id});
+                return dev_id;
+            }
+        }
+
+        std.log.err("No input-capable audio device found", .{});
+        std.log.err("Possible causes:", .{});
+        std.log.err("  1. No microphone connected", .{});
+        std.log.err("  2. Microphone permission denied (System Settings → Privacy & Security → Microphone)", .{});
+        return CoreAudioError.DeviceNotFound;
+    }
+
+    /// Check if a device has input capability
+    fn deviceHasInput(device_id: AudioDeviceID) !bool {
+        var size: u32 = @sizeOf(u32);
+        var input_channels: u32 = 0;
+
+        const prop_addr = extern struct {
+            mSelector: u32,
+            mScope: u32,
+            mElement: u32,
+        }{
+            .mSelector = 0x636e6420, // kAudioDevicePropertyStreamConfiguration = 'cnd ' (or use 0x676e6420 for number of channels)
+            .mScope = kAudioObjectPropertyScopeInput,
+            .mElement = kAudioObjectPropertyElementMain,
+        };
+
+        // Try to get input scope configuration
+        // If this succeeds, the device has input capability
+        const status = c.AudioObjectGetPropertyData(
+            device_id,
+            @ptrCast(&prop_addr),
+            0,
+            null,
+            &size,
+            &input_channels,
+        );
+
+        // If we can query input scope, device has input capability
+        return status == 0;
     }
 
     /// Audio render callback - called by CoreAudio when audio data is available
