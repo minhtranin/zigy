@@ -436,32 +436,14 @@ jobs:
           echo "3. Binary library dependencies (from zig-out/bin):"
           echo "ONNX Runtime:"
           otool -L zig-april-captions/zig-out/bin/zig-april-captions | grep -i onnx || echo "No ONNX dependency found!"
-          echo "PulseAudio:"
-          otool -L zig-april-captions/zig-out/bin/zig-april-captions | grep -i pulse || echo "No PulseAudio dependency found!"
+          echo "CoreAudio:"
+          otool -L zig-april-captions/zig-out/bin/zig-april-captions | grep -i "AudioToolbox\|CoreAudio" || echo "CoreAudio frameworks found (system)"
 
-          # 4. Verify PulseAudio libraries are present
+          # 4. Check ONNX Runtime dylib install names
           echo ""
-          echo "4. Checking for PulseAudio libraries:"
-          if [ -f "zig-april-captions-ui/src-tauri/resources/libpulse.0.dylib" ]; then
-            echo "✓ Found libpulse.0.dylib"
-            otool -D zig-april-captions-ui/src-tauri/resources/libpulse.0.dylib
-          else
-            echo "ERROR: libpulse.0.dylib not found!"
-            exit 1
-          fi
-
-          if [ -f "zig-april-captions-ui/src-tauri/resources/libpulse-simple.0.dylib" ]; then
-            echo "✓ Found libpulse-simple.0.dylib"
-            otool -D zig-april-captions-ui/src-tauri/resources/libpulse-simple.0.dylib
-          else
-            echo "ERROR: libpulse-simple.0.dylib not found!"
-            exit 1
-          fi
-
-          # 5. Check ONNX Runtime dylib install names
-          echo ""
-          echo "5. ONNX Runtime dylib install names (should use @rpath):"
+          echo "4. ONNX Runtime dylib install names (should use @rpath):"
           if [ -f "zig-april-captions-ui/src-tauri/resources/libonnxruntime.1.16.3.dylib" ]; then
+            echo "✓ Found libonnxruntime.1.16.3.dylib"
             otool -D zig-april-captions-ui/src-tauri/resources/libonnxruntime.1.16.3.dylib
           else
             echo "ERROR: libonnxruntime.1.16.3.dylib not found!"
@@ -469,13 +451,14 @@ jobs:
           fi
 
           if [ -f "zig-april-captions-ui/src-tauri/resources/libonnxruntime.dylib" ]; then
+            echo "✓ Found libonnxruntime.dylib"
             otool -D zig-april-captions-ui/src-tauri/resources/libonnxruntime.dylib
           else
             echo "ERROR: libonnxruntime.dylib not found!"
             exit 1
           fi
 
-          # 6. Check for hardcoded paths in zig-out/bin (should not exist)
+          # 5. Check for hardcoded paths in zig-out/bin (should not exist)
           echo ""
           echo "6. Checking for hardcoded paths in zig-out/bin (should be empty):"
           echo "Checking for /opt/homebrew paths:"
@@ -870,60 +853,7 @@ jobs:
             exit 1
           fi
 
-          # Check PulseAudio (in Frameworks)
-          if [ -f "$FRAMEWORKS_PATH/libpulse.0.dylib" ]; then
-            echo "✓ libpulse.0.dylib exists (in Frameworks)"
-            otool -D "$FRAMEWORKS_PATH/libpulse.0.dylib" | tail -1
-          else
-            echo "ERROR: libpulse.0.dylib not found in Frameworks!"
-            hdiutil detach "$MOUNT_POINT"
-            exit 1
-          fi
-
-          if [ -f "$FRAMEWORKS_PATH/libpulse-simple.0.dylib" ]; then
-            echo "✓ libpulse-simple.0.dylib exists (in Frameworks)"
-            otool -D "$FRAMEWORKS_PATH/libpulse-simple.0.dylib" | tail -1
-          else
-            echo "ERROR: libpulse-simple.0.dylib not found in Frameworks!"
-            hdiutil detach "$MOUNT_POINT"
-            exit 1
-          fi
-
-          # Check PulseAudio dependencies (REQUIRED!)
-          echo ""
-          echo "Checking PulseAudio dependencies:"
-          PULSECOMMON=$(find "$FRAMEWORKS_PATH" "$RESOURCES_PATH" 2>/dev/null -name "libpulsecommon-*.dylib" | head -1)
-          if [ -n "$PULSECOMMON" ]; then
-            echo "✓ Found $(basename "$PULSECOMMON") in $(dirname "$PULSECOMMON" | xargs basename)"
-            otool -D "$PULSECOMMON" | tail -1
-          else
-            echo "ERROR: libpulsecommon-*.dylib not found (REQUIRED by libpulse.0.dylib)"
-            hdiutil detach "$MOUNT_POINT"
-            exit 1
-          fi
-
-          SNDFILE=$(find "$FRAMEWORKS_PATH" "$RESOURCES_PATH" 2>/dev/null -name "libsndfile.*.dylib" | head -1)
-          if [ -n "$SNDFILE" ]; then
-            echo "✓ Found $(basename "$SNDFILE") in $(dirname "$SNDFILE" | xargs basename)"
-            otool -D "$SNDFILE" | tail -1
-          else
-            echo "ERROR: libsndfile.*.dylib not found (REQUIRED by libpulsecommon)"
-            hdiutil detach "$MOUNT_POINT"
-            exit 1
-          fi
-
-          LIBINTL=$(find "$FRAMEWORKS_PATH" "$RESOURCES_PATH" 2>/dev/null -name "libintl.*.dylib" | head -1)
-          if [ -n "$LIBINTL" ]; then
-            echo "✓ Found $(basename "$LIBINTL") in $(dirname "$LIBINTL" | xargs basename)"
-            otool -D "$LIBINTL" | tail -1
-          else
-            echo "ERROR: libintl.*.dylib not found in Frameworks or Resources!"
-            hdiutil detach "$MOUNT_POINT"
-            exit 1
-          fi
-          echo ""
-
-          echo "5. Final check - No hardcoded paths:"
+          echo "4. Final check - No hardcoded paths:"
           echo "Checking for /opt/homebrew paths:"
           if otool -L "$BINARY" | grep "/opt/homebrew"; then
             echo "ERROR: Found hardcoded Homebrew paths in final DMG!"
@@ -942,7 +872,7 @@ jobs:
           fi
           echo ""
 
-          echo "6. Verify required rpaths present in final app:"
+          echo "5. Verify required rpaths present in final app:"
           RPATH_OUTPUT=$(otool -l "$BINARY" | grep -A 2 "LC_RPATH")
 
           if echo "$RPATH_OUTPUT" | grep -q "@executable_path/../../Frameworks"; then
