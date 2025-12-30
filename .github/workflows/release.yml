@@ -637,9 +637,9 @@ jobs:
 
             // Find all PulseAudio-related libraries in resources
             try {
-              const allFiles = execSync('ls resources/*.so* 2>/dev/null', { encoding: 'utf8' }).trim().split('\\n');
+              const allFiles = execSync('ls src-tauri/resources/*.so* 2>/dev/null', { encoding: 'utf8' }).trim().split('\\n');
               for (const lib of allFiles) {
-                const basename = lib.replace('resources/', '');
+                const basename = lib.replace('src-tauri/resources/', '');
                 if (pulseLibs.some(pattern => basename.startsWith(pattern.replace('\\*', '')))) {
                   debFiles['/usr/lib/zigy/' + basename] = lib;
                 }
@@ -677,11 +677,11 @@ jobs:
             const { execSync } = require('child_process');
 
             // Use resources to bundle everything into AppImage
-            const resourceFiles = ['resources/zig-april-captions'];
+            const resourceFiles = ['src-tauri/resources/zig-april-captions'];
 
             // Add all .so files from resources (ONNX Runtime + PulseAudio)
             try {
-              const allLibs = execSync('ls resources/*.so* 2>/dev/null', { encoding: 'utf8' }).trim().split('\\n');
+              const allLibs = execSync('ls src-tauri/resources/*.so* 2>/dev/null', { encoding: 'utf8' }).trim().split('\\n');
               for (const lib of allLibs) {
                 if (lib.length > 0) {
                   resourceFiles.push(lib);
