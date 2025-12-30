@@ -197,12 +197,12 @@ pub const AudioCapture = struct {
     /// Audio render callback - called by CoreAudio when audio data is available
     fn audioCallback(
         inRefCon: ?*anyopaque,
-        ioActionFlags: [*c]u32,
-        inTimeStamp: [*c]const AudioTimeStamp,
-        inBusNumber: c_uint,
-        inNumberFrames: c_uint,
-        ioData: [*c]AudioBufferList,
-    ) callconv(.C) c_int {
+        ioActionFlags: [*c]c.AudioUnitRenderActionFlags,
+        inTimeStamp: [*c]const c.AudioTimeStamp,
+        inBusNumber: c.UInt32,
+        inNumberFrames: c.UInt32,
+        ioData: [*c]c.AudioBufferList,
+    ) callconv(.C) c.OSStatus {
         _ = ioActionFlags;
         _ = inTimeStamp;
         _ = inBusNumber;
@@ -210,11 +210,11 @@ pub const AudioCapture = struct {
         const context = @as(*CaptureContext, @ptrCast(@alignCast(inRefCon)));
 
         if (!context.running.load(.acquire)) {
-            return 0;
+            return c.noErr;
         }
 
         const buffer_list = ioData[0];
-        if (buffer_list.mNumberBuffers < 1) return 0;
+        if (buffer_list.mNumberBuffers < 1) return c.noErr;
 
         const buffer = &buffer_list.mBuffers[0];
         const samples = @as([*]i16, @ptrCast(@alignCast(buffer.mData)))[0..inNumberFrames];
@@ -222,7 +222,7 @@ pub const AudioCapture = struct {
         // Write samples to ring buffer
         context.ring_buffer.write(samples);
 
-        return 0;
+        return c.noErr;
     }
 
     /// Initialize audio capture
