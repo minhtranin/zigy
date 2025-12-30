@@ -22,6 +22,7 @@ pub const CoreAudioError = error{
     ReadFailed,
     BufferError,
     PropertyError,
+    OutOfMemory,
 };
 
 /// Audio source type
