@@ -119,21 +119,24 @@ pub fn build(b: *std.Build) void {
         // Windows: WASAPI libraries
         exe.linkSystemLibrary("ole32");
         exe.linkSystemLibrary("ksuser");
-    } else {
-        // macOS/Linux: PulseAudio
+    } else if (target.result.os.tag == .linux) {
+        // Linux: PulseAudio
         exe.linkSystemLibrary("pulse");
         exe.linkSystemLibrary("pulse-simple");
-
-        // Add homebrew paths on macOS for PulseAudio
-        if (target.result.isDarwin()) {
-            exe.addIncludePath(.{ .cwd_relative = "/opt/homebrew/include" });
-            exe.addLibraryPath(.{ .cwd_relative = "/opt/homebrew/lib" });
-            exe.addRPath(.{ .cwd_relative = "/opt/homebrew/lib" });
-        }
 
         // Standard POSIX libraries
         exe.linkSystemLibrary("pthread");
         exe.linkSystemLibrary("m");
+    } else if (target.result.os.tag == .macos) {
+        // macOS: CoreAudio (system frameworks, no extra linking needed)
+        // Just link standard POSIX libraries
+        exe.linkSystemLibrary("pthread");
+        exe.linkSystemLibrary("m");
+
+        // Add Homebrew include path for ONNX Runtime (if installed via brew)
+        exe.addIncludePath(.{ .cwd_relative = "/opt/homebrew/include" });
+        exe.addLibraryPath(.{ .cwd_relative = "/opt/homebrew/lib" });
+        exe.addRPath(.{ .cwd_relative = "/opt/homebrew/lib" });
     }
 
     exe.linkLibC();
