@@ -122,6 +122,9 @@ export default {
   'installation.troubleshooting.windows.audio.step1': 'Press Win + R, type "services.msc"',
   'installation.troubleshooting.windows.audio.step2': 'Find "Windows Audio" service',
   'installation.troubleshooting.windows.audio.step3': 'Right-click → Restart',
+  'installation.troubleshooting.macos.mic.title': 'macOS: Microphone not working',
+  'installation.troubleshooting.macos.mic.description': 'If you see "Failed to get default input device" error or Zigy doesn\'t appear in System Settings > Microphone, follow our detailed guide.',
+  'installation.troubleshooting.macos.mic.link': 'View macOS Troubleshooting Guide',
 
   // Footer section
   'footer.description': 'Real-time speech-to-text captions desktop app',

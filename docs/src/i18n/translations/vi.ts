@@ -122,6 +122,9 @@ export default {
   'installation.troubleshooting.windows.audio.step1': 'Nhấn Win + R, gõ "services.msc"',
   'installation.troubleshooting.windows.audio.step2': 'Tìm dịch vụ "Windows Audio"',
   'installation.troubleshooting.windows.audio.step3': 'Nhấp chuột phải → Restart',
+  'installation.troubleshooting.macos.mic.title': 'macOS: Micro không hoạt động',
+  'installation.troubleshooting.macos.mic.description': 'Nếu bạn thấy lỗi "Failed to get default input device" hoặc Zigy không xuất hiện trong Cài đặt Hệ thống > Micro, hãy làm theo hướng dẫn chi tiết.',
+  'installation.troubleshooting.macos.mic.link': 'Xem Hướng Dẫn Khắc Phục macOS',
 
   // Footer section
   'footer.description': 'Ứng dụng phụ đề chuyển đổi giọng nói thành văn bản thời gian thực',
