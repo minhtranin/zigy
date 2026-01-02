@@ -796,7 +796,7 @@ async fn get_bundled_model_path(app_handle: AppHandle) -> Result<Option<String>,
         .map_err(|e| format!("Failed to get resource directory: {}", e))?;
 
     // Check multiple possible locations for the bundled model
-    let model_candidates = vec![
+    let mut model_candidates = vec![
         resource_dir.join("resources").join(model_name),  // In resources/ subdirectory
         resource_dir.join(model_name),                   // Direct in resource dir
     ];
