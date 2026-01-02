@@ -199,6 +199,75 @@ const t = useTranslations(lang);
       </div>
     </div>
 
+    <!-- No Plus Button (macOS Sonoma) -->
+    <div class="issue-card highlight">
+      <div class="issue-header">
+        <span class="issue-icon">⚠️</span>
+        <h2>{t('troubleshooting.macos.noplus.title')}</h2>
+      </div>
+      <div class="issue-content">
+        <h3>{t('troubleshooting.macos.noplus.cause')}</h3>
+        <p>{t('troubleshooting.macos.noplus.cause.description')}</p>
+
+        <h3>{t('troubleshooting.macos.noplus.solution')}</h3>
+        <div class="steps">
+          <div class="step">
+            <span class="step-number">1</span>
+            <div class="step-content">
+              <strong>{t('troubleshooting.macos.noplus.step1.title')}</strong>
+              <p>{t('troubleshooting.macos.noplus.step1.description')}</p>
+              <div class="code-box">
+                <code>sudo tccutil reset Microphone</code>
+              </div>
+              <p class="note">{t('troubleshooting.macos.noplus.step1.note')}</p>
+            </div>
+          </div>
+          <div class="step">
+            <span class="step-number">2</span>
+            <div class="step-content">
+              <strong>{t('troubleshooting.macos.noplus.step2.title')}</strong>
+              <p>{t('troubleshooting.macos.noplus.step2.description')}</p>
+            </div>
+          </div>
+          <div class="step">
+            <span class="step-number">3</span>
+            <div class="step-content">
+              <strong>{t('troubleshooting.macos.noplus.step3.title')}</strong>
+              <p>{t('troubleshooting.macos.noplus.step3.description')}</p>
+              <div class="code-box">
+                <code>open -a Zigy</code>
+              </div>
+              <p class="note">{t('troubleshooting.macos.noplus.step3.note')}</p>
+            </div>
+          </div>
+          <div class="step">
+            <span class="step-number">4</span>
+            <div class="step-content">
+              <strong>{t('troubleshooting.macos.noplus.step4.title')}</strong>
+              <p>{t('troubleshooting.macos.noplus.step4.description')}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Ad-hoc Signing Limitation -->
+    <div class="info-card">
+      <div class="info-header">
+        <span class="info-icon">ℹ️</span>
+        <h2>{t('troubleshooting.macos.adhoc.title')}</h2>
+      </div>
+      <div class="info-content">
+        <p>{t('troubleshooting.macos.adhoc.description')}</p>
+        <ul class="limitation-list">
+          <li>{t('troubleshooting.macos.adhoc.point1')}</li>
+          <li>{t('troubleshooting.macos.adhoc.point2')}</li>
+          <li>{t('troubleshooting.macos.adhoc.point3')}</li>
+        </ul>
+        <p class="note">{t('troubleshooting.macos.adhoc.note')}</p>
+      </div>
+    </div>
+
     <!-- Still Having Issues -->
     <div class="help-card">
       <h2>{t('troubleshooting.macos.stillissues.title')}</h2>
@@ -421,6 +490,75 @@ const t = useTranslations(lang);
     font-size: 0.85rem;
     color: #9CA3AF;
     font-style: italic;
+  }
+
+  .issue-card.highlight {
+    border-color: rgba(251, 191, 36, 0.3);
+    background: rgba(251, 191, 36, 0.05);
+  }
+
+  .issue-card.highlight .issue-header {
+    background: rgba(251, 191, 36, 0.1);
+    border-bottom-color: rgba(251, 191, 36, 0.2);
+  }
+
+  .info-card {
+    background: rgba(59, 130, 246, 0.05);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    border-radius: 12px;
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+  }
+
+  .info-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1.25rem 1.5rem;
+    background: rgba(59, 130, 246, 0.1);
+    border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+  }
+
+  .info-icon {
+    font-size: 1.5rem;
+  }
+
+  .info-header h2 {
+    font-size: 1.1rem;
+    color: white;
+    margin: 0;
+  }
+
+  .info-content {
+    padding: 1.5rem;
+  }
+
+  .info-content p {
+    color: #D1D5DB;
+    line-height: 1.6;
+    margin-bottom: 0.75rem;
+  }
+
+  .limitation-list {
+    list-style: none;
+    padding: 0;
+    margin: 1rem 0;
+  }
+
+  .limitation-list li {
+    color: #D1D5DB;
+    padding: 0.5rem 0;
+    padding-left: 1.5rem;
+    position: relative;
+  }
+
+  .limitation-list li::before {
+    content: '•';
+    color: #60A5FA;
+    position: absolute;
+    left: 0;
+    font-weight: bold;
   }
 
   .help-card {

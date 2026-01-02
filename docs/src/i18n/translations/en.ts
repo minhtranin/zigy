@@ -221,6 +221,30 @@ export default {
   'troubleshooting.macos.hardware.step3.title': 'Test the microphone',
   'troubleshooting.macos.hardware.step3.description': 'Speak and watch the input level meter. If it moves, your microphone is working.',
 
+  // No Plus Button (macOS Sonoma)
+  'troubleshooting.macos.noplus.title': 'No "+" Button in Microphone Settings (macOS Sonoma 14+)',
+  'troubleshooting.macos.noplus.cause': 'Cause',
+  'troubleshooting.macos.noplus.cause.description': 'In macOS Sonoma (14) and later, Apple removed the "+" button from Privacy settings. Apps can only appear in the list after they request microphone access.',
+  'troubleshooting.macos.noplus.solution': 'Solution',
+  'troubleshooting.macos.noplus.step1.title': 'Reset microphone permissions',
+  'troubleshooting.macos.noplus.step1.description': 'Open Terminal and run this command to reset all microphone permissions:',
+  'troubleshooting.macos.noplus.step1.note': 'You\'ll need to enter your password. This resets permissions for ALL apps.',
+  'troubleshooting.macos.noplus.step2.title': 'Restart your Mac',
+  'troubleshooting.macos.noplus.step2.description': 'After running the command, restart your Mac completely (Apple menu → Restart).',
+  'troubleshooting.macos.noplus.step3.title': 'Launch Zigy from Terminal',
+  'troubleshooting.macos.noplus.step3.description': 'Open Terminal and run:',
+  'troubleshooting.macos.noplus.step3.note': 'This forces macOS to properly initialize audio permissions for the app.',
+  'troubleshooting.macos.noplus.step4.title': 'Click "Start" in Zigy',
+  'troubleshooting.macos.noplus.step4.description': 'The permission dialog should now appear. Click "Allow" to grant microphone access.',
+
+  // Ad-hoc Signing Limitation
+  'troubleshooting.macos.adhoc.title': 'Important: Ad-hoc Signing Limitation',
+  'troubleshooting.macos.adhoc.description': 'Zigy is currently signed with ad-hoc signing (not Apple Developer ID). This means:',
+  'troubleshooting.macos.adhoc.point1': 'macOS may not always show the permission dialog automatically',
+  'troubleshooting.macos.adhoc.point2': 'You may need to use the Terminal method above to trigger the dialog',
+  'troubleshooting.macos.adhoc.point3': 'The app may show "unidentified developer" warning on first launch',
+  'troubleshooting.macos.adhoc.note': 'We\'re working on getting an Apple Developer ID for proper code signing in future releases.',
+
   // Still Having Issues
   'troubleshooting.macos.stillissues.title': 'Still Having Issues?',
   'troubleshooting.macos.stillissues.description': 'If none of the above solutions work, please reach out:',

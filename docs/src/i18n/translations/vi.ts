@@ -221,6 +221,30 @@ export default {
   'troubleshooting.macos.hardware.step3.title': 'Kiểm tra micro',
   'troubleshooting.macos.hardware.step3.description': 'Nói và quan sát đồng hồ đo mức đầu vào. Nếu nó di chuyển, micro của bạn đang hoạt động.',
 
+  // Không có nút "+" (macOS Sonoma)
+  'troubleshooting.macos.noplus.title': 'Không Có Nút "+" Trong Cài Đặt Micro (macOS Sonoma 14+)',
+  'troubleshooting.macos.noplus.cause': 'Nguyên Nhân',
+  'troubleshooting.macos.noplus.cause.description': 'Trong macOS Sonoma (14) và mới hơn, Apple đã xóa nút "+" khỏi cài đặt Quyền riêng tư. Ứng dụng chỉ xuất hiện trong danh sách sau khi yêu cầu quyền truy cập micro.',
+  'troubleshooting.macos.noplus.solution': 'Cách Khắc Phục',
+  'troubleshooting.macos.noplus.step1.title': 'Đặt lại quyền micro',
+  'troubleshooting.macos.noplus.step1.description': 'Mở Terminal và chạy lệnh này để đặt lại tất cả quyền micro:',
+  'troubleshooting.macos.noplus.step1.note': 'Bạn sẽ cần nhập mật khẩu. Lệnh này đặt lại quyền cho TẤT CẢ ứng dụng.',
+  'troubleshooting.macos.noplus.step2.title': 'Khởi động lại Mac',
+  'troubleshooting.macos.noplus.step2.description': 'Sau khi chạy lệnh, khởi động lại Mac hoàn toàn (Menu Apple → Khởi động lại).',
+  'troubleshooting.macos.noplus.step3.title': 'Khởi chạy Zigy từ Terminal',
+  'troubleshooting.macos.noplus.step3.description': 'Mở Terminal và chạy:',
+  'troubleshooting.macos.noplus.step3.note': 'Điều này buộc macOS khởi tạo đúng quyền âm thanh cho ứng dụng.',
+  'troubleshooting.macos.noplus.step4.title': 'Nhấn "Bắt đầu" trong Zigy',
+  'troubleshooting.macos.noplus.step4.description': 'Hộp thoại yêu cầu quyền sẽ xuất hiện. Nhấn "Cho phép" để cấp quyền truy cập micro.',
+
+  // Hạn chế ký Ad-hoc
+  'troubleshooting.macos.adhoc.title': 'Quan Trọng: Hạn Chế Ký Ad-hoc',
+  'troubleshooting.macos.adhoc.description': 'Zigy hiện được ký với chữ ký ad-hoc (không phải Apple Developer ID). Điều này có nghĩa là:',
+  'troubleshooting.macos.adhoc.point1': 'macOS có thể không luôn hiển thị hộp thoại quyền tự động',
+  'troubleshooting.macos.adhoc.point2': 'Bạn có thể cần sử dụng phương pháp Terminal ở trên để kích hoạt hộp thoại',
+  'troubleshooting.macos.adhoc.point3': 'Ứng dụng có thể hiển thị cảnh báo "nhà phát triển không xác định" khi khởi chạy lần đầu',
+  'troubleshooting.macos.adhoc.note': 'Chúng tôi đang làm việc để có Apple Developer ID cho việc ký mã đúng cách trong các bản phát hành tương lai.',
+
   // Vẫn gặp vấn đề
   'troubleshooting.macos.stillissues.title': 'Vẫn Gặp Vấn Đề?',
   'troubleshooting.macos.stillissues.description': 'Nếu không có giải pháp nào ở trên hoạt động, vui lòng liên hệ:',
