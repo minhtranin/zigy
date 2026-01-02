@@ -1,4 +1,10 @@
 export default {
+  // Navigation
+  'nav.download': 'Download',
+  'nav.features': 'Features',
+  'nav.installation': 'Installation',
+  'nav.troubleshooting': 'Help',
+
   // Hero section
   'hero.title': 'Zigy',
   'hero.subtitle': 'Real-time Speech-to-Text Captions Desktop App',

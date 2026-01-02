@@ -1,12 +1,14 @@
 ---
 import { getLangFromUrl, useTranslations } from '../i18n/utils';
 import type { Language } from '../i18n/languages';
+import Header from '../components/Header.astro';
 import LanguageSwitcher from '../components/LanguageSwitcher.astro';
 
 interface Props {
   title?: string;
   description?: string;
   lang?: Language;
+  showHeader?: boolean;
 }
 
 const lang = Astro.props.lang || getLangFromUrl(Astro.url);
@@ -14,7 +16,8 @@ const t = useTranslations(lang);
 
 const {
   title = t('page.title'),
-  description = t('page.description')
+  description = t('page.description'),
+  showHeader = true
 } = Astro.props;
 ---
 
@@ -36,7 +39,8 @@ const {
 
     <title>{title}</title>
   </head>
-  <body>
+  <body class={showHeader ? 'has-header' : ''}>
+    {showHeader && <Header />}
     <LanguageSwitcher />
     <slot />
   </body>
@@ -59,6 +63,10 @@ const {
     color: #111827;
     background: #ffffff;
     font-size: 14px;
+  }
+
+  body.has-header {
+    padding-top: 60px;
   }
 
   /* Dark background for hero */

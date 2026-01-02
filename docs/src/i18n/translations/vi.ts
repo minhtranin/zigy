@@ -1,4 +1,10 @@
 export default {
+  // Navigation
+  'nav.download': 'Tải Xuống',
+  'nav.features': 'Tính Năng',
+  'nav.installation': 'Cài Đặt',
+  'nav.troubleshooting': 'Hỗ Trợ',
+
   // Hero section
   'hero.title': 'Zigy',
   'hero.subtitle': 'Ứng Dụng Chuyển Đổi Giọng Nói Thành Văn Bản Thời Gian Thực',
