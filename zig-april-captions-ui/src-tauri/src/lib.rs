@@ -6,6 +6,146 @@ use std::sync::{Arc, Mutex};
 use tauri::{AppHandle, Emitter, Manager};
 use rusqlite::params;
 
+// ============================================================================
+// macOS Microphone Permission Request
+// ============================================================================
+// On macOS, we must request microphone permission from the MAIN app bundle
+// BEFORE spawning the child process (zig-april-captions). Otherwise, the
+// child process will fail to access audio devices because:
+// 1. macOS TCC (Transparency, Consent, Control) grants permissions per-bundle
+// 2. Ad-hoc signed child processes don't trigger permission dialogs
+// 3. The parent app must request permission first for child to inherit access
+// ============================================================================
+
+#[cfg(target_os = "macos")]
+mod macos_permissions {
+    use objc::runtime::{Class, Object, BOOL};
+    use objc::{msg_send, sel, sel_impl};
+    use std::sync::atomic::{AtomicBool, Ordering};
+    use std::sync::{Arc, Condvar, Mutex};
+    use std::time::Duration;
+
+    static PERMISSION_REQUESTED: AtomicBool = AtomicBool::new(false);
+
+    /// Request microphone permission on macOS using AVCaptureDevice.
+    /// This triggers the system permission dialog if not already granted.
+    /// Returns true if permission is granted, false otherwise.
+    pub fn request_microphone_permission() -> bool {
+        println!("=== macOS Microphone Permission Check ===");
+
+        unsafe {
+            // Get AVCaptureDevice class
+            let av_capture_device = match Class::get("AVCaptureDevice") {
+                Some(cls) => cls,
+                None => {
+                    println!("ERROR: AVCaptureDevice class not found");
+                    return false;
+                }
+            };
+
+            // Create NSString for "soun" (AVMediaTypeAudio FourCC)
+            let ns_string = Class::get("NSString").expect("NSString not found");
+            let audio_type: *const Object = msg_send![ns_string, stringWithUTF8String: b"soun\0".as_ptr()];
+
+            // Check current authorization status
+            // AVAuthorizationStatus: 0=NotDetermined, 1=Restricted, 2=Denied, 3=Authorized
+            let status: i64 = msg_send![av_capture_device, authorizationStatusForMediaType: audio_type];
+            println!("Current authorization status: {} (0=NotDetermined, 1=Restricted, 2=Denied, 3=Authorized)", status);
+
+            match status {
+                3 => {
+                    // Already authorized
+                    println!("Microphone permission already GRANTED");
+                    return true;
+                }
+                1 => {
+                    println!("Microphone access is RESTRICTED by system policy");
+                    return false;
+                }
+                2 => {
+                    println!("Microphone access was DENIED by user");
+                    println!("User needs to grant permission in: System Settings > Privacy & Security > Microphone");
+                    return false;
+                }
+                0 => {
+                    // Not determined - need to request permission
+                    if PERMISSION_REQUESTED.load(Ordering::SeqCst) {
+                        println!("Permission already requested this session, checking status...");
+                        let new_status: i64 = msg_send![av_capture_device, authorizationStatusForMediaType: audio_type];
+                        return new_status == 3;
+                    }
+
+                    println!("Permission not determined, requesting access...");
+                    PERMISSION_REQUESTED.store(true, Ordering::SeqCst);
+
+                    // Use a synchronization primitive to wait for the callback
+                    let result = Arc::new((Mutex::new(None::<bool>), Condvar::new()));
+                    let result_clone = result.clone();
+
+                    // Create the completion handler block
+                    let handler = block::ConcreteBlock::new(move |granted: BOOL| {
+                        println!("Permission callback received: granted = {}", granted != 0);
+                        let (lock, cvar) = &*result_clone;
+                        let mut guard = lock.lock().unwrap();
+                        *guard = Some(granted != 0);
+                        cvar.notify_one();
+                    });
+
+                    // Request access - this should trigger the permission dialog
+                    let _: () = msg_send![av_capture_device, requestAccessForMediaType: audio_type completionHandler: handler.copy()];
+
+                    println!("Permission dialog should appear now...");
+
+                    // Wait for the callback with a timeout
+                    let (lock, cvar) = &*result;
+                    let guard = lock.lock().unwrap();
+                    let wait_result = cvar.wait_timeout(guard, Duration::from_secs(30)).unwrap();
+
+                    if let Some(granted) = *wait_result.0 {
+                        println!("Permission request completed: {}", if granted { "GRANTED" } else { "DENIED" });
+                        return granted;
+                    } else {
+                        println!("Permission request timed out, checking status...");
+                        let new_status: i64 = msg_send![av_capture_device, authorizationStatusForMediaType: audio_type];
+                        return new_status == 3;
+                    }
+                }
+                _ => {
+                    println!("Unknown authorization status: {}", status);
+                    return false;
+                }
+            }
+        }
+    }
+
+    /// Check if microphone permission is currently granted
+    pub fn check_microphone_permission() -> bool {
+        unsafe {
+            let av_capture_device = match Class::get("AVCaptureDevice") {
+                Some(cls) => cls,
+                None => return false,
+            };
+
+            let ns_string = Class::get("NSString").expect("NSString not found");
+            let audio_type: *const Object = msg_send![ns_string, stringWithUTF8String: b"soun\0".as_ptr()];
+
+            let status: i64 = msg_send![av_capture_device, authorizationStatusForMediaType: audio_type];
+            status == 3 // Authorized
+        }
+    }
+}
+
+#[cfg(not(target_os = "macos"))]
+mod macos_permissions {
+    pub fn request_microphone_permission() -> bool {
+        true // No-op on non-macOS platforms
+    }
+
+    pub fn check_microphone_permission() -> bool {
+        true
+    }
+}
+
 // Database module
 mod database;
 use database::{init_db, migrate_from_json, ChatHistoryEntry};
@@ -344,6 +484,19 @@ async fn start_captions(
     model_path: String,
     audio_source: String,
 ) -> Result<(), String> {
+    // CRITICAL: Request microphone permission BEFORE spawning child process
+    // On macOS, the main app bundle must request permission first, otherwise
+    // the child process (zig-april-captions) will fail with "device not found"
+    #[cfg(target_os = "macos")]
+    {
+        println!("Checking microphone permission before starting captions...");
+        let has_permission = macos_permissions::request_microphone_permission();
+        if !has_permission {
+            return Err("Microphone permission not granted. Please allow microphone access in System Settings > Privacy & Security > Microphone, then restart Zigy.".to_string());
+        }
+        println!("Microphone permission granted, proceeding to start captions");
+    }
+
     // Stop any existing process first
     stop_captions_internal(&state)?;
 
@@ -591,10 +744,39 @@ async fn select_model_file() -> Result<Option<String>, String> {
     Ok(None)
 }
 
+/// Check if the zig-april-captions binary exists
 #[tauri::command]
 async fn check_binary_exists(app_handle: AppHandle) -> Result<bool, String> {
     let path = get_zig_binary_path(&app_handle)?;
     Ok(std::path::Path::new(&path).exists() || path == "zig-april-captions" || path == "zig-april-captions.exe")
+}
+
+/// Check and request microphone permission (macOS only)
+/// Returns: { "status": "granted" | "denied" | "not_determined" | "restricted", "platform": "macos" | "other" }
+#[tauri::command]
+async fn check_microphone_permission() -> Result<serde_json::Value, String> {
+    #[cfg(target_os = "macos")]
+    {
+        let has_permission = macos_permissions::request_microphone_permission();
+        Ok(serde_json::json!({
+            "status": if has_permission { "granted" } else { "denied" },
+            "platform": "macos",
+            "message": if has_permission {
+                "Microphone permission granted"
+            } else {
+                "Microphone permission denied. Please grant access in System Settings > Privacy & Security > Microphone"
+            }
+        }))
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        Ok(serde_json::json!({
+            "status": "granted",
+            "platform": "other",
+            "message": "Microphone permission not required on this platform"
+        }))
+    }
 }
 
 #[tauri::command]
@@ -1808,6 +1990,7 @@ pub fn run() {
             export_captions,
             select_model_file,
             check_binary_exists,
+            check_microphone_permission,
             get_binary_path,
             get_bundled_model_path,
             get_binary_debug_info,

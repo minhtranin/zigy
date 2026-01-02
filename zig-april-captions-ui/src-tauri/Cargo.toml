@@ -1,6 +1,6 @@
 [package]
 name = "zig-april-captions-ui"
-version = "1.0.4"
+version = "1.0.6"
 description = "Real-time speech-to-text captions desktop app"
 authors = ["Minh Cong Tran"]
 edition = "2021"
@@ -37,6 +37,12 @@ reqwest = { version = "0.12", features = ["json", "stream", "rustls-tls"], defau
 
 # Async stream utilities for SSE parsing
 futures-util = "0.3"
+
+# macOS microphone permission
+[target.'cfg(target_os = "macos")'.dependencies]
+objc = "0.2"
+objc_id = "0.1"
+block = "0.1"
 
 # Patch dlopen2_derive to fix Rust compatibility issue
 [patch.crates-io]
