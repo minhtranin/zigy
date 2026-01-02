@@ -54,15 +54,16 @@ const basePath = lang === 'vi' ? '/zigy/vi' : '/zigy';
 
 <script>
   // Smooth scroll to sections
-  document.querySelectorAll('.nav-link[data-section]').forEach(link => {
-    link.addEventListener('click', (e) => {
-      const section = (e.currentTarget as HTMLElement).dataset.section;
-      const target = document.getElementById(section || '');
+  document.querySelectorAll('.nav-link[data-section]').forEach(function(link) {
+    link.addEventListener('click', function(e) {
+      var el = e.currentTarget;
+      var section = el.dataset.section;
+      var target = document.getElementById(section || '');
 
       if (target) {
         e.preventDefault();
-        const headerHeight = 60;
-        const targetPosition = target.getBoundingClientRect().top + window.scrollY - headerHeight;
+        var headerHeight = 60;
+        var targetPosition = target.getBoundingClientRect().top + window.scrollY - headerHeight;
 
         window.scrollTo({
           top: targetPosition,
@@ -70,31 +71,32 @@ const basePath = lang === 'vi' ? '/zigy/vi' : '/zigy';
         });
 
         // Update active state
-        document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-        (e.currentTarget as HTMLElement).classList.add('active');
+        document.querySelectorAll('.nav-link').forEach(function(l) { l.classList.remove('active'); });
+        el.classList.add('active');
       }
     });
   });
 
   // Highlight active section on scroll
-  const sections = ['download', 'features', 'installation'];
+  var sections = ['download', 'features', 'installation'];
 
   function updateActiveNav() {
-    const scrollPosition = window.scrollY + 100;
+    var scrollPosition = window.scrollY + 100;
+    var sectionsReversed = sections.slice().reverse();
 
-    for (const sectionId of sections.reverse()) {
-      const section = document.getElementById(sectionId);
+    for (var i = 0; i < sectionsReversed.length; i++) {
+      var sectionId = sectionsReversed[i];
+      var section = document.getElementById(sectionId);
       if (section && section.offsetTop <= scrollPosition) {
-        document.querySelectorAll('.nav-link[data-section]').forEach(link => {
+        document.querySelectorAll('.nav-link[data-section]').forEach(function(link) {
           link.classList.remove('active');
-          if ((link as HTMLElement).dataset.section === sectionId) {
+          if (link.dataset.section === sectionId) {
             link.classList.add('active');
           }
         });
         break;
       }
     }
-    sections.reverse(); // Restore order
   }
 
   window.addEventListener('scroll', updateActiveNav);
