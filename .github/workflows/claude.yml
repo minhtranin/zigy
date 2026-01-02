@@ -79,27 +79,63 @@ jobs:
           if [ "${{ github.event_name }}" == "issue_comment" ]; then
             echo "number=${{ github.event.issue.number }}" >> $GITHUB_OUTPUT
             echo "type=issue" >> $GITHUB_OUTPUT
-            echo "title=${{ github.event.issue.title }}" >> $GITHUB_OUTPUT
+            {
+              echo "title<<EOF"
+              echo "${{ github.event.issue.title }}"
+              echo "EOF"
+            } >> $GITHUB_OUTPUT
             echo "state=${{ github.event.issue.state }}" >> $GITHUB_OUTPUT
-            echo "comment_body=${{ github.event.comment.body }}" >> $GITHUB_OUTPUT
+            {
+              echo "comment_body<<EOF"
+              echo "${{ github.event.comment.body }}"
+              echo "EOF"
+            } >> $GITHUB_OUTPUT
             echo "comment_author=${{ github.event.comment.user.login }}" >> $GITHUB_OUTPUT
-            echo "trigger_comment=${{ github.event.comment.body }}" >> $GITHUB_OUTPUT
+            {
+              echo "trigger_comment<<EOF"
+              echo "${{ github.event.comment.body }}"
+              echo "EOF"
+            } >> $GITHUB_OUTPUT
           elif [ "${{ github.event_name }}" == "issues" ]; then
             echo "number=${{ github.event.issue.number }}" >> $GITHUB_OUTPUT
             echo "type=issue" >> $GITHUB_OUTPUT
-            echo "title=${{ github.event.issue.title }}" >> $GITHUB_OUTPUT
+            {
+              echo "title<<EOF"
+              echo "${{ github.event.issue.title }}"
+              echo "EOF"
+            } >> $GITHUB_OUTPUT
             echo "state=${{ github.event.issue.state }}" >> $GITHUB_OUTPUT
-            echo "comment_body=${{ github.event.issue.body }}" >> $GITHUB_OUTPUT
+            {
+              echo "comment_body<<EOF"
+              echo "${{ github.event.issue.body }}"
+              echo "EOF"
+            } >> $GITHUB_OUTPUT
             echo "comment_author=${{ github.event.issue.user.login }}" >> $GITHUB_OUTPUT
-            echo "trigger_comment=${{ github.event.issue.body }}" >> $GITHUB_OUTPUT
+            {
+              echo "trigger_comment<<EOF"
+              echo "${{ github.event.issue.body }}"
+              echo "EOF"
+            } >> $GITHUB_OUTPUT
           elif [ "${{ github.event_name }}" == "pull_request" ]; then
             echo "number=${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
             echo "type=pr" >> $GITHUB_OUTPUT
-            echo "title=${{ github.event.pull_request.title }}" >> $GITHUB_OUTPUT
+            {
+              echo "title<<EOF"
+              echo "${{ github.event.pull_request.title }}"
+              echo "EOF"
+            } >> $GITHUB_OUTPUT
             echo "state=${{ github.event.pull_request.state }}" >> $GITHUB_OUTPUT
-            echo "comment_body=${{ github.event.pull_request.body }}" >> $GITHUB_OUTPUT
+            {
+              echo "comment_body<<EOF"
+              echo "${{ github.event.pull_request.body }}"
+              echo "EOF"
+            } >> $GITHUB_OUTPUT
             echo "comment_author=${{ github.event.pull_request.user.login }}" >> $GITHUB_OUTPUT
-            echo "trigger_comment=${{ github.event.pull_request.body }}" >> $GITHUB_OUTPUT
+            {
+              echo "trigger_comment<<EOF"
+              echo "${{ github.event.pull_request.body }}"
+              echo "EOF"
+            } >> $GITHUB_OUTPUT
           fi
 
       - name: Run Claude Code
