@@ -50,7 +50,7 @@ jobs:
       - name: Install Claude Code
         if: steps.check_mention.outputs.mentioned == 'true'
         run: |
-          npm install -g claude-code
+          npm install -g @anthropic-ai/claude-code
           echo "Claude installed at: $(which claude)"
 
       - name: Setup GitHub MCP
