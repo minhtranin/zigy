@@ -103,8 +103,8 @@ jobs:
           ANTHROPIC_MODEL: deepseek-chat
           CLAUDE_CODE_DISABLE_NON_ESSENTIAL_TRAFFIC: 1
         run: |
-          export BUN_INSTALL="$HOME/.bun"
-          export PATH="$BUN_INSTALL/bin:$PATH"
+          # Use full path to claude installed by bun
+          CLAUDE_CMD="$HOME/.bun/bin/claude"
 
           ISSUE_TYPE="${{ steps.context.outputs.type }}"
           ISSUE_NUMBER="${{ steps.context.outputs.number }}"
@@ -121,7 +121,7 @@ jobs:
           Read the issue using GitHub MCP and provide a helpful, concise response.
           EOF
 
-          claude --prompt "$(< /tmp/prompt.txt)" 2>&1 | tee /tmp/output.txt
+          "$CLAUDE_CMD" --prompt "$(< /tmp/prompt.txt)" 2>&1 | tee /tmp/output.txt
 
       - name: Post response
         if: steps.check_mention.outputs.mentioned == 'true'
