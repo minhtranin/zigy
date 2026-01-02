@@ -358,6 +358,59 @@ jobs:
           fi
           cd ..
 
+      - name: Codesign zig-april-captions binary with audio entitlements (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          echo "=================================="
+          echo "Codesigning zig-april-captions binary"
+          echo "=================================="
+
+          BINARY="zig-april-captions-ui/src-tauri/resources/zig-april-captions"
+          ENTITLEMENTS="zig-april-captions-ui/src-tauri/entitlements.plist"
+
+          if [ ! -f "$BINARY" ]; then
+            echo "ERROR: Binary not found at $BINARY"
+            exit 1
+          fi
+
+          if [ ! -f "$ENTITLEMENTS" ]; then
+            echo "ERROR: Entitlements not found at $ENTITLEMENTS"
+            exit 1
+          fi
+
+          echo "Binary: $BINARY"
+          echo "Entitlements: $ENTITLEMENTS"
+          echo ""
+
+          # Display entitlements being applied
+          echo "Entitlements content:"
+          cat "$ENTITLEMENTS"
+          echo ""
+
+          # Codesign with entitlements and hardened runtime
+          # CRITICAL: This is required for macOS to allow microphone access
+          # Without this signing, the binary cannot access audio devices and
+          # will fail with kAudioHardwareBadObjectError (2003332927)
+          echo "Signing binary with entitlements..."
+          codesign --sign - \
+            --entitlements "$ENTITLEMENTS" \
+            --options=runtime \
+            --force \
+            --deep \
+            "$BINARY"
+
+          echo ""
+          echo "Verifying signature..."
+          codesign -dv --verbose=4 "$BINARY" 2>&1 | head -20
+
+          echo ""
+          echo "Verifying entitlements were applied..."
+          codesign -d --entitlements - "$BINARY" 2>&1 | head -30
+
+          echo ""
+          echo "✓ Binary codesigned with audio entitlements"
+
       - name: Test zig-april-captions binary (macOS)
         if: runner.os == 'macOS'
         shell: bash
@@ -735,14 +788,15 @@ jobs:
           args: --target ${{ matrix.target }} --bundles ${{ matrix.bundle }}
           projectPath: zig-april-captions-ui
 
-      - name: Fix rpaths in macOS DMG
+      - name: Fix rpaths and re-sign binary in macOS DMG
         if: runner.os == 'macOS'
         shell: bash
         run: |
-          echo "Fixing rpaths in macOS DMG..."
+          echo "Fixing rpaths and re-signing binary in macOS DMG..."
 
           # Find the built DMG file
           DMG_FILE=$(find zig-april-captions-ui/src-tauri/target -name "*.dmg" -type f | head -1)
+          ENTITLEMENTS="zig-april-captions-ui/src-tauri/entitlements.plist"
 
           if [ -z "$DMG_FILE" ]; then
             echo "No DMG file found (skipping fix)"
@@ -751,10 +805,23 @@ jobs:
 
           echo "Found DMG: $DMG_FILE"
 
-          # Mount the DMG readwrite to make changes
-          MOUNT_POINT="/tmp/zigy-fix-$$"
+          # DMGs are read-only, so we need to:
+          # 1. Convert to read-write format
+          # 2. Make modifications
+          # 3. Convert back to read-only
+
+          # Create a temporary read-write DMG
+          TMP_DIR="/tmp/zigy-dmg-fix-$$"
+          mkdir -p "$TMP_DIR"
+          RW_DMG="$TMP_DIR/temp_rw.dmg"
+          MOUNT_POINT="$TMP_DIR/mount"
           mkdir -p "$MOUNT_POINT"
-          hdiutil attach "$DMG_FILE" -mountpoint "$MOUNT_POINT" -nobrowse
+
+          echo "Converting DMG to read-write format..."
+          hdiutil convert "$DMG_FILE" -format UDRW -o "$RW_DMG"
+
+          echo "Mounting read-write DMG..."
+          hdiutil attach "$RW_DMG" -mountpoint "$MOUNT_POINT" -nobrowse
 
           # Find the .app bundle
           APP_BUNDLE=$(find "$MOUNT_POINT" -name "*.app" -maxdepth 1 | head -1)
@@ -762,6 +829,7 @@ jobs:
           if [ -z "$APP_BUNDLE" ]; then
             echo "No .app bundle found in DMG!"
             hdiutil detach "$MOUNT_POINT"
+            rm -rf "$TMP_DIR"
             exit 1
           fi
 
@@ -776,7 +844,7 @@ jobs:
             # Remove code signature to allow modifications
             codesign --remove-signature "$BINARY" 2>/dev/null || echo "  (no signature to remove)"
 
-            # Remove development rpaths
+            # Remove development rpaths (if any still exist)
             install_name_tool -delete_rpath /opt/homebrew/lib "$BINARY" 2>/dev/null || true
             install_name_tool -delete_rpath /Users/runner/onnxruntime/lib "$BINARY" 2>/dev/null || true
             echo "✓ Removed development rpaths"
@@ -784,13 +852,39 @@ jobs:
             # Verify the fix
             echo "Verifying rpaths after fix:"
             otool -l "$BINARY" | grep -A 2 "LC_RPATH" | grep -E "(path|LC_RPATH)"
+
+            # CRITICAL: Re-sign the binary with audio entitlements
+            # This is required for macOS to allow microphone access
+            # Without this, the spawned binary cannot access audio devices
+            echo ""
+            echo "Re-signing binary with audio entitlements..."
+            codesign --sign - \
+              --entitlements "$ENTITLEMENTS" \
+              --options=runtime \
+              --force \
+              --deep \
+              "$BINARY"
+
+            echo ""
+            echo "Verifying entitlements were applied:"
+            codesign -d --entitlements - "$BINARY" 2>&1 | head -20
+            echo "✓ Binary re-signed with entitlements"
           else
             echo "Binary not found at: $BINARY"
           fi
 
-          # Unmount
+          # Unmount the read-write DMG
+          echo "Unmounting..."
           hdiutil detach "$MOUNT_POINT"
-          echo "✓ Fixed rpaths in DMG"
+
+          # Convert back to read-only compressed DMG
+          echo "Converting back to compressed read-only DMG..."
+          rm "$DMG_FILE"
+          hdiutil convert "$RW_DMG" -format UDZO -o "$DMG_FILE"
+
+          # Cleanup
+          rm -rf "$TMP_DIR"
+          echo "✓ Fixed rpaths and re-signed binary in DMG"
 
       - name: Final Verification - Inspect DMG/App Bundle (macOS)
         if: runner.os == 'macOS'
@@ -910,6 +1004,21 @@ jobs:
             echo "ERROR: Missing @executable_path in final app!"
             hdiutil detach "$MOUNT_POINT"
             exit 1
+          fi
+
+          echo ""
+          echo "6. CRITICAL: Verify audio entitlements are present:"
+          echo "This is required for the app to access the microphone!"
+          ENTITLEMENTS_OUTPUT=$(codesign -d --entitlements - "$BINARY" 2>&1)
+          echo "$ENTITLEMENTS_OUTPUT" | head -30
+
+          if echo "$ENTITLEMENTS_OUTPUT" | grep -q "com.apple.security.device.audio-input"; then
+            echo "✓ Audio input entitlement found (com.apple.security.device.audio-input)"
+          else
+            echo "WARNING: Audio entitlement not found in binary!"
+            echo "The app may not be able to access the microphone."
+            echo "Users may see 'Failed to get default input device' error."
+            # Don't fail the build, but warn loudly
           fi
 
           # Unmount DMG
