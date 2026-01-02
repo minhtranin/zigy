@@ -51,92 +51,46 @@ jobs:
         if: steps.check_mention.outputs.mentioned == 'true'
         run: |
           npm install -g @anthropic-ai/claude-code
-          echo "Claude installed at: $(which claude)"
 
-      - name: Setup GitHub MCP
-        if: steps.check_mention.outputs.mentioned == 'true'
-        run: |
-          mkdir -p ~/.claude
-
-          cat > ~/.claude.json << 'EOF'
-          {
-            "mcpServers": {
-              "github": {
-                "command": "npx",
-                "args": ["-y", "@modelcontextprotocol/server-github"],
-                "env": {
-                  "GITHUB_PERSONAL_ACCESS_TOKEN": "${{ secrets.GITHUB_TOKEN }}"
-                }
-              }
-            }
-          }
-          EOF
-
-      - name: Get context
+      - name: Fetch full issue context
         id: context
         if: steps.check_mention.outputs.mentioned == 'true'
         run: |
-          if [ "${{ github.event_name }}" == "issue_comment" ]; then
-            echo "number=${{ github.event.issue.number }}" >> $GITHUB_OUTPUT
+          if [ "${{ github.event_name }}" == "issue_comment" ] || [ "${{ github.event_name }}" == "issues" ]; then
+            ISSUE_NUMBER="${{ github.event.issue.number }}"
+            # Fetch full issue details
+            ISSUE_JSON=$(gh issue view "$ISSUE_NUMBER" --json title,body,state,author,comments)
+            echo "issue_json<<EOF"
+            echo "$ISSUE_JSON"
+            echo "EOF"
+            echo "issue_json<<EOF" >> $GITHUB_OUTPUT
+            echo "$ISSUE_JSON" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+            echo "number=$ISSUE_NUMBER" >> $GITHUB_OUTPUT
             echo "type=issue" >> $GITHUB_OUTPUT
-            {
-              echo "title<<EOF"
-              echo "${{ github.event.issue.title }}"
-              echo "EOF"
-            } >> $GITHUB_OUTPUT
-            echo "state=${{ github.event.issue.state }}" >> $GITHUB_OUTPUT
-            {
-              echo "comment_body<<EOF"
-              echo "${{ github.event.comment.body }}"
-              echo "EOF"
-            } >> $GITHUB_OUTPUT
-            echo "comment_author=${{ github.event.comment.user.login }}" >> $GITHUB_OUTPUT
-            {
-              echo "trigger_comment<<EOF"
-              echo "${{ github.event.comment.body }}"
-              echo "EOF"
-            } >> $GITHUB_OUTPUT
-          elif [ "${{ github.event_name }}" == "issues" ]; then
-            echo "number=${{ github.event.issue.number }}" >> $GITHUB_OUTPUT
-            echo "type=issue" >> $GITHUB_OUTPUT
-            {
-              echo "title<<EOF"
-              echo "${{ github.event.issue.title }}"
-              echo "EOF"
-            } >> $GITHUB_OUTPUT
-            echo "state=${{ github.event.issue.state }}" >> $GITHUB_OUTPUT
-            {
-              echo "comment_body<<EOF"
-              echo "${{ github.event.issue.body }}"
-              echo "EOF"
-            } >> $GITHUB_OUTPUT
-            echo "comment_author=${{ github.event.issue.user.login }}" >> $GITHUB_OUTPUT
-            {
-              echo "trigger_comment<<EOF"
-              echo "${{ github.event.issue.body }}"
-              echo "EOF"
-            } >> $GITHUB_OUTPUT
           elif [ "${{ github.event_name }}" == "pull_request" ]; then
-            echo "number=${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
+            PR_NUMBER="${{ github.event.pull_request.number }}"
+            PR_JSON=$(gh pr view "$PR_NUMBER" --json title,body,state,author)
+            echo "pr_json<<EOF"
+            echo "$PR_JSON"
+            echo "EOF"
+            echo "pr_json<<EOF" >> $GITHUB_OUTPUT
+            echo "$PR_JSON" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+            echo "number=$PR_NUMBER" >> $GITHUB_OUTPUT
             echo "type=pr" >> $GITHUB_OUTPUT
-            {
-              echo "title<<EOF"
-              echo "${{ github.event.pull_request.title }}"
-              echo "EOF"
-            } >> $GITHUB_OUTPUT
-            echo "state=${{ github.event.pull_request.state }}" >> $GITHUB_OUTPUT
-            {
-              echo "comment_body<<EOF"
-              echo "${{ github.event.pull_request.body }}"
-              echo "EOF"
-            } >> $GITHUB_OUTPUT
-            echo "comment_author=${{ github.event.pull_request.user.login }}" >> $GITHUB_OUTPUT
-            {
-              echo "trigger_comment<<EOF"
-              echo "${{ github.event.pull_request.body }}"
-              echo "EOF"
-            } >> $GITHUB_OUTPUT
           fi
+
+          # Get trigger comment
+          {
+            echo "trigger_comment<<EOF"
+            echo "${{ github.event.comment.body }}"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+
+          echo "trigger_author=${{ github.event.comment.user.login }}" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run Claude Code
         if: steps.check_mention.outputs.mentioned == 'true'
@@ -148,38 +102,47 @@ jobs:
         run: |
           ISSUE_TYPE="${{ steps.context.outputs.type }}"
           ISSUE_NUMBER="${{ steps.context.outputs.number }}"
-          ISSUE_TITLE="${{ steps.context.outputs.title }}"
-          ISSUE_STATE="${{ steps.context.outputs.state }}"
-          COMMENT_BODY="${{ steps.context.outputs.comment_body }}"
-          COMMENT_AUTHOR="${{ steps.context.outputs.comment_author }}"
           TRIGGER_COMMENT="${{ steps.context.outputs.trigger_comment }}"
+          TRIGGER_AUTHOR="${{ steps.context.outputs.trigger_author }}"
           REPO="${{ github.repository }}"
-          EVENT_TYPE="${{ github.event_name }}"
 
-          # Build detailed system prompt
-          cat > /tmp/prompt.txt << SYSTEMEOF
-          You are Claude, an AI assistant designed to help with GitHub issues and pull requests. Think carefully as you analyze the context and respond appropriately.
+          if [ "$ISSUE_TYPE" == "issue" ]; then
+            ISSUE_JSON="${{ steps.context.outputs.issue_json }}"
+          else
+            ISSUE_JSON="${{ steps.context.outputs.pr_json }}"
+          fi
 
-          Here's the context for your current task:
+          # Build detailed system prompt with all context
+          cat > /tmp/prompt.txt << 'SYSTEMEOF'
+          You are Claude, an AI assistant designed to help with GitHub issues and pull requests.
 
-          <formatted_context>
-          Issue Title: ${ISSUE_TITLE}
-          Issue State: ${ISSUE_STATE}
-          Repository: ${REPO}
-          Event Type: ${EVENT_TYPE}
-          </formatted_context>
+          <repository>
+          ${REPO}
+          </repository>
+
+          <issue_type>
+          ${ISSUE_TYPE}
+          </issue_type>
+
+          <issue_number>
+          ${ISSUE_NUMBER}
+          </issue_number>
+
+          <full_context>
+          ${ISSUE_JSON}
+          </full_context>
 
           <trigger_comment>
           ${TRIGGER_COMMENT}
           </trigger_comment>
 
-          <comment_author>
-          @${COMMENT_AUTHOR}
-          </comment_author>
+          <trigger_author>
+          @${TRIGGER_AUTHOR}
+          </trigger_author>
 
           Your task is to:
-          1. Read the full issue using GitHub MCP tools (mcp__github__get_issue, mcp__github__get_issue_comments, etc.)
-          2. Understand what the user is asking for
+          1. Analyze the full issue context provided above
+          2. Understand what the user is asking for in the trigger comment
           3. Provide helpful, concise responses
           4. If code changes are needed, explain what should be done
 
@@ -189,6 +152,7 @@ jobs:
           - Use code blocks for code examples
           - Reference specific files with paths when applicable
           - If you don't know something, be honest about it
+          - The full_context above contains the issue title, body, state, author, and all comments
           SYSTEMEOF
 
           claude "$(< /tmp/prompt.txt)" 2>&1 | tee /tmp/output.txt
