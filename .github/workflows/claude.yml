@@ -3,33 +3,52 @@ name: Claude Code (DeepSeek)
 on:
   issue_comment:
     types: [created]
-  pull_request_review_comment:
-    types: [created]
   issues:
-    types: [opened, assigned]
-  pull_request_review:
-    types: [submitted]
+    types: [opened]
+  pull_request:
+    types: [opened]
 
 jobs:
   claude:
-    if: |
-      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
-      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
-      (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude')) ||
-      (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')))
     runs-on: ubuntu-latest
     permissions:
       contents: read
       issues: write
       pull-requests: write
-      id-token: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
+      - name: Check if @claude is mentioned
+        id: check_mention
+        run: |
+          MENTIONED="false"
+
+          if [ "${{ github.event_name }}" == "issue_comment" ]; then
+            BODY="${{ github.event.comment.body }}"
+          elif [ "${{ github.event_name }}" == "issues" ]; then
+            BODY="${{ github.event.issue.body }}"
+          elif [ "${{ github.event_name }}" == "pull_request" ]; then
+            BODY="${{ github.event.pull_request.body }}"
+          fi
+
+          if echo "$BODY" | grep -qi "@claude"; then
+            MENTIONED="true"
+            echo "@claude found in content"
+          else
+            echo "@claude NOT found, skipping..."
+          fi
+
+          echo "mentioned=${MENTIONED}" >> $GITHUB_OUTPUT
+
+          if [ "$MENTIONED" == "false" ]; then
+            exit 1  # Skip remaining steps
+          fi
+
       - name: Install Claude Code via bun
+        if: steps.check_mention.outputs.mentioned == 'true'
         run: |
           curl -fsSL https://bun.sh/install | bash
           export BUN_INSTALL="$HOME/.bun"
@@ -37,11 +56,10 @@ jobs:
           bun install -g claude-code
 
       - name: Setup GitHub MCP
+        if: steps.check_mention.outputs.mentioned == 'true'
         run: |
-          # Create Claude config directory
           mkdir -p ~/.claude
 
-          # Add GitHub MCP server
           cat > ~/.claude.json << 'EOF'
           {
             "mcpServers": {
@@ -56,115 +74,66 @@ jobs:
           }
           EOF
 
-          cat ~/.claude.json
-
-      - name: Get issue/PR context
+      - name: Get context
         id: context
+        if: steps.check_mention.outputs.mentioned == 'true'
         run: |
-          if [ "${{ github.event_name }}" == "issue_comment" ] || [ "${{ github.event_name }}" == "issues" ]; then
+          if [ "${{ github.event_name }}" == "issue_comment" ]; then
             echo "number=${{ github.event.issue.number }}" >> $GITHUB_OUTPUT
             echo "type=issue" >> $GITHUB_OUTPUT
-            echo "title=${{ github.event.issue.title }}" >> $GITHUB_OUTPUT
-            echo "body=${{ github.event.issue.body }}" >> $GITHUB_OUTPUT
-            if [ "${{ github.event_name }}" == "issue_comment" ]; then
-              echo "comment_body=${{ github.event.comment.body }}" >> $GITHUB_OUTPUT
-              echo "comment_author=${{ github.event.comment.user.login }}" >> $GITHUB_OUTPUT
-            fi
-          elif [ "${{ github.event_name }}" == "pull_request" ] || [ "${{ github.event_name }}" == "pull_request_review" ] || [ "${{ github.event_name }}" == "pull_request_review_comment" ]; then
+            echo "comment_body=${{ github.event.comment.body }}" >> $GITHUB_OUTPUT
+            echo "comment_author=${{ github.event.comment.user.login }}" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event_name }}" == "issues" ]; then
+            echo "number=${{ github.event.issue.number }}" >> $GITHUB_OUTPUT
+            echo "type=issue" >> $GITHUB_OUTPUT
+            echo "comment_body=${{ github.event.issue.body }}" >> $GITHUB_OUTPUT
+            echo "comment_author=${{ github.event.issue.user.login }}" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event_name }}" == "pull_request" ]; then
             echo "number=${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
             echo "type=pr" >> $GITHUB_OUTPUT
-            echo "title=${{ github.event.pull_request.title }}" >> $GITHUB_OUTPUT
-            echo "body=${{ github.event.pull_request.body }}" >> $GITHUB_OUTPUT
+            echo "comment_body=${{ github.event.pull_request.body }}" >> $GITHUB_OUTPUT
+            echo "comment_author=${{ github.event.pull_request.user.login }}" >> $GITHUB_OUTPUT
           fi
 
-      - name: Run Claude Code with DeepSeek
+      - name: Run Claude Code
+        if: steps.check_mention.outputs.mentioned == 'true'
         env:
-          # DeepSeek API Configuration
           ANTHROPIC_BASE_URL: https://api.deepseek.com/anthropic
           ANTHROPIC_AUTH_TOKEN: ${{ secrets.DEEPSEEK_API_KEY }}
           ANTHROPIC_MODEL: deepseek-chat
-          ANTHROPIC_DEFAULT_HAIKU_MODEL: deepseek-chat
-          CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: 1
-          API_TIMEOUT_MS: 600000
-          # GitHub token for MCP
-          GITHUB_PERSONAL_ACCESS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CLAUDE_CODE_DISABLE_NON_ESSENTIAL_TRAFFIC: 1
         run: |
-          # Add bun to PATH
           export BUN_INSTALL="$HOME/.bun"
           export PATH="$BUN_INSTALL/bin:$PATH"
 
-          # Build the prompt for Claude
           ISSUE_TYPE="${{ steps.context.outputs.type }}"
           ISSUE_NUMBER="${{ steps.context.outputs.number }}"
           COMMENT_BODY="${{ steps.context.outputs.comment_body }}"
           COMMENT_AUTHOR="${{ steps.context.outputs.comment_author }}"
 
-          cat << 'EOF' > /tmp/claude_prompt.txt
-You are Claude, an AI assistant helping with this GitHub repository. A user tagged @claude requesting help.
+          cat > /tmp/prompt.txt << EOF
+          You are Claude, helping with GitHub repo ${{ github.repository }}.
 
-Context:
-- Repository: ${{ github.repository }}
-- ${ISSUE_TYPE}: #${ISSUE_NUMBER}
-- Comment author: @${COMMENT_AUTHOR}
-- Comment that tagged you:
-${COMMENT_BODY}
+          Issue/PR: #${ISSUE_NUMBER}
+          Author: @${COMMENT_AUTHOR}
+          Comment: ${COMMENT_BODY}
 
-Please:
-1. Read and understand the ${ISSUE_TYPE}/comment using the GitHub MCP server
-2. Provide a helpful response
-3. If code changes are needed, explain what should be done
-4. Be concise and friendly
+          Read the issue using GitHub MCP and provide a helpful, concise response.
+          EOF
 
-Use the GitHub MCP tools to fetch the ${ISSUE_TYPE} details and any relevant context.
-EOF
+          claude --prompt "$(< /tmp/prompt.txt)" 2>&1 | tee /tmp/output.txt
 
-          echo "Running Claude Code with DeepSeek..."
-          echo "Prompt:"
-          cat /tmp/claude_prompt.txt
-          echo "---"
-
-          # Run Claude Code
-          claude --prompt "$(< /tmp/claude_prompt.txt)" --allowed-tools "*" 2>&1 | tee /tmp/claude_output.txt
-
-          # Extract Claude's response for posting
-          RESPONSE=$(cat /tmp/claude_output.txt | tail -n +5)
-
-      - name: Post comment to issue/PR
+      - name: Post response
+        if: steps.check_mention.outputs.mentioned == 'true'
         uses: actions/github-script@v7
         with:
           script: |
             const fs = require('fs');
-            const output = fs.readFileSync('/tmp/claude_output.txt', 'utf8');
-
-            // Parse the output to get Claude's actual response
-            // Skip the initial setup lines
-            const lines = output.split('\n');
-            let responseStarted = false;
-            let response = [];
-
-            for (const line of lines) {
-              // Start capturing after we see the actual response
-              if (responseStarted || line.match(/^(Here|I'll|Based|Looking|Let|The|This|To)/)) {
-                responseStarted = true;
-                response.push(line);
-              }
-            }
-
-            const responseText = response.length > 0 ? response.join('\n') : output;
-
+            const output = fs.readFileSync('/tmp/output.txt', 'utf8');
             const issueNumber = '${{ steps.context.outputs.number }}';
-            const issueType = '${{ steps.context.outputs.type }}';
 
-            if (issueType === 'pr') {
-              await github.rest.issues.createComment({
-                ...context.repo,
-                pull_number: issueNumber,
-                body: `**@claude (via DeepSeek)**\n\n${responseText}\n\n---\n*<sub>This response was generated using Claude Code with DeepSeek API.</sub>*`
-              });
-            } else {
-              await github.rest.issues.createComment({
-                ...context.repo,
-                issue_number: issueNumber,
-                body: `**@claude (via DeepSeek)**\n\n${responseText}\n\n---\n*<sub>This response was generated using Claude Code with DeepSeek API.</sub>*`
-              });
-            }
+            await github.rest.issues.createComment({
+              ...context.repo,
+              issue_number: issueNumber,
+              body: `**@claude (DeepSeek)**\n\n${output}\n\n---\n*Generated via Claude Code*`
+            });
