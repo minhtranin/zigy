@@ -157,4 +157,64 @@ export default {
   // Page metadata
   'page.title': 'Zigy - Ứng Dụng Chuyển Đổi Giọng Nói Thành Văn Bản Thời Gian Thực',
   'page.description': 'Ứng dụng phụ đề chuyển đổi giọng nói thành văn bản thời gian thực với các tính năng AI thông minh',
+
+  // Khắc phục sự cố macOS
+  'troubleshooting.back': 'Quay lại Trang Chủ',
+  'troubleshooting.macos.title': 'Hướng Dẫn Khắc Phục Sự Cố macOS',
+  'troubleshooting.macos.subtitle': 'Sửa lỗi quyền micro và thiết bị âm thanh trên macOS',
+
+  // Lỗi Quyền Micro
+  'troubleshooting.macos.mic.title': 'Micro Không Hoạt Động / Không Tìm Thấy Thiết Bị',
+  'troubleshooting.macos.mic.cause': 'Nguyên Nhân',
+  'troubleshooting.macos.mic.cause.description': 'macOS yêu cầu quyền rõ ràng để ứng dụng truy cập micro. Nếu Zigy chưa được cấp quyền này, ứng dụng không thể phát hiện hoặc sử dụng bất kỳ thiết bị đầu vào âm thanh nào.',
+  'troubleshooting.macos.mic.solution': 'Cách Khắc Phục',
+  'troubleshooting.macos.mic.step1.title': 'Mở Zigy và nhấn "Bắt đầu"',
+  'troubleshooting.macos.mic.step1.description': 'macOS sẽ hiển thị hộp thoại yêu cầu quyền truy cập micro.',
+  'troubleshooting.macos.mic.step2.title': 'Nhấn "Cho phép" trong hộp thoại',
+  'troubleshooting.macos.mic.step2.description': 'Nếu không thấy hộp thoại, bạn cần cấp quyền thủ công (xem bên dưới).',
+  'troubleshooting.macos.mic.step3.title': 'Khởi động lại Zigy',
+  'troubleshooting.macos.mic.step3.description': 'Thoát ứng dụng hoàn toàn (Cmd+Q) và mở lại.',
+  'troubleshooting.macos.mic.step4.title': 'Nhấn "Bắt đầu" lần nữa',
+  'troubleshooting.macos.mic.step4.description': 'Nhận dạng giọng nói sẽ hoạt động.',
+
+  // Ứng dụng không xuất hiện trong danh sách Micro
+  'troubleshooting.macos.notinlist.title': 'Zigy Không Xuất Hiện Trong Cài Đặt Micro',
+  'troubleshooting.macos.notinlist.cause': 'Nguyên Nhân',
+  'troubleshooting.macos.notinlist.cause.description': 'Nếu bạn đang dùng phiên bản Zigy cũ, ứng dụng có thể chưa kích hoạt hộp thoại quyền đúng cách. Lỗi này đã được sửa từ phiên bản 1.0.5+.',
+  'troubleshooting.macos.notinlist.solution': 'Cách Khắc Phục',
+  'troubleshooting.macos.notinlist.step1.title': 'Cập nhật lên phiên bản mới nhất',
+  'troubleshooting.macos.notinlist.step1.description': 'Tải và cài đặt Zigy v1.0.5 hoặc mới hơn từ trang chủ.',
+  'troubleshooting.macos.notinlist.step2.title': 'Xóa ứng dụng cũ',
+  'troubleshooting.macos.notinlist.step2.description': 'Di chuyển Zigy.app cũ từ /Applications vào Thùng rác và làm trống Thùng rác.',
+  'troubleshooting.macos.notinlist.step3.title': 'Đặt lại quyền micro (tùy chọn)',
+  'troubleshooting.macos.notinlist.step3.description': 'Nếu vấn đề vẫn còn, đặt lại quyền qua Terminal:',
+  'troubleshooting.macos.notinlist.step3.note': 'Lệnh này đặt lại quyền micro cho tất cả ứng dụng. Khởi động lại Mac sau khi chạy lệnh.',
+  'troubleshooting.macos.notinlist.step4.title': 'Cài đặt lại và mở Zigy',
+  'troubleshooting.macos.notinlist.step4.description': 'Cài đặt phiên bản mới và mở. Bạn sẽ thấy hộp thoại yêu cầu quyền.',
+
+  // Cấp quyền thủ công
+  'troubleshooting.macos.manual.title': 'Cấp Quyền Micro Thủ Công',
+  'troubleshooting.macos.manual.description': 'Nếu hộp thoại quyền không tự động xuất hiện, bạn có thể thêm Zigy thủ công:',
+  'troubleshooting.macos.manual.step1.title': 'Mở System Settings (Cài đặt Hệ thống)',
+  'troubleshooting.macos.manual.step2.title': 'Nhấn nút "+"',
+  'troubleshooting.macos.manual.step2.description': 'Ở cuối danh sách ứng dụng, nhấn nút + để thêm ứng dụng.',
+  'troubleshooting.macos.manual.step3.title': 'Điều hướng đến Zigy',
+  'troubleshooting.macos.manual.step3.description': 'Đi đến /Applications và chọn Zigy.app, sau đó nhấn Open.',
+  'troubleshooting.macos.manual.step4.title': 'Bật công tắc',
+  'troubleshooting.macos.manual.step4.description': 'Đảm bảo công tắc bên cạnh Zigy được BẬT (màu xanh).',
+
+  // Kiểm tra phần cứng Micro
+  'troubleshooting.macos.hardware.title': 'Kiểm Tra Phần Cứng Micro',
+  'troubleshooting.macos.hardware.description': 'Đảm bảo Mac của bạn có thể phát hiện micro:',
+  'troubleshooting.macos.hardware.step1.title': 'Mở Sound Settings (Cài đặt Âm thanh)',
+  'troubleshooting.macos.hardware.step2.title': 'Kiểm tra Thiết bị Đầu vào',
+  'troubleshooting.macos.hardware.step2.description': 'Bạn sẽ thấy ít nhất một thiết bị đầu vào (ví dụ: "MacBook Pro Microphone" hoặc micro ngoài).',
+  'troubleshooting.macos.hardware.step3.title': 'Kiểm tra micro',
+  'troubleshooting.macos.hardware.step3.description': 'Nói và quan sát đồng hồ đo mức đầu vào. Nếu nó di chuyển, micro của bạn đang hoạt động.',
+
+  // Vẫn gặp vấn đề
+  'troubleshooting.macos.stillissues.title': 'Vẫn Gặp Vấn Đề?',
+  'troubleshooting.macos.stillissues.description': 'Nếu không có giải pháp nào ở trên hoạt động, vui lòng liên hệ:',
+  'troubleshooting.macos.stillissues.report': 'Báo Cáo Lỗi',
+  'troubleshooting.macos.stillissues.discuss': 'Hỏi Trong Thảo Luận',
 } as const;

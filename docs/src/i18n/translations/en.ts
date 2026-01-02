@@ -157,4 +157,64 @@ export default {
   // Page metadata
   'page.title': 'Zigy - Real-time Speech-to-Text Desktop App',
   'page.description': 'Real-time speech-to-text captions desktop app with AI-powered features',
+
+  // macOS Troubleshooting
+  'troubleshooting.back': 'Back to Home',
+  'troubleshooting.macos.title': 'macOS Troubleshooting Guide',
+  'troubleshooting.macos.subtitle': 'Fix microphone permission and audio device issues on macOS',
+
+  // Microphone Permission Issue
+  'troubleshooting.macos.mic.title': 'Microphone Not Working / Device Not Found',
+  'troubleshooting.macos.mic.cause': 'Cause',
+  'troubleshooting.macos.mic.cause.description': 'macOS requires explicit permission for apps to access the microphone. If Zigy hasn\'t been granted this permission, it cannot detect or use any audio input devices.',
+  'troubleshooting.macos.mic.solution': 'Solution',
+  'troubleshooting.macos.mic.step1.title': 'Open Zigy and click "Start"',
+  'troubleshooting.macos.mic.step1.description': 'macOS should show a permission dialog asking to access the microphone.',
+  'troubleshooting.macos.mic.step2.title': 'Click "Allow" in the permission dialog',
+  'troubleshooting.macos.mic.step2.description': 'If no dialog appears, you need to grant permission manually (see below).',
+  'troubleshooting.macos.mic.step3.title': 'Restart Zigy',
+  'troubleshooting.macos.mic.step3.description': 'Quit the app completely (Cmd+Q) and reopen it.',
+  'troubleshooting.macos.mic.step4.title': 'Click "Start" again',
+  'troubleshooting.macos.mic.step4.description': 'Speech recognition should now work.',
+
+  // App Not in Microphone List
+  'troubleshooting.macos.notinlist.title': 'Zigy Not Appearing in Microphone Settings',
+  'troubleshooting.macos.notinlist.cause': 'Cause',
+  'troubleshooting.macos.notinlist.cause.description': 'If you\'re using an older version of Zigy, the app may not have triggered the permission dialog properly. This is fixed in version 1.0.5+.',
+  'troubleshooting.macos.notinlist.solution': 'Solution',
+  'troubleshooting.macos.notinlist.step1.title': 'Update to the latest version',
+  'troubleshooting.macos.notinlist.step1.description': 'Download and install Zigy v1.0.5 or newer from the homepage.',
+  'troubleshooting.macos.notinlist.step2.title': 'Delete the old app',
+  'troubleshooting.macos.notinlist.step2.description': 'Move the old Zigy.app from /Applications to Trash and empty Trash.',
+  'troubleshooting.macos.notinlist.step3.title': 'Reset microphone permissions (optional)',
+  'troubleshooting.macos.notinlist.step3.description': 'If the issue persists, reset permissions via Terminal:',
+  'troubleshooting.macos.notinlist.step3.note': 'This resets microphone permissions for all apps. Restart your Mac after running this command.',
+  'troubleshooting.macos.notinlist.step4.title': 'Reinstall and open Zigy',
+  'troubleshooting.macos.notinlist.step4.description': 'Install the new version and open it. You should now see the permission dialog.',
+
+  // Manual Permission Grant
+  'troubleshooting.macos.manual.title': 'Manually Grant Microphone Permission',
+  'troubleshooting.macos.manual.description': 'If the permission dialog doesn\'t appear automatically, you can add Zigy manually:',
+  'troubleshooting.macos.manual.step1.title': 'Open System Settings',
+  'troubleshooting.macos.manual.step2.title': 'Click the "+" button',
+  'troubleshooting.macos.manual.step2.description': 'At the bottom of the app list, click the + button to add an app.',
+  'troubleshooting.macos.manual.step3.title': 'Navigate to Zigy',
+  'troubleshooting.macos.manual.step3.description': 'Go to /Applications and select Zigy.app, then click Open.',
+  'troubleshooting.macos.manual.step4.title': 'Enable the toggle',
+  'troubleshooting.macos.manual.step4.description': 'Make sure the toggle next to Zigy is turned ON (blue).',
+
+  // Check Microphone Hardware
+  'troubleshooting.macos.hardware.title': 'Verify Microphone Hardware',
+  'troubleshooting.macos.hardware.description': 'Make sure your Mac can actually detect a microphone:',
+  'troubleshooting.macos.hardware.step1.title': 'Open Sound Settings',
+  'troubleshooting.macos.hardware.step2.title': 'Check Input Devices',
+  'troubleshooting.macos.hardware.step2.description': 'You should see at least one input device listed (e.g., "MacBook Pro Microphone" or an external microphone).',
+  'troubleshooting.macos.hardware.step3.title': 'Test the microphone',
+  'troubleshooting.macos.hardware.step3.description': 'Speak and watch the input level meter. If it moves, your microphone is working.',
+
+  // Still Having Issues
+  'troubleshooting.macos.stillissues.title': 'Still Having Issues?',
+  'troubleshooting.macos.stillissues.description': 'If none of the above solutions work, please reach out:',
+  'troubleshooting.macos.stillissues.report': 'Report a Bug',
+  'troubleshooting.macos.stillissues.discuss': 'Ask in Discussions',
 } as const;

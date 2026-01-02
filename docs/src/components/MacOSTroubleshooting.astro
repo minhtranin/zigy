@@ -1,0 +1,468 @@
+---
+import { getLangFromUrl, useTranslations } from '../i18n/utils';
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+---
+
+<section class="troubleshooting">
+  <div class="container">
+    <div class="header">
+      <a href={lang === 'vi' ? '/zigy/vi/' : '/zigy/'} class="back-link">
+        ← {t('troubleshooting.back')}
+      </a>
+      <h1>{t('troubleshooting.macos.title')}</h1>
+      <p class="subtitle">{t('troubleshooting.macos.subtitle')}</p>
+    </div>
+
+    <!-- Microphone Permission Issue -->
+    <div class="issue-card">
+      <div class="issue-header">
+        <span class="issue-icon">🎤</span>
+        <h2>{t('troubleshooting.macos.mic.title')}</h2>
+      </div>
+      <div class="issue-content">
+        <div class="error-box">
+          <code>error: Failed to get default input device (status: 2003332927)</code>
+          <code>{"type":"error","message":"Failed to open Microphone: error.DeviceNotFound"}</code>
+        </div>
+
+        <h3>{t('troubleshooting.macos.mic.cause')}</h3>
+        <p>{t('troubleshooting.macos.mic.cause.description')}</p>
+
+        <h3>{t('troubleshooting.macos.mic.solution')}</h3>
+        <div class="steps">
+          <div class="step">
+            <span class="step-number">1</span>
+            <div class="step-content">
+              <strong>{t('troubleshooting.macos.mic.step1.title')}</strong>
+              <p>{t('troubleshooting.macos.mic.step1.description')}</p>
+            </div>
+          </div>
+          <div class="step">
+            <span class="step-number">2</span>
+            <div class="step-content">
+              <strong>{t('troubleshooting.macos.mic.step2.title')}</strong>
+              <p>{t('troubleshooting.macos.mic.step2.description')}</p>
+              <div class="path-box">
+                <span class="path-icon">⚙️</span>
+                <span>System Settings → Privacy & Security → Microphone</span>
+              </div>
+            </div>
+          </div>
+          <div class="step">
+            <span class="step-number">3</span>
+            <div class="step-content">
+              <strong>{t('troubleshooting.macos.mic.step3.title')}</strong>
+              <p>{t('troubleshooting.macos.mic.step3.description')}</p>
+            </div>
+          </div>
+          <div class="step">
+            <span class="step-number">4</span>
+            <div class="step-content">
+              <strong>{t('troubleshooting.macos.mic.step4.title')}</strong>
+              <p>{t('troubleshooting.macos.mic.step4.description')}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- App Not in Microphone List -->
+    <div class="issue-card">
+      <div class="issue-header">
+        <span class="issue-icon">📋</span>
+        <h2>{t('troubleshooting.macos.notinlist.title')}</h2>
+      </div>
+      <div class="issue-content">
+        <h3>{t('troubleshooting.macos.notinlist.cause')}</h3>
+        <p>{t('troubleshooting.macos.notinlist.cause.description')}</p>
+
+        <h3>{t('troubleshooting.macos.notinlist.solution')}</h3>
+        <div class="steps">
+          <div class="step">
+            <span class="step-number">1</span>
+            <div class="step-content">
+              <strong>{t('troubleshooting.macos.notinlist.step1.title')}</strong>
+              <p>{t('troubleshooting.macos.notinlist.step1.description')}</p>
+            </div>
+          </div>
+          <div class="step">
+            <span class="step-number">2</span>
+            <div class="step-content">
+              <strong>{t('troubleshooting.macos.notinlist.step2.title')}</strong>
+              <p>{t('troubleshooting.macos.notinlist.step2.description')}</p>
+            </div>
+          </div>
+          <div class="step">
+            <span class="step-number">3</span>
+            <div class="step-content">
+              <strong>{t('troubleshooting.macos.notinlist.step3.title')}</strong>
+              <p>{t('troubleshooting.macos.notinlist.step3.description')}</p>
+              <div class="code-box">
+                <code>sudo tccutil reset Microphone</code>
+              </div>
+              <p class="note">{t('troubleshooting.macos.notinlist.step3.note')}</p>
+            </div>
+          </div>
+          <div class="step">
+            <span class="step-number">4</span>
+            <div class="step-content">
+              <strong>{t('troubleshooting.macos.notinlist.step4.title')}</strong>
+              <p>{t('troubleshooting.macos.notinlist.step4.description')}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Manual Permission Grant -->
+    <div class="issue-card">
+      <div class="issue-header">
+        <span class="issue-icon">🔧</span>
+        <h2>{t('troubleshooting.macos.manual.title')}</h2>
+      </div>
+      <div class="issue-content">
+        <p>{t('troubleshooting.macos.manual.description')}</p>
+
+        <div class="steps">
+          <div class="step">
+            <span class="step-number">1</span>
+            <div class="step-content">
+              <strong>{t('troubleshooting.macos.manual.step1.title')}</strong>
+              <div class="path-box">
+                <span class="path-icon">⚙️</span>
+                <span>System Settings → Privacy & Security → Microphone</span>
+              </div>
+            </div>
+          </div>
+          <div class="step">
+            <span class="step-number">2</span>
+            <div class="step-content">
+              <strong>{t('troubleshooting.macos.manual.step2.title')}</strong>
+              <p>{t('troubleshooting.macos.manual.step2.description')}</p>
+            </div>
+          </div>
+          <div class="step">
+            <span class="step-number">3</span>
+            <div class="step-content">
+              <strong>{t('troubleshooting.macos.manual.step3.title')}</strong>
+              <p>{t('troubleshooting.macos.manual.step3.description')}</p>
+            </div>
+          </div>
+          <div class="step">
+            <span class="step-number">4</span>
+            <div class="step-content">
+              <strong>{t('troubleshooting.macos.manual.step4.title')}</strong>
+              <p>{t('troubleshooting.macos.manual.step4.description')}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Check Microphone Hardware -->
+    <div class="issue-card">
+      <div class="issue-header">
+        <span class="issue-icon">🔊</span>
+        <h2>{t('troubleshooting.macos.hardware.title')}</h2>
+      </div>
+      <div class="issue-content">
+        <p>{t('troubleshooting.macos.hardware.description')}</p>
+
+        <div class="steps">
+          <div class="step">
+            <span class="step-number">1</span>
+            <div class="step-content">
+              <strong>{t('troubleshooting.macos.hardware.step1.title')}</strong>
+              <div class="path-box">
+                <span class="path-icon">⚙️</span>
+                <span>System Settings → Sound → Input</span>
+              </div>
+            </div>
+          </div>
+          <div class="step">
+            <span class="step-number">2</span>
+            <div class="step-content">
+              <strong>{t('troubleshooting.macos.hardware.step2.title')}</strong>
+              <p>{t('troubleshooting.macos.hardware.step2.description')}</p>
+            </div>
+          </div>
+          <div class="step">
+            <span class="step-number">3</span>
+            <div class="step-content">
+              <strong>{t('troubleshooting.macos.hardware.step3.title')}</strong>
+              <p>{t('troubleshooting.macos.hardware.step3.description')}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Still Having Issues -->
+    <div class="help-card">
+      <h2>{t('troubleshooting.macos.stillissues.title')}</h2>
+      <p>{t('troubleshooting.macos.stillissues.description')}</p>
+      <div class="help-links">
+        <a href="https://github.com/minhtranin/zigy/issues" target="_blank" class="help-link">
+          <span>🐛</span> {t('troubleshooting.macos.stillissues.report')}
+        </a>
+        <a href="https://github.com/minhtranin/zigy/discussions" target="_blank" class="help-link">
+          <span>💬</span> {t('troubleshooting.macos.stillissues.discuss')}
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .troubleshooting {
+    padding: 2rem 0 4rem;
+    background: #f9fafb;
+    min-height: 100vh;
+  }
+
+  .container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+  }
+
+  .header {
+    margin-bottom: 2rem;
+  }
+
+  .back-link {
+    display: inline-block;
+    color: #6C5CE7;
+    text-decoration: none;
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+  }
+
+  .back-link:hover {
+    text-decoration: underline;
+  }
+
+  h1 {
+    font-size: 2rem;
+    color: #111827;
+    margin-bottom: 0.5rem;
+  }
+
+  .subtitle {
+    color: #6b7280;
+    font-size: 1.1rem;
+  }
+
+  .issue-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+  }
+
+  .issue-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1.25rem 1.5rem;
+    background: #f3f4f6;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .issue-icon {
+    font-size: 1.5rem;
+  }
+
+  .issue-header h2 {
+    font-size: 1.1rem;
+    color: #111827;
+    margin: 0;
+  }
+
+  .issue-content {
+    padding: 1.5rem;
+  }
+
+  .issue-content h3 {
+    font-size: 0.95rem;
+    color: #374151;
+    margin: 1.25rem 0 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .issue-content h3:first-child {
+    margin-top: 0;
+  }
+
+  .issue-content p {
+    color: #4b5563;
+    line-height: 1.6;
+    margin-bottom: 0.75rem;
+  }
+
+  .error-box {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .error-box code {
+    display: block;
+    font-family: 'SF Mono', Monaco, monospace;
+    font-size: 0.85rem;
+    color: #dc2626;
+    word-break: break-all;
+  }
+
+  .error-box code + code {
+    margin-top: 0.5rem;
+  }
+
+  .steps {
+    margin-top: 1rem;
+  }
+
+  .step {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .step:last-child {
+    margin-bottom: 0;
+  }
+
+  .step-number {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    background: #6C5CE7;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+
+  .step-content {
+    flex: 1;
+  }
+
+  .step-content strong {
+    display: block;
+    color: #111827;
+    margin-bottom: 0.25rem;
+  }
+
+  .step-content p {
+    margin: 0;
+    font-size: 0.95rem;
+  }
+
+  .path-box {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: #f3f4f6;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+  }
+
+  .path-icon {
+    font-size: 1rem;
+  }
+
+  .code-box {
+    background: #1f2937;
+    padding: 0.75rem 1rem;
+    border-radius: 6px;
+    margin: 0.5rem 0;
+  }
+
+  .code-box code {
+    color: #10b981;
+    font-family: 'SF Mono', Monaco, monospace;
+    font-size: 0.9rem;
+  }
+
+  .note {
+    font-size: 0.85rem;
+    color: #6b7280;
+    font-style: italic;
+  }
+
+  .help-card {
+    background: linear-gradient(135deg, #6C5CE7 0%, #a855f7 100%);
+    border-radius: 12px;
+    padding: 2rem;
+    text-align: center;
+    color: white;
+    margin-top: 2rem;
+  }
+
+  .help-card h2 {
+    font-size: 1.25rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .help-card p {
+    opacity: 0.9;
+    margin-bottom: 1.5rem;
+  }
+
+  .help-links {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .help-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(255,255,255,0.2);
+    color: white;
+    text-decoration: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 500;
+    transition: background 0.2s;
+  }
+
+  .help-link:hover {
+    background: rgba(255,255,255,0.3);
+  }
+
+  @media (max-width: 640px) {
+    h1 {
+      font-size: 1.5rem;
+    }
+
+    .issue-header {
+      padding: 1rem;
+    }
+
+    .issue-content {
+      padding: 1rem;
+    }
+
+    .step {
+      gap: 0.75rem;
+    }
+
+    .help-links {
+      flex-direction: column;
+    }
+  }
+</style>
