@@ -1,4 +1,4 @@
-name: Claude Code (DeepSeek)
+name: Claude
 
 on:
   issue_comment:
@@ -79,18 +79,27 @@ jobs:
           if [ "${{ github.event_name }}" == "issue_comment" ]; then
             echo "number=${{ github.event.issue.number }}" >> $GITHUB_OUTPUT
             echo "type=issue" >> $GITHUB_OUTPUT
+            echo "title=${{ github.event.issue.title }}" >> $GITHUB_OUTPUT
+            echo "state=${{ github.event.issue.state }}" >> $GITHUB_OUTPUT
             echo "comment_body=${{ github.event.comment.body }}" >> $GITHUB_OUTPUT
             echo "comment_author=${{ github.event.comment.user.login }}" >> $GITHUB_OUTPUT
+            echo "trigger_comment=${{ github.event.comment.body }}" >> $GITHUB_OUTPUT
           elif [ "${{ github.event_name }}" == "issues" ]; then
             echo "number=${{ github.event.issue.number }}" >> $GITHUB_OUTPUT
             echo "type=issue" >> $GITHUB_OUTPUT
+            echo "title=${{ github.event.issue.title }}" >> $GITHUB_OUTPUT
+            echo "state=${{ github.event.issue.state }}" >> $GITHUB_OUTPUT
             echo "comment_body=${{ github.event.issue.body }}" >> $GITHUB_OUTPUT
             echo "comment_author=${{ github.event.issue.user.login }}" >> $GITHUB_OUTPUT
+            echo "trigger_comment=${{ github.event.issue.body }}" >> $GITHUB_OUTPUT
           elif [ "${{ github.event_name }}" == "pull_request" ]; then
             echo "number=${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
             echo "type=pr" >> $GITHUB_OUTPUT
+            echo "title=${{ github.event.pull_request.title }}" >> $GITHUB_OUTPUT
+            echo "state=${{ github.event.pull_request.state }}" >> $GITHUB_OUTPUT
             echo "comment_body=${{ github.event.pull_request.body }}" >> $GITHUB_OUTPUT
             echo "comment_author=${{ github.event.pull_request.user.login }}" >> $GITHUB_OUTPUT
+            echo "trigger_comment=${{ github.event.pull_request.body }}" >> $GITHUB_OUTPUT
           fi
 
       - name: Run Claude Code
@@ -103,18 +112,50 @@ jobs:
         run: |
           ISSUE_TYPE="${{ steps.context.outputs.type }}"
           ISSUE_NUMBER="${{ steps.context.outputs.number }}"
+          ISSUE_TITLE="${{ steps.context.outputs.title }}"
+          ISSUE_STATE="${{ steps.context.outputs.state }}"
           COMMENT_BODY="${{ steps.context.outputs.comment_body }}"
           COMMENT_AUTHOR="${{ steps.context.outputs.comment_author }}"
+          TRIGGER_COMMENT="${{ steps.context.outputs.trigger_comment }}"
+          REPO="${{ github.repository }}"
+          EVENT_TYPE="${{ github.event_name }}"
 
-          # Build prompt as argument
-          PROMPT="You are Claude, helping with GitHub repo ${{ github.repository }}.
-          Issue/PR: #${ISSUE_NUMBER}
-          Author: @${COMMENT_AUTHOR}
-          Comment: ${COMMENT_BODY}
+          # Build detailed system prompt
+          cat > /tmp/prompt.txt << SYSTEMEOF
+          You are Claude, an AI assistant designed to help with GitHub issues and pull requests. Think carefully as you analyze the context and respond appropriately.
 
-          Read the issue using GitHub MCP and provide a helpful, concise response."
+          Here's the context for your current task:
 
-          claude "$PROMPT" 2>&1 | tee /tmp/output.txt
+          <formatted_context>
+          Issue Title: ${ISSUE_TITLE}
+          Issue State: ${ISSUE_STATE}
+          Repository: ${REPO}
+          Event Type: ${EVENT_TYPE}
+          </formatted_context>
+
+          <trigger_comment>
+          ${TRIGGER_COMMENT}
+          </trigger_comment>
+
+          <comment_author>
+          @${COMMENT_AUTHOR}
+          </comment_author>
+
+          Your task is to:
+          1. Read the full issue using GitHub MCP tools (mcp__github__get_issue, mcp__github__get_issue_comments, etc.)
+          2. Understand what the user is asking for
+          3. Provide helpful, concise responses
+          4. If code changes are needed, explain what should be done
+
+          Important guidelines:
+          - Be friendly and helpful
+          - Keep responses concise but complete
+          - Use code blocks for code examples
+          - Reference specific files with paths when applicable
+          - If you don't know something, be honest about it
+          SYSTEMEOF
+
+          claude "$(< /tmp/prompt.txt)" 2>&1 | tee /tmp/output.txt
 
       - name: Post response
         if: steps.check_mention.outputs.mentioned == 'true'
@@ -128,5 +169,5 @@ jobs:
             await github.rest.issues.createComment({
               ...context.repo,
               issue_number: issueNumber,
-              body: `**@claude (DeepSeek)**\n\n${output}\n\n---\n*Generated via Claude Code*`
+              body: `**@claude**\n\n${output}\n\n---\n*Generated via [Claude Code](https://claude.com/claude-code) | [View job run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})*`
             });
