@@ -2,7 +2,6 @@
 import { getLangFromUrl, useTranslations } from '../i18n/utils';
 import type { Language } from '../i18n/languages';
 import Header from '../components/Header.astro';
-import LanguageSwitcher from '../components/LanguageSwitcher.astro';
 
 interface Props {
   title?: string;
@@ -41,7 +40,6 @@ const {
   </head>
   <body class={showHeader ? 'has-header' : ''}>
     {showHeader && <Header />}
-    <LanguageSwitcher />
     <slot />
   </body>
 </html>
