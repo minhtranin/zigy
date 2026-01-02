@@ -177,5 +177,5 @@ jobs:
             await github.rest.issues.createComment({
               ...context.repo,
               issue_number: issueNumber,
-              body: `**@claude**\n\n${output}\n\n---\n*Generated via [Claude Code](https://claude.com/claude-code) | [View job run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})*`
+              body: `**@claude**\n\n${output}\n\n---\n*generated via CC*`
             });
