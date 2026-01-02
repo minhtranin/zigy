@@ -213,23 +213,42 @@ jobs:
           echo "Model: $MODEL"
           echo ""
 
-          # Check binary dependencies
-          echo "Test 1: Check library dependencies"
-          ldd "$BINARY" | grep -i onnx || echo "No ONNX dependency found"
+          # Test 1: Verify binary is executable
+          echo "Test 1: Verify binary is executable"
+          if [ -x "$BINARY" ]; then
+            echo "✓ Binary is executable"
+          else
+            echo "ERROR: Binary is not executable"
+            exit 1
+          fi
 
-          # Test: Try to load the model (will fail without audio, but tests library loading)
-          # Using background process with timeout for cross-platform compatibility
+          # Test 2: Check binary dependencies
           echo ""
-          echo "Test 2: Load model (tests dylib/so loading)"
-          ("$BINARY" --json "$MODEL" 2>&1 || true) | head -20 &
-          TEST_PID=$!
-          sleep 5
-          kill $TEST_PID 2>/dev/null || true
-          wait $TEST_PID 2>/dev/null || true
+          echo "Test 2: Verify library dependencies"
+          if ldd "$BINARY" | grep -q "onnxruntime"; then
+            echo "✓ Binary links to ONNX Runtime"
+            ldd "$BINARY" | grep "onnxruntime"
+          else
+            echo "ERROR: Binary does not link to ONNX Runtime"
+            ldd "$BINARY"
+            exit 1
+          fi
+
+          # Test 3: Check for PulseAudio libraries (if bundled)
+          echo ""
+          echo "Test 3: Check audio libraries"
+          if ldd "$BINARY" | grep -q "pulse"; then
+            echo "✓ PulseAudio libraries linked"
+          else
+            echo "Note: PulseAudio not bundled (uses ALSA or system audio)"
+          fi
 
           echo ""
-          echo "✓ Binary test completed"
-          echo "Note: Full speech recognition test requires audio input (not available in CI)"
+          echo "=================================="
+          echo "✓ All binary tests passed!"
+          echo "=================================="
+          echo ""
+          echo "Note: Audio device test skipped (CI environment has no audio hardware)"
 
       - name: Verify Linux Bundle (Debug)
         if: runner.os == 'Linux'
@@ -436,18 +455,47 @@ jobs:
           echo "Model: $MODEL"
           echo ""
 
-          # Test: Try to load the model (will fail without audio, but tests library loading)
-          # Using background process with timeout for cross-platform compatibility
-          echo "Test 1: Load model (tests dylib loading)"
-          ("$BINARY" --json --verbose "$MODEL" 2>&1 || true) | head -30 &
-          TEST_PID=$!
-          sleep 5
-          kill $TEST_PID 2>/dev/null || true
-          wait $TEST_PID 2>/dev/null || true
+          # Verify binary is executable and codesigned
+          echo "Test 1: Verify binary is executable"
+          if [ -x "$BINARY" ]; then
+            echo "✓ Binary is executable"
+          else
+            echo "ERROR: Binary is not executable"
+            exit 1
+          fi
 
           echo ""
-          echo "✓ Binary test completed"
-          echo "Note: Full speech recognition test requires audio input (not available in CI)"
+          echo "Test 2: Verify codesignature"
+          if codesign -v "$BINARY" 2>&1; then
+            echo "✓ Binary is properly signed"
+          else
+            echo "WARNING: Binary signature verification failed (may be ad-hoc signed)"
+          fi
+
+          echo ""
+          echo "Test 3: Check binary dependencies"
+          if otool -L "$BINARY" | grep -q "onnxruntime"; then
+            echo "✓ Binary links to ONNX Runtime"
+          else
+            echo "ERROR: Binary does not link to ONNX Runtime"
+            exit 1
+          fi
+
+          echo ""
+          echo "Test 4: Verify entitlements (microphone access)"
+          if codesign -d --entitlements - "$BINARY" 2>&1 | grep -q "com.apple.security.device.audio-input"; then
+            echo "✓ Audio input entitlement found"
+          else
+            echo "WARNING: Audio input entitlement not found (microphone may not work)"
+          fi
+
+          echo ""
+          echo "=================================="
+          echo "✓ All binary tests passed!"
+          echo "=================================="
+          echo ""
+          echo "Note: Audio device test skipped (CI environment has no audio hardware)"
+          echo "      Microphone permission dialog will appear when users run the app"
 
       - name: Verify macOS Bundle (Debug)
         if: runner.os == 'macOS'
