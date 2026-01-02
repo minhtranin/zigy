@@ -100,60 +100,88 @@ jobs:
           ANTHROPIC_MODEL: deepseek-chat
           CLAUDE_CODE_DISABLE_NON_ESSENTIAL_TRAFFIC: 1
         run: |
-          ISSUE_TYPE="${{ steps.context.outputs.type }}"
-          ISSUE_NUMBER="${{ steps.context.outputs.number }}"
-          TRIGGER_COMMENT="${{ steps.context.outputs.trigger_comment }}"
-          TRIGGER_AUTHOR="${{ steps.context.outputs.trigger_author }}"
-          REPO="${{ github.repository }}"
+          export ISSUE_TYPE="${{ steps.context.outputs.type }}"
+          export ISSUE_NUMBER="${{ steps.context.outputs.number }}"
+          export TRIGGER_AUTHOR="${{ steps.context.outputs.trigger_author }}"
+          export REPO="${{ github.repository }}"
+          export TRIGGER_COMMENT="${{ steps.context.outputs.trigger_comment }}"
 
           if [ "$ISSUE_TYPE" == "issue" ]; then
-            ISSUE_JSON="${{ steps.context.outputs.issue_json }}"
+            export ISSUE_JSON='${{ steps.context.outputs.issue_json }}'
           else
-            ISSUE_JSON="${{ steps.context.outputs.pr_json }}"
+            export ISSUE_JSON='${{ steps.context.outputs.pr_json }}'
           fi
 
-          # Build detailed system prompt with all context
-          cat > /tmp/prompt.txt << 'SYSTEMEOF'
-          You are Claude, an AI assistant designed to help with GitHub issues and pull requests.
+          python3 << 'PYEOF'
+          import json
+          import os
 
-          <repository>
-          ${REPO}
-          </repository>
+          issue_type = os.getenv("ISSUE_TYPE")
+          issue_number = os.getenv("ISSUE_NUMBER")
+          trigger_author = os.getenv("TRIGGER_AUTHOR")
+          repo = os.getenv("REPO")
+          trigger_comment = os.getenv("TRIGGER_COMMENT")
+          issue_json_str = os.getenv("ISSUE_JSON")
 
-          <issue_type>
-          ${ISSUE_TYPE}
-          </issue_type>
+          issue_data = json.loads(issue_json_str)
 
-          <issue_number>
-          ${ISSUE_NUMBER}
-          </issue_number>
+          # Format the context nicely
+          context_text = f"""Issue Title: {issue_data.get('title', 'N/A')}
+State: {issue_data.get('state', 'N/A')}
+Author: {issue_data.get('author', {}).get('login', 'N/A')}
 
-          <full_context>
-          ${ISSUE_JSON}
-          </full_context>
+Body:
+{issue_data.get('body', '(empty)')}
 
-          <trigger_comment>
-          ${TRIGGER_COMMENT}
-          </trigger_comment>
+Comments:"""
 
-          <trigger_author>
-          @${TRIGGER_AUTHOR}
-          </trigger_author>
+          for comment in issue_data.get('comments', []):
+              context_text += f"\n- {comment.get('author', {}).get('login', 'Unknown')} at {comment.get('createdAt', 'Unknown')}:"
+              context_text += f"\n  {comment.get('body', '')}"
 
-          Your task is to:
-          1. Analyze the full issue context provided above
-          2. Understand what the user is asking for in the trigger comment
-          3. Provide helpful, concise responses
-          4. If code changes are needed, explain what should be done
+          prompt = f"""You are Claude, an AI assistant designed to help with GitHub issues and pull requests.
 
-          Important guidelines:
-          - Be friendly and helpful
-          - Keep responses concise but complete
-          - Use code blocks for code examples
-          - Reference specific files with paths when applicable
-          - If you don't know something, be honest about it
-          - The full_context above contains the issue title, body, state, author, and all comments
-          SYSTEMEOF
+<repository>
+{repo}
+</repository>
+
+<issue_type>
+{issue_type}
+</issue_type>
+
+<issue_number>
+{issue_number}
+</issue_number>
+
+<full_context>
+{context_text}
+</full_context>
+
+<trigger_comment>
+{trigger_comment}
+</trigger_comment>
+
+<trigger_author>
+@{trigger_author}
+</trigger_author>
+
+Your task is to:
+1. Analyze the full issue context provided above
+2. Understand what the user is asking for in the trigger comment
+3. Provide helpful, concise responses
+4. If code changes are needed, explain what should be done
+
+Important guidelines:
+- Be friendly and helpful
+- Keep responses concise but complete
+- Use code blocks for code examples
+- Reference specific files with paths when applicable
+- If you don't know something, be honest about it
+"""
+
+          with open('/tmp/prompt.txt', 'w') as f:
+              f.write(prompt)
+          PYEOF
 
           claude "$(< /tmp/prompt.txt)" 2>&1 | tee /tmp/output.txt
 
