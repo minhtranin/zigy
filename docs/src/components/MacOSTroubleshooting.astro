@@ -24,7 +24,7 @@ const t = useTranslations(lang);
       <div class="issue-content">
         <div class="error-box">
           <code>error: Failed to get default input device (status: 2003332927)</code>
-          <code>{"type":"error","message":"Failed to open Microphone: error.DeviceNotFound"}</code>
+          <code set:text={'{"type":"error","message":"Failed to open Microphone: error.DeviceNotFound"}'}></code>
         </div>
 
         <h3>{t('troubleshooting.macos.mic.cause')}</h3>
