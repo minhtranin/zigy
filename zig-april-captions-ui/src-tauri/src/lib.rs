@@ -84,10 +84,10 @@ mod macos_permissions {
 
                     // Create the completion handler block
                     let handler = block::ConcreteBlock::new(move |granted: BOOL| {
-                        println!("Permission callback received: granted = {}", granted != 0);
+                        println!("Permission callback received: granted = {}", granted);
                         let (lock, cvar) = &*result_clone;
                         let mut guard = lock.lock().unwrap();
-                        *guard = Some(granted != 0);
+                        *guard = Some(granted);
                         cvar.notify_one();
                     });
 
@@ -796,7 +796,7 @@ async fn get_bundled_model_path(app_handle: AppHandle) -> Result<Option<String>,
         .map_err(|e| format!("Failed to get resource directory: {}", e))?;
 
     // Check multiple possible locations for the bundled model
-    let mut model_candidates = vec![
+    let model_candidates = vec![
         resource_dir.join("resources").join(model_name),  // In resources/ subdirectory
         resource_dir.join(model_name),                   // Direct in resource dir
     ];
