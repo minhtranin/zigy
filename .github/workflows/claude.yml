@@ -99,90 +99,70 @@ jobs:
           ANTHROPIC_AUTH_TOKEN: ${{ secrets.DEEPSEEK_API_KEY }}
           ANTHROPIC_MODEL: deepseek-chat
           CLAUDE_CODE_DISABLE_NON_ESSENTIAL_TRAFFIC: 1
+          ISSUE_TYPE: ${{ steps.context.outputs.type }}
+          ISSUE_NUMBER: ${{ steps.context.outputs.number }}
+          TRIGGER_AUTHOR: ${{ steps.context.outputs.trigger_author }}
+          REPO: ${{ github.repository }}
+          TRIGGER_COMMENT: ${{ steps.context.outputs.trigger_comment }}
+          ISSUE_JSON: ${{ steps.context.outputs.issue_json }}
+          PR_JSON: ${{ steps.context.outputs.pr_json }}
         run: |
-          export ISSUE_TYPE="${{ steps.context.outputs.type }}"
-          export ISSUE_NUMBER="${{ steps.context.outputs.number }}"
-          export TRIGGER_AUTHOR="${{ steps.context.outputs.trigger_author }}"
-          export REPO="${{ github.repository }}"
-          export TRIGGER_COMMENT="${{ steps.context.outputs.trigger_comment }}"
-
-          if [ "$ISSUE_TYPE" == "issue" ]; then
-            export ISSUE_JSON='${{ steps.context.outputs.issue_json }}'
-          else
-            export ISSUE_JSON='${{ steps.context.outputs.pr_json }}'
-          fi
-
-          python3 << 'PYEOF'
+          # Write Python script to file
+          cat > /tmp/build_prompt.py << 'PYTHON_SCRIPT'
           import json
           import os
 
-          issue_type = os.getenv("ISSUE_TYPE")
-          issue_number = os.getenv("ISSUE_NUMBER")
-          trigger_author = os.getenv("TRIGGER_AUTHOR")
-          repo = os.getenv("REPO")
-          trigger_comment = os.getenv("TRIGGER_COMMENT")
-          issue_json_str = os.getenv("ISSUE_JSON")
+          issue_type = os.environ["ISSUE_TYPE"]
+          issue_number = os.environ["ISSUE_NUMBER"]
+          trigger_author = os.environ["TRIGGER_AUTHOR"]
+          repo = os.environ["REPO"]
+          trigger_comment = os.environ["TRIGGER_COMMENT"]
+
+          if issue_type == "issue":
+              issue_json_str = os.environ["ISSUE_JSON"]
+          else:
+              issue_json_str = os.environ["PR_JSON"]
 
           issue_data = json.loads(issue_json_str)
 
           # Format the context nicely
-          context_text = f"""Issue Title: {issue_data.get('title', 'N/A')}
-State: {issue_data.get('state', 'N/A')}
-Author: {issue_data.get('author', {}).get('login', 'N/A')}
-
-Body:
-{issue_data.get('body', '(empty)')}
-
-Comments:"""
+          context_text = "Issue Title: " + issue_data.get('title', 'N/A') + "\n"
+          context_text += "State: " + issue_data.get('state', 'N/A') + "\n"
+          context_text += "Author: " + issue_data.get('author', {}).get('login', 'N/A') + "\n\n"
+          context_text += "Body:\n" + issue_data.get('body', '(empty)') + "\n\n"
+          context_text += "Comments:\n"
 
           for comment in issue_data.get('comments', []):
-              context_text += f"\n- {comment.get('author', {}).get('login', 'Unknown')} at {comment.get('createdAt', 'Unknown')}:"
-              context_text += f"\n  {comment.get('body', '')}"
+              context_text += "\n- " + comment.get('author', {}).get('login', 'Unknown')
+              context_text += " at " + comment.get('createdAt', 'Unknown') + ":\n"
+              context_text += "  " + comment.get('body', '') + "\n"
 
-          prompt = f"""You are Claude, an AI assistant designed to help with GitHub issues and pull requests.
+          prompt = "You are Claude, an AI assistant designed to help with GitHub issues and pull requests.\n\n"
+          prompt += "<repository>\n" + repo + "\n</repository>\n\n"
+          prompt += "<issue_type>\n" + issue_type + "\n</issue_type>\n\n"
+          prompt += "<issue_number>\n" + issue_number + "\n</issue_number>\n\n"
+          prompt += "<full_context>\n" + context_text + "\n</full_context>\n\n"
+          prompt += "<trigger_comment>\n" + trigger_comment + "\n</trigger_comment>\n\n"
+          prompt += "<trigger_author>\n@" + trigger_author + "\n</trigger_author>\n\n"
+          prompt += """Your task is to:
+          1. Analyze the full issue context provided above
+          2. Understand what the user is asking for in the trigger comment
+          3. Provide helpful, concise responses
+          4. If code changes are needed, explain what should be done
 
-<repository>
-{repo}
-</repository>
-
-<issue_type>
-{issue_type}
-</issue_type>
-
-<issue_number>
-{issue_number}
-</issue_number>
-
-<full_context>
-{context_text}
-</full_context>
-
-<trigger_comment>
-{trigger_comment}
-</trigger_comment>
-
-<trigger_author>
-@{trigger_author}
-</trigger_author>
-
-Your task is to:
-1. Analyze the full issue context provided above
-2. Understand what the user is asking for in the trigger comment
-3. Provide helpful, concise responses
-4. If code changes are needed, explain what should be done
-
-Important guidelines:
-- Be friendly and helpful
-- Keep responses concise but complete
-- Use code blocks for code examples
-- Reference specific files with paths when applicable
-- If you don't know something, be honest about it
-"""
+          Important guidelines:
+          - Be friendly and helpful
+          - Keep responses concise but complete
+          - Use code blocks for code examples
+          - Reference specific files with paths when applicable
+          - If you don't know something, be honest about it
+          """
 
           with open('/tmp/prompt.txt', 'w') as f:
               f.write(prompt)
-          PYEOF
+          PYTHON_SCRIPT
 
+          python3 /tmp/build_prompt.py
           claude "$(< /tmp/prompt.txt)" 2>&1 | tee /tmp/output.txt
 
       - name: Post response
