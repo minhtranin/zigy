@@ -106,17 +106,15 @@ jobs:
           COMMENT_BODY="${{ steps.context.outputs.comment_body }}"
           COMMENT_AUTHOR="${{ steps.context.outputs.comment_author }}"
 
-          cat > /tmp/prompt.txt << EOF
-          You are Claude, helping with GitHub repo ${{ github.repository }}.
-
+          # Build prompt as argument
+          PROMPT="You are Claude, helping with GitHub repo ${{ github.repository }}.
           Issue/PR: #${ISSUE_NUMBER}
           Author: @${COMMENT_AUTHOR}
           Comment: ${COMMENT_BODY}
 
-          Read the issue using GitHub MCP and provide a helpful, concise response.
-          EOF
+          Read the issue using GitHub MCP and provide a helpful, concise response."
 
-          claude --prompt "$(< /tmp/prompt.txt)" 2>&1 | tee /tmp/output.txt
+          claude "$PROMPT" 2>&1 | tee /tmp/output.txt
 
       - name: Post response
         if: steps.check_mention.outputs.mentioned == 'true'
