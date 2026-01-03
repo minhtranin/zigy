@@ -65,7 +65,7 @@ const kLinearPCMFormatFlagIsSignedInteger = if (is_macos) @as(u32, 1 << 1) else 
 const kLinearPCMFormatFlagIsPacked = if (is_macos) @as(u32, 1 << 3) else 0;
 const kAudioFormatFlagsNativeEndian = if (is_macos) @as(u32, 0 << 2) else 0;
 
-const kAudioUnitProperty_StreamFormat = if (is_macos) @as(u32, 10) else 0;
+const kAudioUnitProperty_StreamFormat = if (is_macos) @as(u32, 8) else 0; // Correct value from AudioUnitProperties.h
 const kAudioOutputUnitProperty_EnableIO = if (is_macos) @as(u32, 2003) else 0;
 const kAudioOutputUnitProperty_SetInputCallback = if (is_macos) @as(u32, 2004) else 0;
 
