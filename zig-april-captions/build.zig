@@ -95,6 +95,63 @@ pub fn build(b: *std.Build) void {
     april_lib.linkLibC();
 
     // =========================================
+    // Build miniaudio library
+    // =========================================
+    const miniaudio_lib = b.addStaticLibrary(.{
+        .name = "miniaudio",
+        .target = target,
+        .optimize = optimize,
+    });
+
+    // Compile miniaudio implementation
+    var miniaudio_flags = std.ArrayList([]const u8).init(b.allocator);
+    defer miniaudio_flags.deinit();
+
+    miniaudio_flags.append("-fPIC") catch unreachable;
+
+    // Platform-specific defines for miniaudio
+    if (target.result.os.tag == .linux) {
+        // Linux: Enable PulseAudio and ALSA backends
+        miniaudio_flags.append("-DMA_ENABLE_PULSEAUDIO") catch unreachable;
+        miniaudio_flags.append("-DMA_ENABLE_ALSA") catch unreachable;
+    } else if (target.result.os.tag == .macos) {
+        // macOS: Enable CoreAudio backend
+        miniaudio_flags.append("-DMA_ENABLE_COREAUDIO") catch unreachable;
+    } else if (is_windows) {
+        // Windows: Enable WASAPI backend
+        miniaudio_flags.append("-DMA_ENABLE_WASAPI") catch unreachable;
+    }
+
+    const miniaudio_c_flags = miniaudio_flags.toOwnedSlice() catch unreachable;
+    defer b.allocator.free(miniaudio_c_flags);
+
+    miniaudio_lib.addCSourceFiles(.{
+        .files = &[_][]const u8{"libs/miniaudio/miniaudio_impl.c"},
+        .flags = miniaudio_c_flags,
+    });
+
+    miniaudio_lib.addIncludePath(b.path("libs/miniaudio"));
+    miniaudio_lib.linkLibC();
+
+    // Platform-specific libraries for miniaudio
+    if (target.result.os.tag == .linux) {
+        miniaudio_lib.linkSystemLibrary("pthread");
+        miniaudio_lib.linkSystemLibrary("m");
+        miniaudio_lib.linkSystemLibrary("dl");
+        // PulseAudio libraries (miniaudio loads them dynamically, but we link for compatibility)
+        miniaudio_lib.linkSystemLibrary("pulse");
+        miniaudio_lib.linkSystemLibrary("pulse-simple");
+    } else if (target.result.os.tag == .macos) {
+        miniaudio_lib.linkFramework("CoreAudio");
+        miniaudio_lib.linkFramework("AudioToolbox");
+        miniaudio_lib.linkFramework("CoreFoundation");
+        miniaudio_lib.linkSystemLibrary("pthread");
+        miniaudio_lib.linkSystemLibrary("m");
+    } else if (is_windows) {
+        miniaudio_lib.linkSystemLibrary("ole32");
+    }
+
+    // =========================================
     // Build main executable
     // =========================================
     const exe = b.addExecutable(.{
@@ -107,33 +164,33 @@ pub fn build(b: *std.Build) void {
     // Link April ASR (built from source)
     exe.linkLibrary(april_lib);
 
-    // Add include path for april_api.h
+    // Link miniaudio
+    exe.linkLibrary(miniaudio_lib);
+
+    // Add include paths
     exe.addIncludePath(b.path("libs/april-asr"));
+    exe.addIncludePath(b.path("libs/miniaudio"));
 
     // ONNX Runtime linking
     exe.addLibraryPath(.{ .cwd_relative = b.fmt("{s}/lib", .{onnx_path}) });
     exe.linkSystemLibrary("onnxruntime");
 
-    // Platform-specific audio libraries
+    // Platform-specific libraries (miniaudio needs these at runtime)
     if (is_windows) {
         // Windows: WASAPI libraries
         exe.linkSystemLibrary("ole32");
-        exe.linkSystemLibrary("ksuser");
     } else if (target.result.os.tag == .linux) {
-        // Linux: PulseAudio
+        // Linux: PulseAudio (miniaudio uses it)
         exe.linkSystemLibrary("pulse");
         exe.linkSystemLibrary("pulse-simple");
-
-        // Standard POSIX libraries
         exe.linkSystemLibrary("pthread");
         exe.linkSystemLibrary("m");
+        exe.linkSystemLibrary("dl");
     } else if (target.result.os.tag == .macos) {
-        // macOS: CoreAudio frameworks
+        // macOS: CoreAudio frameworks (miniaudio uses them)
         exe.linkFramework("CoreAudio");
         exe.linkFramework("AudioToolbox");
         exe.linkFramework("CoreFoundation");
-
-        // Standard POSIX libraries
         exe.linkSystemLibrary("pthread");
         exe.linkSystemLibrary("m");
 

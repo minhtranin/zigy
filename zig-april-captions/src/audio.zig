@@ -1,13 +1,14 @@
 //! Platform-agnostic audio capture interface
-//! Uses CoreAudio on macOS, PulseAudio on Linux, WASAPI on Windows
+//! Uses miniaudio library which handles platform differences internally:
+//! - macOS: CoreAudio
+//! - Linux: PulseAudio (with ALSA fallback)
+//! - Windows: WASAPI
 
 const std = @import("std");
 const builtin = @import("builtin");
 
-// Platform-specific implementations
-const coreaudio = if (builtin.os.tag == .macos) @import("coreaudio.zig") else void;
-const pulse = if (builtin.os.tag == .linux) @import("pulse.zig") else void;
-const wasapi = if (builtin.os.tag == .windows) @import("wasapi.zig") else void;
+// Use miniaudio for all platforms
+const miniaudio = @import("miniaudio.zig");
 
 /// Audio source type
 pub const AudioSource = enum {
@@ -15,114 +16,55 @@ pub const AudioSource = enum {
     monitor, // Capture system audio output
 };
 
-/// Audio capture interface - platform-agnostic
+/// Audio capture interface - uses miniaudio internally
 pub const AudioCapture = struct {
-    // Use a union to hold the appropriate backend
-    coreaudio_capture: if (builtin.os.tag == .macos) coreaudio.AudioCapture else void,
-    pulse_capture: if (builtin.os.tag == .linux) pulse.AudioCapture else void,
-    wasapi_capture: if (builtin.os.tag == .windows) wasapi.AudioCapture else void,
+    miniaudio_capture: miniaudio.AudioCapture,
 
     const Self = @This();
 
     /// Initialize audio capture
     pub fn init(allocator: std.mem.Allocator, sample_rate: u32, source: AudioSource, verbose: bool) !Self {
-        if (builtin.os.tag == .macos) {
-            // macOS: Use CoreAudio (monitor falls back to microphone)
-            return Self{
-                .coreaudio_capture = try coreaudio.AudioCapture.init(allocator, sample_rate, switch (source) {
+        return Self{
+            .miniaudio_capture = try miniaudio.AudioCapture.init(
+                allocator,
+                sample_rate,
+                switch (source) {
                     .microphone => .microphone,
                     .monitor => .monitor,
-                }, verbose),
-                .pulse_capture = undefined,
-                .wasapi_capture = undefined,
-            };
-        } else if (builtin.os.tag == .windows) {
-            // Windows: Always use microphone for now
-            // WASAPI implementation will handle the source type internally
-            return Self{
-                .coreaudio_capture = undefined,
-                .pulse_capture = undefined,
-                .wasapi_capture = try wasapi.AudioCapture.init(sample_rate, .microphone, verbose),
-            };
-        } else {
-            // Linux: Use PulseAudio (supports both mic and monitor)
-            return Self{
-                .coreaudio_capture = undefined,
-                .pulse_capture = try pulse.AudioCapture.init(sample_rate, switch (source) {
-                    .microphone => .microphone,
-                    .monitor => .monitor,
-                }, verbose),
-                .wasapi_capture = undefined,
-            };
-        }
+                },
+                verbose,
+            ),
+        };
+    }
+
+    /// Start capture (miniaudio needs explicit start)
+    pub fn start(self: *Self) !void {
+        try self.miniaudio_capture.start();
     }
 
     /// Read audio samples
     pub fn read(self: *Self, buffer: []i16) ![]i16 {
-        if (builtin.os.tag == .macos) {
-            return self.coreaudio_capture.read(buffer);
-        }
-        // Linux and Windows: Direct call (no extra branches)
-        if (builtin.os.tag == .windows) {
-            return self.wasapi_capture.read(buffer);
-        }
-        return self.pulse_capture.read(buffer);
+        return self.miniaudio_capture.read(buffer);
     }
 
     /// Stop capture
     pub fn stop(self: *Self) void {
-        if (builtin.os.tag == .macos) {
-            self.coreaudio_capture.stop();
-            return;
-        }
-        // Linux and Windows: Direct call
-        if (builtin.os.tag == .windows) {
-            self.wasapi_capture.stop();
-            return;
-        }
-        self.pulse_capture.stop();
+        self.miniaudio_capture.stop();
     }
 
     /// Check if still running
     pub fn isRunning(self: *Self) bool {
-        if (builtin.os.tag == .macos) {
-            return self.coreaudio_capture.isRunning();
-        }
-        // Linux and Windows: Direct call
-        if (builtin.os.tag == .windows) {
-            return self.wasapi_capture.isRunning();
-        }
-        return self.pulse_capture.isRunning();
+        return self.miniaudio_capture.isRunning();
     }
 
     /// Get the sample rate
     pub fn getSampleRate(self: *Self) u32 {
-        if (builtin.os.tag == .macos) {
-            return self.coreaudio_capture.getSampleRate();
-        }
-        // Linux and Windows: Direct call
-        if (builtin.os.tag == .windows) {
-            return self.wasapi_capture.getSampleRate();
-        }
-        return self.pulse_capture.getSampleRate();
+        return self.miniaudio_capture.getSampleRate();
     }
 
     /// Get the audio source type
     pub fn getSource(self: *Self) AudioSource {
-        if (builtin.os.tag == .macos) {
-            return switch (self.coreaudio_capture.getSource()) {
-                .microphone => .microphone,
-                .monitor => .monitor,
-            };
-        }
-        // Linux and Windows: Direct call
-        if (builtin.os.tag == .windows) {
-            return switch (self.wasapi_capture.getSource()) {
-                .microphone => .microphone,
-                .monitor => .monitor,
-            };
-        }
-        return switch (self.pulse_capture.getSource()) {
+        return switch (self.miniaudio_capture.getSource()) {
             .microphone => .microphone,
             .monitor => .monitor,
         };
@@ -130,24 +72,7 @@ pub const AudioCapture = struct {
 
     /// Clean up resources
     pub fn deinit(self: *Self) void {
-        if (builtin.os.tag == .macos) {
-            self.coreaudio_capture.deinit();
-            return;
-        }
-        // Linux and Windows: Direct call
-        if (builtin.os.tag == .windows) {
-            self.wasapi_capture.deinit();
-            return;
-        }
-        self.pulse_capture.deinit();
-    }
-
-    /// Start capture (for platforms that need explicit start)
-    pub fn start(self: *Self) !void {
-        if (builtin.os.tag == .macos) {
-            try self.coreaudio_capture.start();
-        }
-        // PulseAudio and WASAPI start automatically in init()
+        self.miniaudio_capture.deinit();
     }
 };
 
