@@ -463,13 +463,35 @@ pub const AudioCapture = struct {
             return CoreAudioError.InitializeFailed;
         }
 
-        // Enable input on the audio unit
+        // CRITICAL: For HAL Output Audio Unit on macOS, you MUST enable
+        // OUTPUT (element 0) before INPUT (element 1). This is a documented
+        // requirement. If you try to enable input first, you get error -10879
+        // (kAudioUnitErr_InvalidProperty).
+
+        // Step 1: Enable OUTPUT (element 0) - this must be done first!
+        // Even though we only want input, the output bus acts as the "master"
         var enable: u32 = 1;
         status = c.AudioUnitSetProperty(
             audio_unit,
             kAudioUnitProperty_EnableIO,
+            kAudioObjectPropertyScopeOutput,
+            kAudioOutputUnitRange_Output, // 0
+            &enable,
+            @sizeOf(u32),
+        );
+
+        if (status != 0) {
+            std.log.err("Failed to enable output (required first), status: {d}", .{status});
+            _ = c.AudioComponentInstanceDispose(audio_unit);
+            return CoreAudioError.InitializeFailed;
+        }
+
+        // Step 2: NOW we can enable INPUT (element 1)
+        status = c.AudioUnitSetProperty(
+            audio_unit,
+            kAudioUnitProperty_EnableIO,
             kAudioObjectPropertyScopeInput,
-            kAudioOutputUnitRange_Input,
+            kAudioOutputUnitRange_Input, // 1
             &enable,
             @sizeOf(u32),
         );
@@ -478,21 +500,6 @@ pub const AudioCapture = struct {
             std.log.err("Failed to enable input, status: {d}", .{status});
             _ = c.AudioComponentInstanceDispose(audio_unit);
             return CoreAudioError.InitializeFailed;
-        }
-
-        // Disable output (we only want input)
-        enable = 0;
-        status = c.AudioUnitSetProperty(
-            audio_unit,
-            kAudioUnitProperty_EnableIO,
-            kAudioObjectPropertyScopeOutput,
-            kAudioOutputUnitRange_Output,
-            &enable,
-            @sizeOf(u32),
-        );
-
-        if (status != 0) {
-            std.log.warn("Failed to disable output (non-fatal), status: {d}", .{status});
         }
 
         // Set the audio format
