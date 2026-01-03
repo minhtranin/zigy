@@ -138,27 +138,59 @@ pub fn main() !void {
     defer audio_capture.deinit();
 
     // Start audio capture (required for CoreAudio on macOS)
-    audio_capture.start() catch |err| {
-        if (output_mode == .json) {
-            stdout.print("{{\"type\":\"error\",\"message\":\"Failed to start audio: {}\"}}\n", .{err}) catch {};
+    std.debug.print("DEBUG: About to start audio capture...\n", .{});
+
+    // On Linux with miniaudio, ma_device_start() can block due to PulseAudio issues.
+    // We print "listening" first, then start capture in background.
+    if (builtin.os.tag == .linux) {
+        // Print listening status first
+        if (output_mode == .terminal) {
+            std.debug.print("\n", .{});
+            std.debug.print("Source: {s}\n", .{source_name});
+            std.debug.print("Listening... (Press Ctrl+C to exit)\n", .{});
+            std.debug.print("────────────────────────────────────────────\n", .{});
+            std.debug.print("\n", .{});
         } else {
-            std.debug.print("Error: Failed to start audio - {}\n", .{err});
+            try stdout.print("{{\"type\":\"listening\",\"source\":\"{s}\"}}\n", .{source_name});
         }
-        return;
-    };
+
+        // Now start audio (may block)
+        audio_capture.start() catch |err| {
+            if (output_mode == .json) {
+                stdout.print("{{\"type\":\"error\",\"message\":\"Failed to start audio: {}\"}}\n", .{err}) catch {};
+            } else {
+                std.debug.print("Error: Failed to start audio - {}\n", .{err});
+            }
+            return;
+        };
+        std.debug.print("DEBUG: Audio capture started successfully\n", .{});
+    } else {
+        // macOS/Windows: Start audio first, then print listening
+        audio_capture.start() catch |err| {
+            if (output_mode == .json) {
+                stdout.print("{{\"type\":\"error\",\"message\":\"Failed to start audio: {}\"}}\n", .{err}) catch {};
+            } else {
+                std.debug.print("Error: Failed to start audio - {}\n", .{err});
+            }
+            return;
+        };
+        std.debug.print("DEBUG: Audio capture started successfully\n", .{});
+
+        if (output_mode == .terminal) {
+            std.debug.print("\n", .{});
+            std.debug.print("Source: {s}\n", .{source_name});
+            std.debug.print("Listening... (Press Ctrl+C to exit)\n", .{});
+            std.debug.print("────────────────────────────────────────────\n", .{});
+            std.debug.print("\n", .{});
+        } else {
+            try stdout.print("{{\"type\":\"listening\",\"source\":\"{s}\"}}\n", .{source_name});
+        }
+    }
 
     // Setup signal handler for graceful exit
+    std.debug.print("DEBUG: About to setup signal handler...\n", .{});
     setupSignalHandler(&audio_capture);
-
-    if (output_mode == .terminal) {
-        std.debug.print("\n", .{});
-        std.debug.print("Source: {s}\n", .{source_name});
-        std.debug.print("Listening... (Press Ctrl+C to exit)\n", .{});
-        std.debug.print("────────────────────────────────────────────\n", .{});
-        std.debug.print("\n", .{});
-    } else {
-        try stdout.print("{{\"type\":\"listening\",\"source\":\"{s}\"}}\n", .{source_name});
-    }
+    std.debug.print("DEBUG: Signal handler setup complete\n", .{});
 
     // Audio buffer - 50ms chunks
     // Reference: LiveCaptions audiocap-pa.c - 50ms fragment size
