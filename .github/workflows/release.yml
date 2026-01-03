@@ -492,12 +492,13 @@ jobs:
           echo ""
           echo "Test 5: RUN binary to test audio initialization"
           echo "  This will catch CoreAudio property errors like wrong constants"
-          echo "  Running: $BINARY --json --model \"$MODEL\" --verbose"
+          echo "  Running: $BINARY --json --verbose \"$MODEL\""
           echo ""
 
           # Run the binary with timeout and capture output
           # Note: macOS doesn't have GNU timeout, so we use a background process approach
-          "$BINARY" --json --model "$MODEL" --verbose > /tmp/zig_test_output.txt 2>&1 &
+          # Model is positional argument, not --model flag
+          "$BINARY" --json --verbose "$MODEL" > /tmp/zig_test_output.txt 2>&1 &
           PID=$!
 
           # Wait up to 10 seconds for the process

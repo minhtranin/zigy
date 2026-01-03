@@ -514,7 +514,24 @@ pub const AudioCapture = struct {
             return CoreAudioError.InitializeFailed;
         }
 
-        // Set the audio format
+        // Step 3: Set the current device BEFORE setting format
+        // The AudioUnit needs to know which device we're using to validate the format
+        status = c.AudioUnitSetProperty(
+            audio_unit,
+            2000, // kAudioOutputUnitProperty_CurrentDevice
+            kAudioUnitScope_Global, // scope = 0 (NOT 'glob' FourCC!)
+            0, // element = 0
+            &device_id,
+            @sizeOf(AudioDeviceID),
+        );
+
+        if (status != 0) {
+            std.log.err("Failed to set current device, status: {d}", .{status});
+            _ = c.AudioComponentInstanceDispose(audio_unit);
+            return CoreAudioError.DeviceNotFound;
+        }
+
+        // Step 4: Set the audio format (AFTER device is set)
         const stream_format = extern struct {
             mSampleRate: f64,
             mFormatID: u32,
@@ -552,22 +569,6 @@ pub const AudioCapture = struct {
             std.log.err("Failed to set stream format, status: {d}", .{status});
             _ = c.AudioComponentInstanceDispose(audio_unit);
             return CoreAudioError.FormatMismatch;
-        }
-
-        // Set the current device (global scope, element 0)
-        status = c.AudioUnitSetProperty(
-            audio_unit,
-            2000, // kAudioOutputUnitProperty_CurrentDevice
-            kAudioUnitScope_Global, // scope = 0 (NOT 'glob' FourCC!)
-            0, // element = 0
-            &device_id,
-            @sizeOf(AudioDeviceID),
-        );
-
-        if (status != 0) {
-            std.log.err("Failed to set current device, status: {d}", .{status});
-            _ = c.AudioComponentInstanceDispose(audio_unit);
-            return CoreAudioError.DeviceNotFound;
         }
 
         // Set buffer size (50ms = 800 frames at 16kHz)
