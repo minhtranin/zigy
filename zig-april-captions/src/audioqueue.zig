@@ -183,7 +183,7 @@ pub const AudioCapture = struct {
         // Using Linear PCM 16-bit mono for speech recognition
         var data_format: c.AudioStreamBasicDescription = undefined;
         data_format.mFormatID = c.kAudioFormatLinearPCM;
-        data_format.mSampleRate = sample_rate;
+        data_format.mSampleRate = @as(f64, @floatFromInt(sample_rate));
         data_format.mChannelsPerFrame = 1; // Mono for speech recognition
         data_format.mBitsPerChannel = 16;
         data_format.mFramesPerPacket = 1;
@@ -342,7 +342,7 @@ pub const AudioCapture = struct {
         self.running.store(false, .release);
 
         // Stop the audio queue
-        _ = c.AudioQueueStop(self.queue, true);
+        _ = c.AudioQueueStop(self.queue, 1);
 
         if (self.verbose) {
             std.log.info("AudioQueue: Capture stopped", .{});
@@ -375,7 +375,7 @@ pub const AudioCapture = struct {
         self.allocator.free(self.capture_context.buffers);
 
         // Dispose the audio queue
-        _ = c.AudioQueueDispose(self.queue, true);
+        _ = c.AudioQueueDispose(self.queue, 1);
 
         // Free ring buffer
         self.ring_buffer.deinit(self.allocator);
