@@ -241,7 +241,7 @@ pub const AudioCapture = struct {
                 while (j < i) : (j += 1) {
                     _ = c.AudioQueueFreeBuffer(queue, buffers[j]);
                 }
-                _ = c.AudioQueueDispose(queue, true);
+                _ = c.AudioQueueDispose(queue, 1);
                 allocator.free(buffers);
                 allocator.destroy(capture_context);
                 ring_buffer.deinit(allocator);
@@ -263,7 +263,7 @@ pub const AudioCapture = struct {
                 while (j <= i) : (j += 1) {
                     _ = c.AudioQueueFreeBuffer(queue, buffers[j]);
                 }
-                _ = c.AudioQueueDispose(queue, true);
+                _ = c.AudioQueueDispose(queue, 1);
                 allocator.free(buffers);
                 allocator.destroy(capture_context);
                 ring_buffer.deinit(allocator);
