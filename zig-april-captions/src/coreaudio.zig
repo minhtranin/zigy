@@ -44,11 +44,11 @@ const kAudioUnitType_Output = if (is_macos) @as(u32, 0x6f75746c) else 0;
 const kAudioUnitSubType_HALOutput = if (is_macos) @as(u32, 0x68616c6f) else 0;
 const kAudioUnitManufacturer_Apple = if (is_macos) @as(u32, 0x6170706c) else 0;
 
-const kAudioObjectPropertyScopeInput = if (is_macos) @as(u32, 0x01) else 0;
-const kAudioObjectPropertyScopeOutput = if (is_macos) @as(u32, 0x02) else 0;
-const kAudioObjectPropertyScopeGlobal = if (is_macos) @as(u32, 0x00) else 0;
+const kAudioObjectPropertyScopeInput = if (is_macos) @as(u32, 0x696e7074) else 0; // 'inpt'
+const kAudioObjectPropertyScopeOutput = if (is_macos) @as(u32, 0x6f757470) else 0; // 'outp'
+const kAudioObjectPropertyScopeGlobal = if (is_macos) @as(u32, 0x676c6f62) else 0; // 'glob'
 
-const kAudioHardwarePropertyDefaultInputDevice = if (is_macos) @as(u32, 0x6473696c) else 0;
+const kAudioHardwarePropertyDefaultInputDevice = if (is_macos) @as(u32, 0x64496e20) else 0; // 'dIn '
 const kAudioObjectSystemObject = if (is_macos) @as(u32, 1) else 0;
 const kAudioObjectPropertyElementMain = if (is_macos) @as(u32, 0) else 0;
 
@@ -226,7 +226,7 @@ pub const AudioCapture = struct {
             mScope: u32,
             mElement: u32,
         }{
-            .mSelector = 0x64656c69, // kAudioHardwarePropertyDevices = 'deli'
+            .mSelector = 0x64657623, // kAudioHardwarePropertyDevices = 'dev#'
             .mScope = kAudioObjectPropertyScopeGlobal,
             .mElement = kAudioObjectPropertyElementMain,
         };
@@ -304,32 +304,32 @@ pub const AudioCapture = struct {
     /// Check if a device has input capability
     fn deviceHasInput(self: *Self, device_id: AudioDeviceID) !bool {
         _ = self; // Keep self parameter for consistency with other instance methods
-        var size: u32 = @sizeOf(u32);
-        var input_channels: u32 = 0;
 
+        // Use kAudioDevicePropertyStreams with input scope to check if device has input streams
+        // If the property data size is > 0, the device has input capability
         const prop_addr = extern struct {
             mSelector: u32,
             mScope: u32,
             mElement: u32,
         }{
-            .mSelector = 0x636e6420, // kAudioDevicePropertyStreamConfiguration = 'cnd ' (or use 0x676e6420 for number of channels)
+            .mSelector = 0x73746d23, // kAudioDevicePropertyStreams = 'stm#'
             .mScope = kAudioObjectPropertyScopeInput,
             .mElement = kAudioObjectPropertyElementMain,
         };
 
-        // Try to get input scope configuration
-        // If this succeeds, the device has input capability
-        const status = c.AudioObjectGetPropertyData(
+        var size: u32 = 0;
+
+        // Get the size of the streams array for input scope
+        const status = c.AudioObjectGetPropertyDataSize(
             device_id,
             @ptrCast(&prop_addr),
             0,
             null,
             &size,
-            &input_channels,
         );
 
-        // If we can query input scope, device has input capability
-        return status == 0;
+        // If query succeeds and size > 0, device has input streams
+        return status == 0 and size > 0;
     }
 
     /// Audio render callback - called by CoreAudio when audio data is available
