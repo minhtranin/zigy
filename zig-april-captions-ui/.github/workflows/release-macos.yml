@@ -77,6 +77,44 @@ jobs:
       - name: Build Tauri App (Unsigned)
         run: npm run tauri build -- --target universal-apple-darwin
 
+      - name: Codesign zig-april-captions binary
+        run: |
+          # Find the app bundle
+          APP_BUNDLE=$(ls src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.app 2>/dev/null | head -1)
+          if [ -z "$APP_BUNDLE" ]; then
+            echo "App bundle not found in dmg directory"
+            echo "Contents of bundle directory:"
+            ls -la src-tauri/target/universal-apple-darwin/release/bundle/
+            exit 1
+          fi
+          echo "Found app bundle: $APP_BUNDLE"
+
+          # Find and codesign the zig binary in Resources
+          ZIG_BIN=$(find "$APP_BUNDLE" -name "zig-april-captions" -type f 2>/dev/null | head -1)
+          if [ -z "$ZIG_BIN" ]; then
+            echo "zig-april-captions binary not found in app bundle"
+            echo "Contents of Resources:"
+            ls -la "$APP_BUNDLE/Contents/Resources/" || true
+            exit 1
+          fi
+          echo "Found zig binary: $ZIG_BIN"
+
+          # Ad-hoc codesign with same entitlements as main app
+          # This ensures the child process properly inherits TCC permissions
+          echo "Codesigning zig-april-captions with audio-input entitlement..."
+          codesign --force --deep --sign - \
+            --entitlements src-tauri/entitlements.plist \
+            "$ZIG_BIN"
+
+          # Verify the signature
+          echo "Verifying signature:"
+          codesign -dv "$ZIG_BIN"
+
+          # Also codesign the entire app bundle to ensure consistency
+          echo "Codesigning entire app bundle..."
+          codesign --force --deep --sign - "$APP_BUNDLE"
+          codesign -dv "$APP_BUNDLE"
+
       - name: Upload DMG
         uses: actions/upload-artifact@v4
         with:
