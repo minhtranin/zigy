@@ -239,7 +239,7 @@ pub const AudioCapture = struct {
         // Now set up the context with the actual device info
         const actual_channels = device.capture.channels;
 
-        var self = Self{
+        const self = Self{
             .device = device,
             .device_config = device_config,
             .ring_buffer = ring_buffer,
