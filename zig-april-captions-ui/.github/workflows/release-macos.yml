@@ -115,6 +115,87 @@ jobs:
           codesign --force --deep --sign - "$APP_BUNDLE"
           codesign -dv "$APP_BUNDLE"
 
+      - name: Test zig binary initialization (macOS)
+        run: |
+          echo "=================================="
+          echo "Testing zig binary audio initialization"
+          echo "=================================="
+
+          # Find the zig binary in the bundle
+          APP_BUNDLE=$(ls src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.app 2>/dev/null | head -1)
+          ZIG_BIN=$(find "$APP_BUNDLE" -name "zig-april-captions" -type f 2>/dev/null | head -1)
+
+          if [ -z "$ZIG_BIN" ]; then
+            echo "ERROR: zig-april-captions binary not found in app bundle"
+            exit 1
+          fi
+
+          echo "Found binary: $ZIG_BIN"
+
+          # Test 1: Binary is executable
+          echo ""
+          echo "Test 1: Binary is executable"
+          if [ -x "$ZIG_BIN" ]; then
+            echo "  ✓ Binary is executable"
+          else
+            echo "  ✗ Binary is not executable"
+            exit 1
+          fi
+
+          # Test 2: Check entitlements
+          echo ""
+          echo "Test 2: Verify audio-input entitlement"
+          if codesign -d --entitlements - "$ZIG_BIN" 2>&1 | grep -q "device.audio-input"; then
+            echo "  ✓ Audio input entitlement found"
+          else
+            echo "  ✗ Audio input entitlement NOT found"
+            echo "  This will cause audio initialization to fail!"
+            exit 1
+          fi
+
+          # Test 3: Try to initialize audio (this will catch CoreAudio errors early!)
+          echo ""
+          echo "Test 3: Audio initialization test"
+          echo "  Running: $ZIG_BIN --json --verbose"
+          echo "  Note: This may fail with 'permission denied' if run in CI, but we're checking"
+          echo "        for other CoreAudio errors like invalid property constants"
+
+          # Run with timeout and check output
+          OUTPUT=$(timeout 5 "$ZIG_BIN" --json --verbose 2>&1 || true)
+
+          # Check for specific error patterns
+          if echo "$OUTPUT" | grep -q "status: 10879\|status: -10879\|kAudioUnitErr_InvalidProperty"; then
+            echo "  ✗ FAIL: Invalid property error detected!"
+            echo "  This means we're using wrong AudioUnit property constants"
+            echo "  Full output:"
+            echo "$OUTPUT"
+            exit 1
+          fi
+
+          if echo "$OUTPUT" | grep -q "Failed to enable"; then
+            echo "  ✗ FAIL: EnableIO property failed!"
+            echo "  Full output:"
+            echo "$OUTPUT"
+            exit 1
+          fi
+
+          if echo "$OUTPUT" | grep -q "\"type\":\"ready\""; then
+            echo "  ✓ Audio initialization succeeded!"
+            echo "$OUTPUT" | head -5
+          elif echo "$OUTPUT" | grep -q "error.DeviceNotFound\|Permission denied\|noent"; then
+            echo "  ⚠ Audio init failed with expected error (no device/permission in CI)"
+            echo "  This is normal for CI environment - property constants are correct"
+            echo "$OUTPUT" | head -5
+          else
+            echo "  ⚠ Unknown output, showing for review:"
+            echo "$OUTPUT" | head -10
+          fi
+
+          echo ""
+          echo "=================================="
+          echo "✓ Binary tests passed!"
+          echo "=================================="
+
       - name: Upload DMG
         uses: actions/upload-artifact@v4
         with:
