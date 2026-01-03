@@ -222,6 +222,7 @@ jobs:
 
             ## What's Changed
             <!-- Add your release notes here -->
-          draft: true
+          draft: false
+          update_existing: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
