@@ -553,7 +553,7 @@ pub const AudioCapture = struct {
         const buffer_frames = (sample_rate * 50) / 1000;
         status = c.AudioUnitSetProperty(
             audio_unit,
-            0x6273697a, // kAudioDevicePropertyBufferFrameSize = 'bsiz'
+            0x6673697a, // kAudioDevicePropertyBufferFrameSize = 'fsiz'
             kAudioObjectPropertyScopeInput,
             kAudioOutputUnitRange_Input,
             &buffer_frames,
