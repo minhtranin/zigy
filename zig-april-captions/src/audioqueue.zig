@@ -216,7 +216,7 @@ pub const AudioCapture = struct {
 
         // Get the actual format from the queue (it might be different)
         var actual_format: c.AudioStreamBasicDescription = undefined;
-        var size = @sizeOf(c.AudioStreamBasicDescription);
+        var size: u32 = @sizeOf(c.AudioStreamBasicDescription);
         _ = c.AudioQueueGetProperty(queue, c.kAudioQueueProperty_StreamDescription, &actual_format, &size);
 
         if (verbose) {
