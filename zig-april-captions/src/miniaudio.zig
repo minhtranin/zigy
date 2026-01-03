@@ -88,7 +88,7 @@ const RingBuffer = struct {
 /// Capture context passed to miniaudio callback
 const CaptureContext = struct {
     ring_buffer: *RingBuffer,
-    running: *std.atomic.Value(bool),
+    running: std.atomic.Value(bool),  // Store directly, not pointer!
     channels: u32,
     verbose: bool,
 };
@@ -251,10 +251,10 @@ pub const AudioCapture = struct {
             .verbose = verbose,
         };
 
-        // Set up context with pointer to running flag
+        // Set up context - running flag is stored directly in context now
         capture_context.* = CaptureContext{
             .ring_buffer = ring_buffer,
-            .running = &self.running,
+            .running = std.atomic.Value(bool).init(false),  // Not started yet
             .channels = actual_channels,
             .verbose = verbose,
         };
@@ -268,13 +268,17 @@ pub const AudioCapture = struct {
             std.log.info("miniaudio: Starting capture...", .{});
         }
 
+        // Set running BEFORE starting device so callback can process immediately
+        self.capture_context.running.store(true, .release);
+        self.running.store(true, .release);
+
         const result = c.ma_device_start(&self.device);
         if (result != c.MA_SUCCESS) {
             std.log.err("miniaudio: Failed to start device (error: {d})", .{result});
+            self.capture_context.running.store(false, .release);
+            self.running.store(false, .release);
             return AudioError.StartFailed;
         }
-
-        self.running.store(true, .release);
 
         if (self.verbose) {
             std.log.info("miniaudio: Capture started successfully", .{});
@@ -297,6 +301,7 @@ pub const AudioCapture = struct {
 
     /// Stop capture
     pub fn stop(self: *Self) void {
+        self.capture_context.running.store(false, .release);
         self.running.store(false, .release);
         _ = c.ma_device_stop(&self.device);
 
