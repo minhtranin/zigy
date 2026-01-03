@@ -161,7 +161,7 @@ export function AIPanel({
                 <span className="text-xs font-semibold text-rose-600 dark:text-rose-400 uppercase group-hover:text-rose-700 dark:group-hover:text-rose-300">{t.summaryTitle}</span>
               </button>
               <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-400 dark:text-gray-500">{timeStr}</span>
+                <span className="text-xs text-gray-400 dark:text-[#7D8590]">{timeStr}</span>
                 <button
                   className="p-1 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded disabled:opacity-50"
                   onClick={() => handleTranslateTimelineItem(item)}
@@ -181,14 +181,14 @@ export function AIPanel({
             </div>
             {isExpanded && (
               <>
-                <div className="mt-2 text-gray-800 dark:text-gray-200 leading-relaxed whitespace-pre-wrap" style={{ fontSize: `${fontSize}px` }}>
+                <div className="mt-2 text-gray-800 dark:text-[#E6EDF3] leading-relaxed whitespace-pre-wrap" style={{ fontSize: `${fontSize}px` }}>
                   {item.content}
                 </div>
                 {timelineTranslations.has(item.id) && (
                   <div className="mt-2 pl-4 border-l-2 border-blue-500 bg-blue-50 dark:bg-blue-900/20 rounded-r p-2">
                     <div className="flex items-start gap-2">
                       <Languages size={12} className="text-blue-600 dark:text-blue-400 mt-1 flex-shrink-0" />
-                      <div className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap" style={{ fontSize: `${Math.round(fontSize * 0.9)}px` }}>
+                      <div className="text-gray-700 dark:text-[#E6EDF3] leading-relaxed whitespace-pre-wrap" style={{ fontSize: `${Math.round(fontSize * 0.9)}px` }}>
                         {timelineTranslations.get(item.id)}
                       </div>
                     </div>
@@ -221,7 +221,7 @@ export function AIPanel({
                 </span>
               </button>
               <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-400 dark:text-gray-500">{timeStr}</span>
+                <span className="text-xs text-gray-400 dark:text-[#7D8590]">{timeStr}</span>
                 <button
                   className="p-1 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded disabled:opacity-50"
                   onClick={() => handleTranslateTimelineItem(item)}
@@ -242,13 +242,13 @@ export function AIPanel({
             {isExpanded && (
               <>
                 {item.lineContext && (
-                  <div className="text-xs italic text-gray-600 dark:text-gray-400 px-2 py-1 mb-2 bg-gray-100 dark:bg-gray-800 rounded">
+                  <div className="text-xs italic text-gray-600 dark:text-[#7D8590] px-2 py-1 mb-2 bg-gray-100 dark:bg-[#21262D] rounded">
                     {t.about}: "{item.lineContext}"
                   </div>
                 )}
                 <div className="flex flex-col gap-2">
                   {item.questions.map((q, i) => (
-                    <div key={i} className="flex items-start gap-2 p-2 bg-white/50 dark:bg-gray-800/50 rounded">
+                    <div key={i} className="flex items-start gap-2 p-2 bg-white/50 dark:bg-[#21262D]/50 rounded">
                       <div className={`flex-shrink-0 flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold ${
                         item.source === 'generated'
                           ? 'bg-amber-500 text-white'
@@ -256,7 +256,7 @@ export function AIPanel({
                       }`}>
                         {i + 1}
                       </div>
-                      <div className="text-gray-800 dark:text-gray-200 leading-relaxed flex-1" style={{ fontSize: `${fontSize}px` }}>
+                      <div className="text-gray-800 dark:text-[#E6EDF3] leading-relaxed flex-1" style={{ fontSize: `${fontSize}px` }}>
                         {q}
                       </div>
                     </div>
@@ -266,7 +266,7 @@ export function AIPanel({
                   <div className="mt-2 pl-4 border-l-2 border-blue-500 bg-blue-50 dark:bg-blue-900/20 rounded-r p-2">
                     <div className="flex items-start gap-2">
                       <Languages size={12} className="text-blue-600 dark:text-blue-400 mt-1 flex-shrink-0" />
-                      <div className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap" style={{ fontSize: `${Math.round(fontSize * 0.9)}px` }}>
+                      <div className="text-gray-700 dark:text-[#E6EDF3] leading-relaxed whitespace-pre-wrap" style={{ fontSize: `${Math.round(fontSize * 0.9)}px` }}>
                         {timelineTranslations.get(item.id)}
                       </div>
                     </div>
@@ -286,12 +286,12 @@ export function AIPanel({
                 onClick={() => setExpandedItemId(isExpanded ? null : item.id)}
               >
                 <Lightbulb size={16} className="text-indigo-600 dark:text-indigo-400" />
-                <span className="font-semibold text-gray-800 dark:text-gray-200 group-hover:text-indigo-600 dark:group-hover:text-indigo-400" style={{ fontSize: `${fontSize}px` }}>
+                <span className="font-semibold text-gray-800 dark:text-[#E6EDF3] group-hover:text-indigo-600 dark:group-hover:text-indigo-400" style={{ fontSize: `${fontSize}px` }}>
                   {item.title}
                 </span>
               </button>
               <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-400 dark:text-gray-500">{timeStr}</span>
+                <span className="text-xs text-gray-400 dark:text-[#7D8590]">{timeStr}</span>
                 <button
                   className="p-1 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded disabled:opacity-50"
                   onClick={() => handleTranslateTimelineItem(item)}
@@ -312,20 +312,20 @@ export function AIPanel({
             {isExpanded && (
               <>
                 <div className="flex flex-col gap-2 mt-2 text-xs">
-                  <div className="p-2 bg-gray-200 dark:bg-gray-700 rounded">
-                    <div className="font-semibold text-gray-600 dark:text-gray-400 mb-1">{t.raw}:</div>
-                    <div className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-words" style={{ fontSize: `${fontSize}px`, wordWrap: 'break-word', overflowWrap: 'break-word' }}>{item.rawContent}</div>
+                  <div className="p-2 bg-gray-200 dark:bg-[#21262D] rounded">
+                    <div className="font-semibold text-gray-600 dark:text-[#7D8590] mb-1">{t.raw}:</div>
+                    <div className="text-gray-700 dark:text-[#E6EDF3] whitespace-pre-wrap break-words" style={{ fontSize: `${fontSize}px`, wordWrap: 'break-word', overflowWrap: 'break-word' }}>{item.rawContent}</div>
                   </div>
                   <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded border-l-2 border-indigo-500">
                     <div className="font-semibold text-indigo-600 dark:text-indigo-400 mb-1">{t.script}:</div>
-                    <div className="text-gray-800 dark:text-gray-200 leading-relaxed whitespace-pre-wrap break-words" style={{ fontSize: `${fontSize}px`, wordWrap: 'break-word', overflowWrap: 'break-word' }}>{item.correctedScript}</div>
+                    <div className="text-gray-800 dark:text-[#E6EDF3] leading-relaxed whitespace-pre-wrap break-words" style={{ fontSize: `${fontSize}px`, wordWrap: 'break-word', overflowWrap: 'break-word' }}>{item.correctedScript}</div>
                   </div>
                 </div>
                 {timelineTranslations.has(item.id) && (
                   <div className="mt-2 pl-4 border-l-2 border-blue-500 bg-blue-50 dark:bg-blue-900/20 rounded-r p-2">
                     <div className="flex items-start gap-2">
                       <Languages size={12} className="text-blue-600 dark:text-blue-400 mt-1 flex-shrink-0" />
-                      <div className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap" style={{ fontSize: `${Math.round(fontSize * 0.9)}px` }}>
+                      <div className="text-gray-700 dark:text-[#E6EDF3] leading-relaxed whitespace-pre-wrap" style={{ fontSize: `${Math.round(fontSize * 0.9)}px` }}>
                         {timelineTranslations.get(item.id)}
                       </div>
                     </div>
@@ -345,12 +345,12 @@ export function AIPanel({
                 onClick={() => setExpandedItemId(isExpanded ? null : item.id)}
               >
                 <MessageCircle size={16} className="text-blue-600 dark:text-blue-400" />
-                <span className="font-semibold text-gray-800 dark:text-gray-200 group-hover:text-blue-600 dark:group-hover:text-blue-400" style={{ fontSize: `${fontSize}px` }}>
+                <span className="font-semibold text-gray-800 dark:text-[#E6EDF3] group-hover:text-blue-600 dark:group-hover:text-blue-400" style={{ fontSize: `${fontSize}px` }}>
                   {item.title || 'Meeting Greeting'}
                 </span>
               </button>
               <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-400 dark:text-gray-500">{timeStr}</span>
+                <span className="text-xs text-gray-400 dark:text-[#7D8590]">{timeStr}</span>
                 <button
                   className="p-1 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded disabled:opacity-50"
                   onClick={() => handleTranslateTimelineItem(item)}
@@ -371,7 +371,7 @@ export function AIPanel({
             {isExpanded && (
               <>
                 <div className="mt-2 p-2 bg-blue-100 dark:bg-blue-900/30 rounded border-l-2 border-blue-500">
-                  <div className="text-gray-800 dark:text-gray-200 leading-relaxed whitespace-pre-wrap break-words" style={{ fontSize: `${fontSize}px`, wordWrap: 'break-word', overflowWrap: 'break-word' }}>
+                  <div className="text-gray-800 dark:text-[#E6EDF3] leading-relaxed whitespace-pre-wrap break-words" style={{ fontSize: `${fontSize}px`, wordWrap: 'break-word', overflowWrap: 'break-word' }}>
                     {item.content}
                   </div>
                 </div>
@@ -379,7 +379,7 @@ export function AIPanel({
                   <div className="mt-2 pl-4 border-l-2 border-blue-500 bg-blue-50 dark:bg-blue-900/20 rounded-r p-2">
                     <div className="flex items-start gap-2">
                       <Languages size={12} className="text-blue-600 dark:text-blue-400 mt-1 flex-shrink-0" />
-                      <div className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap" style={{ fontSize: `${Math.round(fontSize * 0.9)}px` }}>
+                      <div className="text-gray-700 dark:text-[#E6EDF3] leading-relaxed whitespace-pre-wrap" style={{ fontSize: `${Math.round(fontSize * 0.9)}px` }}>
                         {timelineTranslations.get(item.id)}
                       </div>
                     </div>
@@ -398,7 +398,7 @@ export function AIPanel({
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
-      <div className="flex-1 flex flex-col bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden min-h-0">
+      <div className="flex-1 flex flex-col bg-white dark:bg-[#0D1117] rounded-lg border border-gray-200 dark:border-[#30363D] overflow-hidden min-h-0">
         {/* Chat Panel - now the only content */}
         <ChatPanel
           settings={settings}

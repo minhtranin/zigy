@@ -31,7 +31,7 @@ export function NoteItem({ note, isSelected, onSelect, onToggleNominate }: Props
       className={`group px-3 py-2 cursor-pointer border-l-2 transition-colors ${
         isSelected
           ? 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-500'
-          : 'border-transparent hover:bg-gray-50 dark:hover:bg-gray-800'
+          : 'border-transparent hover:bg-gray-50 dark:hover:bg-[#21262D]'
       }`}
       onClick={() => onSelect(note.id)}
     >
@@ -45,7 +45,7 @@ export function NoteItem({ note, isSelected, onSelect, onToggleNominate }: Props
           className={`mt-0.5 flex-shrink-0 transition-colors ${
             note.nominated
               ? 'text-yellow-500 hover:text-yellow-600'
-              : 'text-gray-300 dark:text-gray-600 hover:text-yellow-400'
+              : 'text-gray-300 dark:text-[#7D8590] hover:text-yellow-400'
           }`}
           title={note.nominated ? 'Remove from AI context' : 'Add to AI context'}
         >
@@ -54,10 +54,10 @@ export function NoteItem({ note, isSelected, onSelect, onToggleNominate }: Props
 
         {/* Content */}
         <div className="flex-1 min-w-0">
-          <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+          <div className="text-sm font-medium text-gray-900 dark:text-[#E6EDF3] truncate">
             {note.title}
           </div>
-          <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+          <div className="text-xs text-gray-500 dark:text-[#7D8590] mt-0.5">
             {formatRelativeTime(note.created_at)}
           </div>
         </div>

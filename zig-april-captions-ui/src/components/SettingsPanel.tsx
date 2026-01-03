@@ -114,7 +114,7 @@ export function SettingsPanel({
     : 'No model selected';
 
   return (
-    <div className="p-4 bg-white dark:bg-gray-800 rounded-lg text-sm">
+    <div className="p-4 bg-white dark:bg-[#0D1117] rounded-lg text-sm">
       <Section title={t.speechRecognition}>
         <SettingRow label={`${t.asrModel}:`}>
           <div className="flex gap-2">
@@ -122,13 +122,13 @@ export function SettingsPanel({
               type="text"
               value={modelFileName}
               readOnly
-              className="flex-1 w-full px-3 py-2 text-sm bg-gray-100 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md text-gray-800 dark:text-gray-200 truncate"
+              className="flex-1 w-full px-3 py-2 text-sm bg-gray-100 dark:bg-[#0D1117] border border-gray-300 dark:border-[#30363D] rounded-md text-gray-800 dark:text-[#E6EDF3] truncate"
               title={settings.model_path || t.noModelSelected}
             />
             <button
               onClick={handleSelectModel}
               disabled={disabled}
-              className="px-4 py-2 text-sm font-semibold bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50"
+              className="px-4 py-2 text-sm font-semibold bg-slate-200 dark:bg-[#21262D] text-slate-800 dark:text-[#E6EDF3] rounded-md hover:bg-slate-300 dark:hover:bg-[#30363D] disabled:opacity-50"
             >
               {t.browse}
             </button>
@@ -138,14 +138,14 @@ export function SettingsPanel({
         <SettingRow label={`${t.audioSource}:`}>
           <div className="flex">
             <button
-              className={`px-4 py-2 text-sm rounded-l-md border border-r-0 transition-colors ${settings.audio_source === 'mic' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-transparent border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
+              className={`px-4 py-2 text-sm rounded-l-md border border-r-0 transition-colors ${settings.audio_source === 'mic' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-transparent border-slate-300 dark:border-[#30363D] text-slate-700 dark:text-[#E6EDF3] hover:bg-slate-100 dark:hover:bg-[#21262D]'}`}
               onClick={() => onSettingsChange({ ...settings, audio_source: 'mic' })}
               disabled={disabled}
             >
               {t.microphone}
             </button>
             <button
-              className={`px-4 py-2 text-sm rounded-r-md border transition-colors ${settings.audio_source === 'monitor' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-transparent border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
+              className={`px-4 py-2 text-sm rounded-r-md border transition-colors ${settings.audio_source === 'monitor' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-transparent border-slate-300 dark:border-[#30363D] text-slate-700 dark:text-[#E6EDF3] hover:bg-slate-100 dark:hover:bg-[#21262D]'}`}
               onClick={() => onSettingsChange({ ...settings, audio_source: 'monitor' })}
               disabled={disabled}
             >
@@ -162,7 +162,7 @@ export function SettingsPanel({
             value={settings.ai?.api_key || ''}
             onChange={(e) => handleApiKeyChange(e.target.value)}
             placeholder={t.apiKeyPlaceholder}
-            className="w-full px-3 py-2 text-sm bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full px-3 py-2 text-sm bg-gray-100 dark:bg-[#0D1117] border border-gray-300 dark:border-[#30363D] rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
         </SettingRow>
 
@@ -170,7 +170,7 @@ export function SettingsPanel({
           <select
             value={settings.ai?.model || 'gemini-2.5-flash'}
             onChange={(e) => handleModelChange(e.target.value as GeminiModel)}
-            className="w-full px-3 py-2 text-sm bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none"
+            className="w-full px-3 py-2 text-sm bg-gray-100 dark:bg-[#0D1117] border border-gray-300 dark:border-[#30363D] rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none"
           >
             <option value="gemini-2.5-flash">Gemini 2.5 Flash (1st Recommended)</option>
             <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash-Lite (Fastest, 2nd Recommended)</option>
@@ -184,7 +184,7 @@ export function SettingsPanel({
           <select
             value={settings.ai?.translation_language || 'none'}
             onChange={(e) => handleTranslationLanguageChange(e.target.value as TranslationLanguage)}
-            className="w-full px-3 py-2 text-sm bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none"
+            className="w-full px-3 py-2 text-sm bg-gray-100 dark:bg-[#0D1117] border border-gray-300 dark:border-[#30363D] rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none"
           >
             {Object.entries(TRANSLATION_LANGUAGES).map(([code, name]) => (
               <option key={code} value={code}>
@@ -200,7 +200,7 @@ export function SettingsPanel({
           <select
             value={settings.language}
             onChange={(e) => onSettingsChange({ ...settings, language: e.target.value as AppLanguage })}
-            className="w-full px-3 py-2 text-sm bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none"
+            className="w-full px-3 py-2 text-sm bg-gray-100 dark:bg-[#0D1117] border border-gray-300 dark:border-[#30363D] rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none"
           >
             <option value="en">English</option>
             <option value="vi">Tiếng Việt</option>
@@ -211,7 +211,7 @@ export function SettingsPanel({
           <div className="flex gap-2 items-center">
             <button
               onClick={onThemeToggle}
-              className="px-4 py-2 text-sm font-semibold bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 flex items-center gap-2"
+              className="px-4 py-2 text-sm font-semibold bg-slate-200 dark:bg-[#21262D] text-slate-800 dark:text-[#E6EDF3] rounded-md hover:bg-slate-300 dark:hover:bg-[#30363D] flex items-center gap-2"
             >
               <span>{effectiveTheme === 'dark' ? '☀️' : '🌙'}</span>
               <span>{t.switchTo} {effectiveTheme === 'dark' ? t.lightMode : t.darkMode} Mode</span>

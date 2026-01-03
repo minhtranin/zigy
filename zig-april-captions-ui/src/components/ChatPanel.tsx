@@ -617,10 +617,10 @@ Generate questions I can ASK them:`;
   const currentSuggestions = hasLastResponse ? RESPONSE_SUGGESTIONS : DEFAULT_SUGGESTIONS;
 
   return (
-    <div className="flex flex-col h-full bg-white dark:bg-gray-900">
+    <div className="flex flex-col h-full bg-white dark:bg-[#010409]">
       {/* Header */}
       {messages.length > 0 && (
-        <div className="flex items-center justify-between px-3 py-1 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between px-3 py-1 border-b border-gray-200 dark:border-[#30363D]">
           {currentTips.length > 0 && <span className="text-xs text-amber-700 dark:text-yellow-500 italic">Tips: {currentTips.join(' • ')}</span>}
           <div className="flex items-center">
             {isCompacting && <span className="text-xs text-yellow-500 mr-2">compacting...</span>}
@@ -632,14 +632,14 @@ Generate questions I can ASK them:`;
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {messages.length === 0 && (
-          <div className="text-center text-gray-400 dark:text-gray-600 py-4">
+          <div className="text-center text-gray-400 dark:text-[#7D8590] py-4">
             <p className="text-sm font-medium">{t.meetingAssistant}</p>
             <p className="text-xs mt-1">{t.trySuggestion}</p>
           </div>
         )}
 
         {summary && messages.length > 0 && (
-          <div className="text-xs text-center text-gray-400 py-2 border-b border-dashed border-gray-200 dark:border-gray-700">
+          <div className="text-xs text-center text-gray-400 py-2 border-b border-dashed border-gray-200 dark:border-[#30363D]">
             Earlier conversation summarized • {messages.length} recent
           </div>
         )}
@@ -652,7 +652,7 @@ Generate questions I can ASK them:`;
                   ? 'bg-indigo-600 text-white'
                   : msg.role === 'system'
                   ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 text-sm'
-                  : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100'
+                  : 'bg-gray-100 dark:bg-[#0D1117] text-gray-900 dark:text-[#E6EDF3]'
               }`}
               style={{ fontSize: `${Math.max(fontSize - 2, 12)}px` }}
             >
@@ -681,9 +681,9 @@ Generate questions I can ASK them:`;
 
         {isLoading && (
           <div className="flex justify-start">
-            <div className="bg-gray-100 dark:bg-gray-800 rounded-lg px-3 py-2 flex items-center gap-2">
+            <div className="bg-gray-100 dark:bg-[#0D1117] rounded-lg px-3 py-2 flex items-center gap-2">
               <Loader2 className="w-4 h-4 animate-spin text-indigo-500" />
-              <span className="text-sm text-gray-600 dark:text-gray-400">{t.thinking}</span>
+              <span className="text-sm text-gray-600 dark:text-[#7D8590]">{t.thinking}</span>
             </div>
           </div>
         )}
@@ -693,14 +693,14 @@ Generate questions I can ASK them:`;
 
       {/* Default/Response Suggestions */}
       {!isLoading && (
-        <div className="px-3 py-2 border-t border-gray-100 dark:border-gray-800">
+        <div className="px-3 py-2 border-t border-gray-100 dark:border-[#30363D]">
           <div className="flex flex-wrap gap-1.5">
             {currentSuggestions.map((suggestion, idx) => (
               <button
                 key={idx}
                 onClick={() => handleSuggestionClick(suggestion)}
                 disabled={!apiKey}
-                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-full hover:bg-indigo-100 dark:hover:bg-indigo-900/30 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors disabled:opacity-50"
+                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs bg-slate-200 dark:bg-[#21262D] text-slate-700 dark:text-[#E6EDF3] rounded-full hover:bg-slate-300 dark:hover:bg-[#30363D] transition-colors disabled:opacity-50"
               >
                 {suggestion.icon && <span>{suggestion.icon}</span>}
                 <span>{suggestion.label}</span>
@@ -712,12 +712,12 @@ Generate questions I can ASK them:`;
 
       {/* Dynamic Context Suggestions */}
       {!isLoading && transcriptText && (
-        <div className="px-3 py-2 border-t border-gray-100 dark:border-gray-800 bg-indigo-50/50 dark:bg-indigo-900/10">
+        <div className="px-3 py-2 border-t border-gray-100 dark:border-[#30363D] bg-slate-50/50 dark:bg-[#0D1117]">
           <div className="flex items-center gap-2 mb-1.5">
             <button
               onClick={loadDynamicSuggestions}
               disabled={isLoadingDynamic || !apiKey}
-              className="text-xs text-indigo-600 dark:text-indigo-400 font-medium hover:text-indigo-800 dark:hover:text-indigo-300 disabled:opacity-50"
+              className="text-xs text-slate-600 dark:text-[#7D8590] font-medium hover:text-slate-800 dark:hover:text-[#E6EDF3] disabled:opacity-50"
               title="Refresh suggestions"
             >
               {t.contextSuggestions}
@@ -725,7 +725,7 @@ Generate questions I can ASK them:`;
             <button
               onClick={loadDynamicSuggestions}
               disabled={isLoadingDynamic || !apiKey}
-              className="p-0.5 text-indigo-500 hover:text-indigo-700 disabled:opacity-50"
+              className="p-0.5 text-slate-500 hover:text-slate-700 disabled:opacity-50"
               title="Refresh suggestions"
             >
               <RefreshCw size={12} className={isLoadingDynamic ? 'animate-spin' : ''} />
@@ -740,7 +740,7 @@ Generate questions I can ASK them:`;
                   key={idx}
                   onClick={() => handleSuggestionClick(suggestion)}
                   disabled={!apiKey}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 text-xs bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-full hover:bg-indigo-200 dark:hover:bg-indigo-800/50 transition-colors disabled:opacity-50"
+                  className="inline-flex items-center gap-1 px-2.5 py-1 text-xs bg-slate-200 dark:bg-[#21262D] text-slate-700 dark:text-[#E6EDF3] rounded-full hover:bg-slate-300 dark:hover:bg-[#30363D] transition-colors disabled:opacity-50"
                 >
                   {suggestion.icon && <span>{suggestion.icon}</span>}
                   <span>{suggestion.label}</span>
@@ -749,13 +749,13 @@ Generate questions I can ASK them:`;
             ) : (
               // Show default context-aware suggestions when AI hasn't loaded yet
               <>
-                <button onClick={() => handleSend('What should I say next?')} disabled={!apiKey} className="inline-flex items-center gap-1 px-2.5 py-1 text-xs bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-full hover:bg-indigo-200 dark:hover:bg-indigo-800/50 transition-colors disabled:opacity-50">
+                <button onClick={() => handleSend('What should I say next?')} disabled={!apiKey} className="inline-flex items-center gap-1 px-2.5 py-1 text-xs bg-slate-200 dark:bg-[#21262D] text-slate-700 dark:text-[#E6EDF3] rounded-full hover:bg-slate-300 dark:hover:bg-[#30363D] transition-colors disabled:opacity-50">
                   <span>💬</span><span>{t.whatToSayNext}</span>
                 </button>
-                <button onClick={() => handleSend('Help me respond to the last point')} disabled={!apiKey} className="inline-flex items-center gap-1 px-2.5 py-1 text-xs bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-full hover:bg-indigo-200 dark:hover:bg-indigo-800/50 transition-colors disabled:opacity-50">
+                <button onClick={() => handleSend('Help me respond to the last point')} disabled={!apiKey} className="inline-flex items-center gap-1 px-2.5 py-1 text-xs bg-slate-200 dark:bg-[#21262D] text-slate-700 dark:text-[#E6EDF3] rounded-full hover:bg-slate-300 dark:hover:bg-[#30363D] transition-colors disabled:opacity-50">
                   <span>💡</span><span>{t.respondToLastPoint}</span>
                 </button>
-                <button onClick={() => handleSend('I want to add my opinion on this topic')} disabled={!apiKey} className="inline-flex items-center gap-1 px-2.5 py-1 text-xs bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-full hover:bg-indigo-200 dark:hover:bg-indigo-800/50 transition-colors disabled:opacity-50">
+                <button onClick={() => handleSend('I want to add my opinion on this topic')} disabled={!apiKey} className="inline-flex items-center gap-1 px-2.5 py-1 text-xs bg-slate-200 dark:bg-[#21262D] text-slate-700 dark:text-[#E6EDF3] rounded-full hover:bg-slate-300 dark:hover:bg-[#30363D] transition-colors disabled:opacity-50">
                   <span>🎯</span><span>{t.addMyOpinion}</span>
                 </button>
               </>
@@ -765,7 +765,7 @@ Generate questions I can ASK them:`;
       )}
 
       {/* Input with Talk Mode toggle */}
-      <div className="border-t border-gray-200 dark:border-gray-700 p-3">
+      <div className="border-t border-gray-200 dark:border-[#30363D] p-3">
         <div className="flex gap-2">
           {/* Talk Mode Toggle */}
           <button
@@ -773,7 +773,7 @@ Generate questions I can ASK them:`;
             className={`px-2 py-2 rounded-lg border transition-colors flex items-center gap-1 ${
               talkMode
                 ? 'bg-green-100 dark:bg-green-900/30 border-green-300 dark:border-green-700 text-green-700 dark:text-green-300'
-                : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400'
+                : 'bg-slate-200 dark:bg-[#21262D] border-slate-300 dark:border-[#30363D] text-slate-600 dark:text-[#7D8590] hover:bg-slate-300 dark:hover:bg-[#30363D]'
             }`}
             title={talkMode ? 'Talk Mode: ON - Input will be translated to English' : 'Talk Mode: OFF - Normal chat'}
           >
@@ -792,10 +792,10 @@ Generate questions I can ASK them:`;
             }}
             placeholder={talkMode ? t.talkModePlaceholder : t.askMeAnything}
             disabled={isLoading}
-            className={`flex-1 px-3 py-2 border rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 disabled:opacity-50 text-sm ${
+            className={`flex-1 px-3 py-2 border rounded-lg bg-white dark:bg-[#0D1117] text-gray-900 dark:text-[#E6EDF3] focus:outline-none focus:ring-2 disabled:opacity-50 text-sm ${
               talkMode
                 ? 'border-green-300 dark:border-green-700 focus:ring-green-500'
-                : 'border-gray-300 dark:border-gray-600 focus:ring-indigo-500'
+                : 'border-gray-300 dark:border-[#30363D] focus:ring-indigo-500'
             }`}
           />
           <button

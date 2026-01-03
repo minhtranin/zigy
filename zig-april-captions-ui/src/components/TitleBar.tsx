@@ -39,7 +39,7 @@ export function TitleBar({ activeTab, onTabChange, t, simpleMode, onToggleSimple
   };
 
   return (
-    <div className="h-8 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between select-none">
+    <div className="h-8 bg-white dark:bg-[#161B22] border-b border-gray-200 dark:border-[#30363D] flex items-center justify-between select-none">
       {/* Left side: Logo and Tabs */}
       <div className="flex items-center gap-1 h-full">
         {/* App name - draggable */}
@@ -58,7 +58,7 @@ export function TitleBar({ activeTab, onTabChange, t, simpleMode, onToggleSimple
             className={`px-2.5 py-0.5 text-xs font-medium rounded-md transition-colors duration-200 select-none ${
               activeTab === 'captions'
                 ? 'bg-indigo-600 text-white'
-                : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                : 'text-gray-600 dark:text-[#E6EDF3] hover:bg-gray-100 dark:hover:bg-[#21262D]'
             }`}
             onClick={() => onTabChange('captions')}
           >
@@ -68,7 +68,7 @@ export function TitleBar({ activeTab, onTabChange, t, simpleMode, onToggleSimple
             className={`px-2.5 py-0.5 text-xs font-medium rounded-md transition-colors duration-200 select-none ${
               activeTab === 'knowledge'
                 ? 'bg-indigo-600 text-white'
-                : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                : 'text-gray-600 dark:text-[#E6EDF3] hover:bg-gray-100 dark:hover:bg-[#21262D]'
             }`}
             onClick={() => onTabChange('knowledge')}
           >
@@ -78,7 +78,7 @@ export function TitleBar({ activeTab, onTabChange, t, simpleMode, onToggleSimple
             className={`px-2.5 py-0.5 text-xs font-medium rounded-md transition-colors duration-200 select-none ${
               activeTab === 'settings'
                 ? 'bg-indigo-600 text-white'
-                : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                : 'text-gray-600 dark:text-[#E6EDF3] hover:bg-gray-100 dark:hover:bg-[#21262D]'
             }`}
             onClick={() => onTabChange('settings')}
           >
@@ -88,7 +88,7 @@ export function TitleBar({ activeTab, onTabChange, t, simpleMode, onToggleSimple
             className={`px-2.5 py-0.5 text-xs font-medium rounded-md transition-colors duration-200 select-none ${
               activeTab === 'about'
                 ? 'bg-indigo-600 text-white'
-                : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                : 'text-gray-600 dark:text-[#E6EDF3] hover:bg-gray-100 dark:hover:bg-[#21262D]'
             }`}
             onClick={() => onTabChange('about')}
           >
@@ -111,34 +111,34 @@ export function TitleBar({ activeTab, onTabChange, t, simpleMode, onToggleSimple
           className={`h-full px-3 transition-colors flex items-center justify-center select-none ${
             simpleMode
               ? 'bg-indigo-600 text-white hover:bg-indigo-700'
-              : 'hover:bg-gray-200 dark:hover:bg-gray-700'
+              : 'hover:bg-gray-200 dark:hover:bg-[#21262D]'
           }`}
           title={simpleMode ? "Exit Simple Mode" : "Simple Mode - Show only live transcription"}
         >
-          <Maximize2 size={14} className={simpleMode ? 'text-white' : 'text-gray-600 dark:text-gray-300'} />
+          <Maximize2 size={14} className={simpleMode ? 'text-white' : 'text-gray-600 dark:text-[#E6EDF3]'} />
         </button>
 
         {/* Window controls */}
         <button
           onClick={handleMinimize}
-          className="h-full px-4 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors flex items-center justify-center select-none"
+          className="h-full px-4 hover:bg-gray-200 dark:hover:bg-[#21262D] transition-colors flex items-center justify-center select-none"
           title="Minimize"
         >
-          <Minus size={14} className="text-gray-600 dark:text-gray-300" />
+          <Minus size={14} className="text-gray-600 dark:text-[#E6EDF3]" />
         </button>
         <button
           onClick={handleMaximize}
-          className="h-full px-4 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors flex items-center justify-center select-none"
+          className="h-full px-4 hover:bg-gray-200 dark:hover:bg-[#21262D] transition-colors flex items-center justify-center select-none"
           title="Maximize"
         >
-          <Square size={12} className="text-gray-600 dark:text-gray-300" />
+          <Square size={12} className="text-gray-600 dark:text-[#E6EDF3]" />
         </button>
         <button
           onClick={handleClose}
           className="h-full px-4 hover:bg-red-600 dark:hover:bg-red-600 hover:text-white transition-colors flex items-center justify-center select-none"
           title="Close"
         >
-          <X size={16} className="text-gray-600 dark:text-gray-300 hover:text-white" />
+          <X size={16} className="text-gray-600 dark:text-[#E6EDF3] hover:text-white" />
         </button>
       </div>
     </div>

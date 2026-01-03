@@ -126,26 +126,26 @@ export function HistoryDisplay({
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 flex flex-col h-full border border-gray-200 dark:border-gray-700">
-      <div className="flex-shrink-0 pb-2 mb-2 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-        <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+    <div className="bg-white dark:bg-[#0D1117] rounded-lg shadow-md p-4 flex flex-col h-full border border-gray-200 dark:border-[#30363D]">
+      <div className="flex-shrink-0 pb-2 mb-2 border-b border-gray-200 dark:border-[#30363D] flex items-center justify-between">
+        <span className="text-xs font-semibold text-gray-500 dark:text-[#7D8590] uppercase tracking-wider">
           {t.history} {wordCount > 0 && `(${wordCount} ${t.words})`}
         </span>
       </div>
       <div className="flex-1 overflow-y-auto min-h-0" ref={containerRef}>
         {lines.length > 0 ? (
-          <div className="text-gray-800 dark:text-gray-200" style={{ fontSize: `${fontSize}px` }}>
+          <div className="text-gray-800 dark:text-[#E6EDF3]" style={{ fontSize: `${fontSize}px` }}>
             {lines.map((line, i) => {
               const alwaysShowActions = i >= lines.length - 3;
               return (
-                <div key={i} className="group py-2 border-b border-gray-200 dark:border-gray-700 last:border-b-0">
+                <div key={i} className="group py-2 border-b border-gray-200 dark:border-[#30363D] last:border-b-0">
                   <div className="flex flex-col gap-2">
                     <div className="leading-relaxed" style={{ wordWrap: 'break-word', overflowWrap: 'anywhere' }}>
                       {line}
                     </div>
                     {/* Show translation inline */}
                     {translations[i] && (
-                      <div className="text-sm text-blue-600 dark:text-blue-400 italic pl-2 border-l-2 border-blue-300 dark:border-blue-600">
+                      <div className="text-sm text-blue-600 dark:text-blue-400 italic pl-2 border-l-2 border-blue-300 dark:border-blue-500">
                         📝 {translations[i]}
                       </div>
                     )}

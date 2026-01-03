@@ -275,7 +275,7 @@ function App() {
   );
 
   const renderKnowledgeContent = () => (
-    <div className="h-full overflow-hidden bg-white dark:bg-gray-900 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
+    <div className="h-full overflow-hidden bg-white dark:bg-[#0D1117] rounded-lg shadow-md border border-gray-200 dark:border-[#30363D]">
       <KnowledgePanel t={t} />
     </div>
   );
@@ -284,17 +284,17 @@ function App() {
   const renderSimpleMode = () => (
     <div className="flex items-center justify-center h-full p-8">
       <div className="w-full max-w-4xl">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 border-2 border-indigo-500">
+        <div className="bg-white dark:bg-[#0D1117] rounded-lg shadow-lg p-8 border-2 border-indigo-500">
           <div className="text-center">
             <div className="text-sm font-semibold text-indigo-600 dark:text-indigo-400 tracking-wider mb-4">
               Live transcription
             </div>
             <div
-              className="text-gray-800 dark:text-gray-200 leading-relaxed min-h-[100px] whitespace-pre-wrap lowercase"
+              className="text-gray-800 dark:text-[#E6EDF3] leading-relaxed min-h-[100px] whitespace-pre-wrap lowercase"
               style={{ fontSize: `${settings.font_size * 1.2}px` }}
             >
               {currentText || (
-                <span className="text-gray-400 dark:text-gray-500 italic">
+                <span className="text-gray-400 dark:text-[#7D8590] italic">
                   {isRunning ? 'Listening...' : 'Start captions to see live transcription'}
                 </span>
               )}
@@ -306,7 +306,7 @@ function App() {
   );
 
   return (
-    <div className="flex flex-col h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+    <div className="flex flex-col h-screen bg-gray-100 dark:bg-[#010409] text-gray-900 dark:text-[#E6EDF3]">
       {/* Title Bar */}
       <TitleBar
         activeTab={activeTab}

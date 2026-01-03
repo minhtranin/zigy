@@ -78,8 +78,8 @@ export function NoteEditor({ note, onSave, onDelete, onToggleNominate, t }: Prop
   // Empty state
   if (!note) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <div className="text-center text-gray-400 dark:text-gray-500">
+      <div className="flex-1 flex items-center justify-center bg-gray-50 dark:bg-[#010409]">
+        <div className="text-center text-gray-400 dark:text-[#7D8590]">
           <p className="text-sm">{t.noNotesYet}</p>
           <p className="text-xs mt-1">{t.addFirstNote}</p>
         </div>
@@ -88,13 +88,13 @@ export function NoteEditor({ note, onSave, onDelete, onToggleNominate, t }: Prop
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-white dark:bg-gray-900">
+    <div className="flex-1 flex flex-col bg-white dark:bg-[#010409]">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200 dark:border-gray-700">
+      <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200 dark:border-[#30363D]">
         {/* Save status */}
         <div className="flex items-center gap-2">
           {isSaving && (
-            <span className="text-xs text-gray-400 flex items-center gap-1">
+            <span className="text-xs text-gray-400 dark:text-[#7D8590] flex items-center gap-1">
               <Loader2 size={12} className="animate-spin" />
               {t.noteSaving}
             </span>
@@ -115,7 +115,7 @@ export function NoteEditor({ note, onSave, onDelete, onToggleNominate, t }: Prop
             className={`p-1.5 rounded-md transition-colors ${
               note.nominated
                 ? 'text-yellow-500 bg-yellow-50 dark:bg-yellow-900/20 hover:bg-yellow-100 dark:hover:bg-yellow-900/30'
-                : 'text-gray-400 hover:text-yellow-500 hover:bg-gray-100 dark:hover:bg-gray-800'
+                : 'text-gray-400 hover:text-yellow-500 hover:bg-gray-100 dark:hover:bg-[#21262D]'
             }`}
             title={note.nominated ? t.unnominateNote : t.nominateNote}
           >
@@ -139,7 +139,7 @@ export function NoteEditor({ note, onSave, onDelete, onToggleNominate, t }: Prop
           value={content}
           onChange={(e) => handleContentChange(e.target.value)}
           placeholder={t.knowledgePlaceholder}
-          className="w-full h-full p-4 text-sm bg-transparent text-gray-900 dark:text-gray-100 placeholder-gray-400 resize-none focus:outline-none"
+          className="w-full h-full p-4 text-sm bg-transparent text-gray-900 dark:text-[#E6EDF3] placeholder-gray-400 resize-none focus:outline-none"
           spellCheck={false}
         />
       </div>
