@@ -523,6 +523,15 @@ jobs:
           echo "$OUTPUT" | head -20
           echo ""
 
+          # Check for segfault (exit code 139 = 128 + 11 SIGSEGV)
+          if [ "$EXIT_CODE" = "139" ]; then
+            echo "  ✗ FAIL: Segmentation fault detected!"
+            echo "  This is likely an April ASR crash, not an audio issue"
+            echo "  Full output:"
+            echo "$OUTPUT"
+            exit 1
+          fi
+
           # Check for specific CoreAudio property errors
           # -10879 = kAudioUnitErr_InvalidProperty (wrong property ID)
           # -10877 = kAudioUnitErr_InvalidElement (wrong scope value - using FourCC instead of enum)
