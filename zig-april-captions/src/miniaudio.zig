@@ -161,11 +161,19 @@ pub const AudioCapture = struct {
             return AudioError.OutOfMemory;
         };
 
-        // Create capture context
+        // Create capture context and initialize BEFORE passing to device
         const capture_context = allocator.create(CaptureContext) catch {
             ring_buffer.deinit(allocator);
             allocator.destroy(ring_buffer);
             return AudioError.OutOfMemory;
+        };
+
+        // Initialize context immediately with safe defaults
+        capture_context.* = CaptureContext{
+            .ring_buffer = ring_buffer,
+            .running = std.atomic.Value(bool).init(false),  // Not started yet
+            .channels = 1,  // Will be updated later if needed
+            .verbose = verbose,
         };
 
         // Configure device
@@ -239,6 +247,10 @@ pub const AudioCapture = struct {
         // Now set up the context with the actual device info
         const actual_channels = device.capture.channels;
 
+        // Update channels in the already-initialized context
+        // Don't reinitialize the whole struct or we'll lose the running flag!
+        capture_context.channels = actual_channels;
+
         const self = Self{
             .device = device,
             .device_config = device_config,
@@ -248,14 +260,6 @@ pub const AudioCapture = struct {
             .allocator = allocator,
             .sample_rate = device.sampleRate,
             .source = source,
-            .verbose = verbose,
-        };
-
-        // Set up context - running flag is stored directly in context now
-        capture_context.* = CaptureContext{
-            .ring_buffer = ring_buffer,
-            .running = std.atomic.Value(bool).init(false),  // Not started yet
-            .channels = actual_channels,
             .verbose = verbose,
         };
 
