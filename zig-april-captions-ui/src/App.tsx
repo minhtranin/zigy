@@ -249,7 +249,6 @@ function App() {
         onAddCommandToChat={(command, text) => {
           setExternalCommand({ command, text: text || '' });
         }}
-        fontSize={settings.font_size}
       />
     </div>
   );

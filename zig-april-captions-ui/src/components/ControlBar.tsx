@@ -23,7 +23,6 @@ interface Props {
   hasMeetingContext: boolean;
   // Send commands to chat
   onAddCommandToChat?: (command: string, text?: string) => void;
-  fontSize: number;
 }
 
 export function ControlBar({
@@ -46,7 +45,6 @@ export function ControlBar({
   isGreetingLoading: _isGreetingLoading,
   hasMeetingContext,
   onAddCommandToChat,
-  fontSize,
 }: Props) {
   const canStart = !isRunning && !isLoading && modelPath;
   const canGenerateAI = hasApiKey && hasTranscript;
@@ -83,27 +81,27 @@ export function ControlBar({
         {/* Primary Controls - Start/Stop first */}
         {!isRunning ? (
           <button
-            className="px-4 py-2 font-semibold text-white bg-green-400 dark:bg-green-500 rounded-md hover:bg-green-500 dark:hover:bg-green-400 disabled:bg-gray-300 dark:disabled:bg-gray-800 disabled:cursor-not-allowed transition-colors shadow-sm"
+            className="px-4 py-2 text-sm font-semibold text-white bg-green-400 dark:bg-green-500 rounded-md hover:bg-green-500 dark:hover:bg-green-400 disabled:bg-gray-300 dark:disabled:bg-gray-800 disabled:cursor-not-allowed transition-colors shadow-sm"
             onClick={onStart}
             disabled={!canStart}
           >
-            <span style={{ fontSize: `${fontSize}px` }}>{isLoading ? `${t.start}...` : t.start}</span>
+            {isLoading ? `${t.start}...` : t.start}
           </button>
         ) : (
           <button
-            className="px-4 py-2 font-semibold text-white bg-red-400 dark:bg-red-500 rounded-md hover:bg-red-500 dark:hover:bg-red-400 transition-colors shadow-sm"
+            className="px-4 py-2 text-sm font-semibold text-white bg-red-400 dark:bg-red-500 rounded-md hover:bg-red-500 dark:hover:bg-red-400 transition-colors shadow-sm"
             onClick={onStop}
           >
-            <span style={{ fontSize: `${fontSize}px` }}>{t.stop}</span>
+            {t.stop}
           </button>
         )}
 
         <button
-          className="px-3 py-2 font-semibold bg-slate-200 dark:bg-[#21262D] text-slate-800 dark:text-[#E6EDF3] border border-slate-300 dark:border-[#30363D] rounded-md hover:bg-slate-300 dark:hover:bg-[#30363D] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="px-3 py-2 text-sm font-semibold bg-slate-200 dark:bg-[#21262D] text-slate-800 dark:text-[#E6EDF3] border border-slate-300 dark:border-[#30363D] rounded-md hover:bg-slate-300 dark:hover:bg-[#30363D] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           onClick={onClear}
           disabled={isLoading}
         >
-          <span style={{ fontSize: `${fontSize}px` }}>{t.clear}</span>
+          {t.clear}
         </button>
 
         {/* Divider */}
@@ -111,7 +109,7 @@ export function ControlBar({
 
         {/* AI Features - consistent slate color for all buttons except Start/Stop */}
         <button
-          className={`px-3 py-2 font-semibold rounded-md transition-colors ${
+          className={`px-3 py-2 text-sm font-semibold rounded-md transition-colors ${
             hasMeetingContext
               ? 'bg-emerald-200 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-200 border border-emerald-400 dark:border-emerald-700 hover:bg-emerald-300 dark:hover:bg-emerald-900/60'
               : 'bg-slate-200 dark:bg-[#21262D] text-slate-800 dark:text-[#E6EDF3] border border-slate-300 dark:border-[#30363D] hover:bg-slate-300 dark:hover:bg-[#30363D]'
@@ -119,43 +117,43 @@ export function ControlBar({
           onClick={onInitMeeting}
           title={hasMeetingContext ? 'Meeting context set - click to update' : 'Set meeting context'}
         >
-          <span style={{ fontSize: `${fontSize}px` }}>{hasMeetingContext ? '✓ Init' : 'Init'}</span>
+          {hasMeetingContext ? '✓ Init' : 'Init'}
         </button>
 
         <button
-          className="px-3 py-2 font-semibold bg-slate-200 dark:bg-[#21262D] text-slate-800 dark:text-[#E6EDF3] border border-slate-300 dark:border-[#30363D] rounded-md hover:bg-slate-300 dark:hover:bg-[#30363D] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="px-3 py-2 text-sm font-semibold bg-slate-200 dark:bg-[#21262D] text-slate-800 dark:text-[#E6EDF3] border border-slate-300 dark:border-[#30363D] rounded-md hover:bg-slate-300 dark:hover:bg-[#30363D] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           onClick={handleGreeting}
           disabled={!canGenerateGreeting}
           title="Generate ice-breaker questions in chat"
         >
-          <span style={{ fontSize: `${fontSize}px` }}>{t.iceBreakers}</span>
+          {t.iceBreakers}
         </button>
 
         <button
-          className="px-3 py-2 font-semibold bg-slate-200 dark:bg-[#21262D] text-slate-800 dark:text-[#E6EDF3] border border-slate-300 dark:border-[#30363D] rounded-md hover:bg-slate-300 dark:hover:bg-[#30363D] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="px-3 py-2 text-sm font-semibold bg-slate-200 dark:bg-[#21262D] text-slate-800 dark:text-[#E6EDF3] border border-slate-300 dark:border-[#30363D] rounded-md hover:bg-slate-300 dark:hover:bg-[#30363D] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           onClick={handleTalkSuggestions}
           disabled={!canGenerateAI}
           title="Get short talking points about recent discussion"
         >
-          <span style={{ fontSize: `${fontSize}px` }}>Talk</span>
+          Talk
         </button>
 
         <button
-          className="px-3 py-2 font-semibold bg-slate-200 dark:bg-[#21262D] text-slate-800 dark:text-[#E6EDF3] border border-slate-300 dark:border-[#30363D] rounded-md hover:bg-slate-300 dark:hover:bg-[#30363D] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="px-3 py-2 text-sm font-semibold bg-slate-200 dark:bg-[#21262D] text-slate-800 dark:text-[#E6EDF3] border border-slate-300 dark:border-[#30363D] rounded-md hover:bg-slate-300 dark:hover:bg-[#30363D] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           onClick={handleSummary}
           disabled={!canGenerateAI}
           title="Generate meeting summary in chat"
         >
-          <span style={{ fontSize: `${fontSize}px` }}>{t.generateSummaryBtn}</span>
+          {t.generateSummaryBtn}
         </button>
 
         <button
-          className="px-3 py-2 font-semibold bg-slate-200 dark:bg-[#21262D] text-slate-800 dark:text-[#E6EDF3] border border-slate-300 dark:border-[#30363D] rounded-md hover:bg-slate-300 dark:hover:bg-[#30363D] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="px-3 py-2 text-sm font-semibold bg-slate-200 dark:bg-[#21262D] text-slate-800 dark:text-[#E6EDF3] border border-slate-300 dark:border-[#30363D] rounded-md hover:bg-slate-300 dark:hover:bg-[#30363D] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           onClick={handleQuestions}
           disabled={!canGenerateAI}
           title="Generate questions in chat"
         >
-          <span style={{ fontSize: `${fontSize}px` }}>{t.generateQuestionsBtn}</span>
+          {t.generateQuestionsBtn}
         </button>
       </div>
 
