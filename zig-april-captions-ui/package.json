@@ -1,7 +1,7 @@
 {
   "name": "zig-april-captions-ui",
   "private": true,
-  "version": "1.0.4",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
