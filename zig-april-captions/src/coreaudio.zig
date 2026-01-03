@@ -536,7 +536,7 @@ pub const AudioCapture = struct {
         // Set the current device
         status = c.AudioUnitSetProperty(
             audio_unit,
-            0x6476646c, // kAudioOutputUnitProperty_CurrentDevice = 'dvdl'
+            2000, // kAudioOutputUnitProperty_CurrentDevice
             kAudioObjectPropertyScopeGlobal,
             0,
             &device_id,
