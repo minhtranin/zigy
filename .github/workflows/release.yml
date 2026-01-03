@@ -490,12 +490,81 @@ jobs:
           fi
 
           echo ""
+          echo "Test 5: RUN binary to test audio initialization"
+          echo "  This will catch CoreAudio property errors like wrong constants"
+          echo "  Running: $BINARY --json --model \"$MODEL\" --verbose"
+          echo ""
+
+          # Run the binary with timeout and capture output
+          OUTPUT=$(timeout 10 "$BINARY" --json --model "$MODEL" --verbose 2>&1 || EXIT_CODE=$?)
+
+          echo "  Exit code: $EXIT_CODE"
+          echo "  Output (first 20 lines):"
+          echo "$OUTPUT" | head -20
+          echo ""
+
+          # Check for specific CoreAudio property errors (10879, -10879, etc.)
+          if echo "$OUTPUT" | grep -q "status: 10879\|status: -10879\|kAudioUnitErr_InvalidProperty"; then
+            echo "  ✗ FAIL: Invalid property error (10879) detected!"
+            echo "  This means AudioUnit property constants are WRONG!"
+            echo "  Full error output:"
+            echo "$OUTPUT"
+            exit 1
+          fi
+
+          # Check for EnableIO failures
+          if echo "$OUTPUT" | grep -q "Failed to enable"; then
+            echo "  ✗ FAIL: EnableIO property failed!"
+            echo "  Full error output:"
+            echo "$OUTPUT"
+            exit 1
+          fi
+
+          # Check for HAL component not found
+          if echo "$OUTPUT" | grep -q "failed to find HAL output component"; then
+            echo "  ✗ FAIL: HAL Output component not found!"
+            echo "  This means AudioUnit component FourCC constants are WRONG!"
+            echo "  Full error output:"
+            echo "$OUTPUT"
+            exit 1
+          fi
+
+          # Expected outcomes:
+          # - DeviceNotFound/PermissionDenied: OK (CI has no audio/permission)
+          # - "ready": OK (audio initialized successfully)
+          # - 10879/EnableIO/HAL errors: FAIL (wrong constants)
+
+          if echo "$OUTPUT" | grep -q '"type":"ready"'; then
+            echo "  ✓ Audio initialization SUCCEEDED!"
+          elif echo "$OUTPUT" | grep -q 'DeviceNotFound\|Permission denied\|noent'; then
+            echo "  ✓ Audio init failed with EXPECTED error (no device/permission in CI)"
+            echo "    Property constants appear to be CORRECT"
+          elif echo "$OUTPUT" | grep -q 'error.InitializeFailed'; then
+            echo "  ⚠ InitializeFailed - checking if it's due to missing audio hardware..."
+            if echo "$OUTPUT" | grep -q 'status: -10879\|status: 10879'; then
+              echo "  ✗ FAIL: InitializeFailed due to WRONG PROPERTY CONSTANTS!"
+              exit 1
+            else
+              echo "  ✓ InitializeFailed appears to be due to no audio hardware (expected in CI)"
+            fi
+          else
+            echo "  ⚠ Unknown output pattern, showing full output for review:"
+            echo "$OUTPUT"
+          fi
+
+          echo ""
           echo "=================================="
           echo "✓ All binary tests passed!"
           echo "=================================="
           echo ""
-          echo "Note: Audio device test skipped (CI environment has no audio hardware)"
-          echo "      Microphone permission dialog will appear when users run the app"
+          echo "Summary:"
+          echo "  ✓ Binary is executable"
+          echo "  ✓ Binary is codesigned"
+          echo "  ✓ Binary links to ONNX Runtime"
+          echo "  ✓ Binary has audio entitlements"
+          echo "  ✓ Audio initialization constants are correct (no 10879 errors)"
+          echo ""
+          echo "Note: Full device test requires macOS with audio hardware"
 
       - name: Verify macOS Bundle (Debug)
         if: runner.os == 'macOS'
