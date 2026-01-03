@@ -495,6 +495,11 @@ async fn start_captions(
             return Err("Microphone permission not granted. Please allow microphone access in System Settings > Privacy & Security > Microphone, then restart Zigy.".to_string());
         }
         println!("Microphone permission granted, proceeding to start captions");
+
+        // Give macOS a moment to fully propagate the permission to audio subsystem
+        // This helps prevent race condition where child process starts before
+        // CoreAudio HAL has fully updated its device list after permission grant
+        std::thread::sleep(std::time::Duration::from_millis(500));
     }
 
     // Stop any existing process first
