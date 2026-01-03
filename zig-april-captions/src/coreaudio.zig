@@ -404,8 +404,41 @@ pub const AudioCapture = struct {
             .verbose = verbose,
         };
 
-        // Find the default input device
-        const device_id = try temp_self.getDefaultInputDevice();
+        // Find the default input device with retry logic
+        // On macOS, after the permission dialog is accepted, the system may need
+        // a moment to update the audio device list. We retry with increasing delays
+        // to handle this race condition (similar to how Apple's LiveCaptions works).
+        const max_retries = 10;
+        const retry_delays_ms = [_]u64{ 100, 200, 300, 500, 500, 1000, 1000, 1000, 2000, 2000 };
+
+        var device_id: AudioDeviceID = 0;
+        var last_error: CoreAudioError = CoreAudioError.DeviceNotFound;
+
+        for (0..max_retries) |attempt| {
+            device_id = temp_self.getDefaultInputDevice() catch |err| {
+                last_error = err;
+                if (verbose) {
+                    std.log.warn("Device lookup attempt {d}/{d} failed, retrying in {d}ms...", .{ attempt + 1, max_retries, retry_delays_ms[attempt] });
+                    std.log.warn("  This is normal after accepting microphone permission - waiting for system to update device list", .{});
+                }
+                // Sleep before retry
+                std.time.sleep(retry_delays_ms[attempt] * std.time.ns_per_ms);
+                continue;
+            };
+            // Success!
+            if (verbose and attempt > 0) {
+                std.log.info("Device found after {d} retries", .{attempt});
+            }
+            break;
+        } else {
+            // All retries exhausted
+            std.log.err("Failed to find audio device after {d} retries", .{max_retries});
+            std.log.err("Please ensure:", .{});
+            std.log.err("  1. Microphone permission is granted in System Settings > Privacy & Security > Microphone", .{});
+            std.log.err("  2. A microphone is connected to your Mac", .{});
+            std.log.err("  3. Try restarting the application after granting permission", .{});
+            return last_error;
+        }
 
         // Create AudioComponentDescription
         const desc = AudioComponentDescription{
