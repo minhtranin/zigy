@@ -40,8 +40,8 @@ pub const AudioFormat = struct {
 };
 
 // CoreAudio constants (only defined on macOS)
-const kAudioUnitType_Output = if (is_macos) @as(u32, 0x6f75746c) else 0;
-const kAudioUnitSubType_HALOutput = if (is_macos) @as(u32, 0x68616c6f) else 0;
+const kAudioUnitType_Output = if (is_macos) @as(u32, 0x61756f75) else 0; // 'auou'
+const kAudioUnitSubType_HALOutput = if (is_macos) @as(u32, 0x6168616c) else 0; // 'ahal'
 const kAudioUnitManufacturer_Apple = if (is_macos) @as(u32, 0x6170706c) else 0;
 
 const kAudioObjectPropertyScopeInput = if (is_macos) @as(u32, 0x696e7074) else 0; // 'inpt'
