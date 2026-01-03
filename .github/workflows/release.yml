@@ -496,17 +496,39 @@ jobs:
           echo ""
 
           # Run the binary with timeout and capture output
-          OUTPUT=$(timeout 10 "$BINARY" --json --model "$MODEL" --verbose 2>&1 || EXIT_CODE=$?)
+          # Note: macOS doesn't have GNU timeout, so we use a background process approach
+          "$BINARY" --json --model "$MODEL" --verbose > /tmp/zig_test_output.txt 2>&1 &
+          PID=$!
+
+          # Wait up to 10 seconds for the process
+          for i in {1..10}; do
+            if ! kill -0 $PID 2>/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+
+          # Kill if still running
+          if kill -0 $PID 2>/dev/null; then
+            kill $PID 2>/dev/null || true
+            echo "  (Process killed after 10s timeout)"
+          fi
+          wait $PID 2>/dev/null || EXIT_CODE=$?
+
+          OUTPUT=$(cat /tmp/zig_test_output.txt 2>/dev/null || echo "")
 
           echo "  Exit code: $EXIT_CODE"
           echo "  Output (first 20 lines):"
           echo "$OUTPUT" | head -20
           echo ""
 
-          # Check for specific CoreAudio property errors (10879, -10879, etc.)
-          if echo "$OUTPUT" | grep -q "status: 10879\|status: -10879\|kAudioUnitErr_InvalidProperty"; then
-            echo "  ✗ FAIL: Invalid property error (10879) detected!"
-            echo "  This means AudioUnit property constants are WRONG!"
+          # Check for specific CoreAudio property errors
+          # -10879 = kAudioUnitErr_InvalidProperty (wrong property ID)
+          # -10877 = kAudioUnitErr_InvalidElement (wrong scope value - using FourCC instead of enum)
+          if echo "$OUTPUT" | grep -q "status: 10879\|status: -10879\|status: -10877\|status: 10877\|kAudioUnitErr_InvalidProperty\|kAudioUnitErr_InvalidElement"; then
+            echo "  ✗ FAIL: Invalid property/element error detected!"
+            echo "  -10879 = wrong property ID"
+            echo "  -10877 = wrong scope value (using FourCC 'inpt'/'outp' instead of enum 1/2)"
             echo "  Full error output:"
             echo "$OUTPUT"
             exit 1

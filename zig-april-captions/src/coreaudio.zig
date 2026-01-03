@@ -44,9 +44,17 @@ const kAudioUnitType_Output = if (is_macos) @as(u32, 0x61756f75) else 0; // 'auo
 const kAudioUnitSubType_HALOutput = if (is_macos) @as(u32, 0x6168616c) else 0; // 'ahal'
 const kAudioUnitManufacturer_Apple = if (is_macos) @as(u32, 0x6170706c) else 0;
 
+// AudioObjectPropertyScope constants (FourCC) - for AudioObject API
 const kAudioObjectPropertyScopeInput = if (is_macos) @as(u32, 0x696e7074) else 0; // 'inpt'
 const kAudioObjectPropertyScopeOutput = if (is_macos) @as(u32, 0x6f757470) else 0; // 'outp'
 const kAudioObjectPropertyScopeGlobal = if (is_macos) @as(u32, 0x676c6f62) else 0; // 'glob'
+
+// AudioUnitScope constants (simple enum values) - for AudioUnit API
+// CRITICAL: These are NOT FourCC values! They are simple integers.
+// Using the wrong scope type causes -10877 (kAudioUnitErr_InvalidElement)
+const kAudioUnitScope_Global = if (is_macos) @as(u32, 0) else 0;
+const kAudioUnitScope_Input = if (is_macos) @as(u32, 1) else 0;
+const kAudioUnitScope_Output = if (is_macos) @as(u32, 2) else 0;
 
 const kAudioHardwarePropertyDefaultInputDevice = if (is_macos) @as(u32, 0x64496e20) else 0; // 'dIn '
 const kAudioObjectSystemObject = if (is_macos) @as(u32, 1) else 0;
@@ -463,35 +471,39 @@ pub const AudioCapture = struct {
             return CoreAudioError.InitializeFailed;
         }
 
-        // CRITICAL: For HAL Output Audio Unit on macOS, you MUST enable
-        // OUTPUT (element 0) before INPUT (element 1). This is a documented
-        // requirement. If you try to enable input first, you get error -10879
-        // (kAudioUnitErr_InvalidProperty).
+        // CRITICAL: For HAL Output Audio Unit on macOS:
+        // 1. DISABLE output (element 0) - we don't need playback
+        // 2. ENABLE input (element 1) - we want microphone capture
+        //
+        // NOTE: Must use kAudioUnitScope_* (simple enum 0,1,2) NOT
+        // kAudioObjectPropertyScope* (FourCC values like 'inpt').
+        // Using wrong scope type causes -10877 (kAudioUnitErr_InvalidElement).
 
-        // Step 1: Enable OUTPUT (element 0) - this must be done first!
-        // Even though we only want input, the output bus acts as the "master"
-        var enable: u32 = 1;
+        // Step 1: DISABLE OUTPUT (element 0) - we only want input
+        var disable: u32 = 0;
         status = c.AudioUnitSetProperty(
             audio_unit,
             kAudioOutputUnitProperty_EnableIO,
-            kAudioObjectPropertyScopeOutput,
-            kAudioOutputUnitRange_Output, // 0
-            &enable,
+            kAudioUnitScope_Output, // scope = 2 (NOT 'outp' FourCC!)
+            kAudioOutputUnitRange_Output, // element = 0
+            &disable,
             @sizeOf(u32),
         );
 
         if (status != 0) {
-            std.log.err("Failed to enable output (required first), status: {d}", .{status});
-            _ = c.AudioComponentInstanceDispose(audio_unit);
-            return CoreAudioError.InitializeFailed;
+            // Non-fatal: some audio units may not support disabling output
+            if (verbose) {
+                std.log.warn("Could not disable output (non-fatal), status: {d}", .{status});
+            }
         }
 
-        // Step 2: NOW we can enable INPUT (element 1)
+        // Step 2: ENABLE INPUT (element 1) - this is what we need for microphone
+        var enable: u32 = 1;
         status = c.AudioUnitSetProperty(
             audio_unit,
             kAudioOutputUnitProperty_EnableIO,
-            kAudioObjectPropertyScopeInput,
-            kAudioOutputUnitRange_Input, // 1
+            kAudioUnitScope_Input, // scope = 1 (NOT 'inpt' FourCC!)
+            kAudioOutputUnitRange_Input, // element = 1
             &enable,
             @sizeOf(u32),
         );
@@ -525,11 +537,13 @@ pub const AudioCapture = struct {
             .mReserved = 0,
         };
 
+        // Set format on the OUTPUT scope of the INPUT element
+        // (the data flowing out of the input element to our code)
         status = c.AudioUnitSetProperty(
             audio_unit,
             kAudioUnitProperty_StreamFormat,
-            kAudioObjectPropertyScopeInput,
-            kAudioOutputUnitRange_Input,
+            kAudioUnitScope_Output, // scope = 2 (output side of input element)
+            kAudioOutputUnitRange_Input, // element = 1
             &stream_format,
             @sizeOf(@TypeOf(stream_format)),
         );
@@ -540,12 +554,12 @@ pub const AudioCapture = struct {
             return CoreAudioError.FormatMismatch;
         }
 
-        // Set the current device
+        // Set the current device (global scope, element 0)
         status = c.AudioUnitSetProperty(
             audio_unit,
             2000, // kAudioOutputUnitProperty_CurrentDevice
-            kAudioObjectPropertyScopeGlobal,
-            0,
+            kAudioUnitScope_Global, // scope = 0 (NOT 'glob' FourCC!)
+            0, // element = 0
             &device_id,
             @sizeOf(AudioDeviceID),
         );
@@ -557,12 +571,13 @@ pub const AudioCapture = struct {
         }
 
         // Set buffer size (50ms = 800 frames at 16kHz)
+        // Note: This is a device property, but set via AudioUnit on global scope
         const buffer_frames = (sample_rate * 50) / 1000;
         status = c.AudioUnitSetProperty(
             audio_unit,
             0x6673697a, // kAudioDevicePropertyBufferFrameSize = 'fsiz'
-            kAudioObjectPropertyScopeInput,
-            kAudioOutputUnitRange_Input,
+            kAudioUnitScope_Global, // scope = 0
+            0, // element = 0
             &buffer_frames,
             @sizeOf(u32),
         );
@@ -592,11 +607,12 @@ pub const AudioCapture = struct {
 
         callback_struct.inputProcRefCon = capture_context_ptr;
 
+        // Set the input callback (global scope, element 0 for HAL Output AU)
         status = c.AudioUnitSetProperty(
             audio_unit,
             kAudioOutputUnitProperty_SetInputCallback,
-            kAudioObjectPropertyScopeInput,
-            kAudioOutputUnitRange_Input,
+            kAudioUnitScope_Global, // scope = 0 (callbacks are global)
+            0, // element = 0
             &callback_struct,
             @sizeOf(AURenderCallbackStruct),
         );
