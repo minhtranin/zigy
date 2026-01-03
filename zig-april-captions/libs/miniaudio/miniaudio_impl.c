@@ -10,9 +10,9 @@
 #define MA_NO_ENGINE
 #define MA_NO_NODE_GRAPH
 
-// On Linux, prefer PulseAudio over ALSA for better compatibility
-// (PulseAudio handles device switching, volume control, etc.)
+// On Linux, disable JACK (blocks indefinitely), use PulseAudio with ALSA fallback
 #ifdef __linux__
+#define MA_NO_JACK  // Disable JACK - it blocks on ma_device_start()
 #define MA_ENABLE_PULSEAUDIO
 #define MA_ENABLE_ALSA
 #endif

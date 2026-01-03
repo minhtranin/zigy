@@ -205,8 +205,9 @@ pub fn main() !void {
 
     // Main loop
     // Reference: LiveCaptions - audio capture → ASR processing → display
+    std.debug.print("DEBUG: Entering main loop (READ/WRITE mode)\n", .{});
     while (audio_capture.isRunning()) {
-        // Read audio
+        // Read audio (blocks until data is available)
         const samples = audio_capture.read(buffer_slice) catch |err| {
             if (err == error.Terminated) break;
             if (output_mode == .terminal) {

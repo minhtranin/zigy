@@ -268,19 +268,10 @@ pub const AudioCapture = struct {
             std.log.info("miniaudio: Starting capture...", .{});
         }
 
-        // Note: On Linux with PulseAudio, ma_device_start() can block indefinitely.
-        // The device appears to work even without explicitly calling start().
-        // For now, we skip it on Linux to avoid the hang.
-        if (builtin.os.tag != .linux) {
-            const result = c.ma_device_start(&self.device);
-            if (result != c.MA_SUCCESS) {
-                std.log.err("miniaudio: Failed to start device (error: {d})", .{result});
-                return AudioError.StartFailed;
-            }
-        } else {
-            if (self.verbose) {
-                std.log.info("miniaudio: Linux - skipping ma_device_start (workaround for PulseAudio blocking)", .{});
-            }
+        const result = c.ma_device_start(&self.device);
+        if (result != c.MA_SUCCESS) {
+            std.log.err("miniaudio: Failed to start device (error: {d})", .{result});
+            return AudioError.StartFailed;
         }
 
         self.running.store(true, .release);
