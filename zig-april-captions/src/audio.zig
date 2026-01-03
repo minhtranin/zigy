@@ -1,6 +1,6 @@
 //! Platform-agnostic audio capture interface
 //! - Linux: PulseAudio Simple API (synchronous, no blocking issues)
-//! - macOS: miniaudio (avoids CoreAudio segfault #15067)
+//! - macOS: AudioQueue Services (Apple's official API, avoids miniaudio bus errors)
 //! - Windows: miniaudio
 
 const std = @import("std");
@@ -8,7 +8,8 @@ const builtin = @import("builtin");
 
 // Platform-specific implementations
 const pulse = if (builtin.os.tag == .linux) @import("pulse.zig") else void;
-const miniaudio = if (builtin.os.tag != .linux) @import("miniaudio.zig") else void;
+const audioqueue = if (builtin.os.tag == .macos) @import("audioqueue.zig") else void;
+const miniaudio = if (builtin.os.tag == .windows) @import("miniaudio.zig") else void;
 
 /// Audio source type
 pub const AudioSource = enum {
@@ -19,7 +20,8 @@ pub const AudioSource = enum {
 /// Audio capture interface - platform-specific
 pub const AudioCapture = struct {
     pulse_capture: if (builtin.os.tag == .linux) pulse.AudioCapture else void,
-    miniaudio_capture: if (builtin.os.tag != .linux) miniaudio.AudioCapture else void,
+    audioqueue_capture: if (builtin.os.tag == .macos) audioqueue.AudioCapture else void,
+    miniaudio_capture: if (builtin.os.tag == .windows) miniaudio.AudioCapture else void,
     sample_rate: u32,
     source: AudioSource,
 
@@ -39,15 +41,35 @@ pub const AudioCapture = struct {
                     },
                     verbose,
                 ),
+                .audioqueue_capture = undefined,
+                .miniaudio_capture = undefined,
+                .sample_rate = sample_rate,
+                .source = source,
+            };
+        } else if (builtin.os.tag == .macos) {
+            // macOS: Use AudioQueue Services (Apple's official API)
+            std.debug.print("DEBUG: Using AudioQueue Services on macOS\n", .{});
+            return Self{
+                .pulse_capture = undefined,
+                .audioqueue_capture = try audioqueue.AudioCapture.init(
+                    allocator,
+                    sample_rate,
+                    switch (source) {
+                        .microphone => .microphone,
+                        .monitor => .monitor,
+                    },
+                    verbose,
+                ),
                 .miniaudio_capture = undefined,
                 .sample_rate = sample_rate,
                 .source = source,
             };
         } else {
-            // macOS/Windows: Use miniaudio (avoids macOS CoreAudio segfault #15067)
-            std.debug.print("DEBUG: Using miniaudio on macOS/Windows\n", .{});
+            // Windows: Use miniaudio
+            std.debug.print("DEBUG: Using miniaudio on Windows\n", .{});
             return Self{
                 .pulse_capture = undefined,
+                .audioqueue_capture = undefined,
                 .miniaudio_capture = try miniaudio.AudioCapture.init(
                     allocator,
                     sample_rate,
@@ -69,6 +91,9 @@ pub const AudioCapture = struct {
             // PulseAudio Simple API starts automatically in init()
             const _running = self.pulse_capture.isRunning();
             _ = _running;
+        } else if (builtin.os.tag == .macos) {
+            // AudioQueue needs explicit start
+            try self.audioqueue_capture.start();
         } else {
             // miniaudio needs explicit start
             try self.miniaudio_capture.start();
@@ -79,6 +104,8 @@ pub const AudioCapture = struct {
     pub fn read(self: *Self, buffer: []i16) ![]i16 {
         if (builtin.os.tag == .linux) {
             return self.pulse_capture.read(buffer);
+        } else if (builtin.os.tag == .macos) {
+            return self.audioqueue_capture.read(buffer);
         } else {
             return self.miniaudio_capture.read(buffer);
         }
@@ -88,6 +115,8 @@ pub const AudioCapture = struct {
     pub fn stop(self: *Self) void {
         if (builtin.os.tag == .linux) {
             self.pulse_capture.stop();
+        } else if (builtin.os.tag == .macos) {
+            self.audioqueue_capture.stop();
         } else {
             self.miniaudio_capture.stop();
         }
@@ -97,6 +126,8 @@ pub const AudioCapture = struct {
     pub fn isRunning(self: *Self) bool {
         if (builtin.os.tag == .linux) {
             return self.pulse_capture.isRunning();
+        } else if (builtin.os.tag == .macos) {
+            return self.audioqueue_capture.isRunning();
         } else {
             return self.miniaudio_capture.isRunning();
         }
@@ -116,6 +147,8 @@ pub const AudioCapture = struct {
     pub fn deinit(self: *Self) void {
         if (builtin.os.tag == .linux) {
             self.pulse_capture.deinit();
+        } else if (builtin.os.tag == .macos) {
+            self.audioqueue_capture.deinit();
         } else {
             self.miniaudio_capture.deinit();
         }
