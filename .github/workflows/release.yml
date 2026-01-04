@@ -830,36 +830,81 @@ jobs:
           }
           Write-Host "✓ File sizes look reasonable"
 
-          # Test 3: Run binary to test audio initialization
+          # Test 3: RUN binary to test audio initialization
           Write-Host ""
-          Write-Host "Test 3: Audio initialization test"
-          Write-Host "Note: Will fail with no audio device in CI, but checks for crashes"
+          Write-Host "Test 3: RUN binary to test audio initialization"
+          Write-Host "  This will catch WASAPI errors and verify audio works"
+          Write-Host "  Running: $BINARY --json --verbose $MODEL"
+          Write-Host ""
 
-          $process = Start-Process -FilePath $BINARY -ArgumentList "--json","--verbose",$MODEL -NoNewWindow -PassThru -RedirectStandardOutput "$env:TEMP\zig_output.txt" -RedirectStandardError "$env:TEMP\zig_error.txt"
+          # Create temp file for output
+          $OUTPUT_FILE = "$env:TEMP\zig_test_output.txt"
 
-          # Wait up to 5 seconds for output
+          # Run the binary and capture output
+          $process = Start-Process -FilePath $BINARY -ArgumentList "--json","--verbose",$MODEL -NoNewWindow -PassThru -RedirectStandardOutput $OUTPUT_FILE -RedirectStandardError "$env:TEMP\zig_error.txt"
+
+          # Wait up to 5 seconds for audio initialization (we look for "listening")
+          # Don't wait longer - April ASR may crash during processing (unrelated to audio)
           $timeout = 5
           $elapsed = 0
+          $audioInitSucceeded = $false
 
           while ($elapsed -lt $timeout) {
               Start-Sleep -Seconds 1
               $elapsed++
-              # The process should start and output JSON
+
+              # Check if process has exited
               if ($process.HasExited) {
                   break
               }
+
+              # Check if audio initialized successfully
+              if (Test-Path $OUTPUT_FILE) {
+                  $content = Get-Content $OUTPUT_FILE -Raw
+                  if ($content -match '"type":"listening"') {
+                      Write-Host "  ✓ Audio initialization successful!"
+                      $audioInitSucceeded = $true
+                      break
+                  }
+              }
           }
 
-          if ($process.HasExited) {
-              Write-Host "Process exited (may not have audio device in CI - this is OK)"
-              # Show output for debugging
-              if (Test-Path "$env:TEMP\zig_output.txt") {
-                  Write-Host "Output:"
-                  Get-Content "$env:TEMP\zig_output.txt" -Head 5
-              }
-          } else {
-              Write-Host "✓ Process is running (no crash)"
+          # Kill the process (we only care about audio init, not April ASR processing)
+          if (-not $process.HasExited) {
               $process.Kill()
+              Write-Host "  (Process killed after audio initialization check)"
+          }
+
+          # Wait for process to fully exit
+          if (-not $process.HasExited) {
+              $process.WaitForExit()
+          }
+
+          # Get the output
+          $OUTPUT = Get-Content $OUTPUT_FILE -ErrorAction SilentlyContinue
+
+          Write-Host "  Output (first 20 lines):"
+          if ($OUTPUT) {
+              $OUTPUT | Select-Object -First 20 | ForEach-Object { Write-Host "  $_" }
+          }
+          Write-Host ""
+
+          # Check results
+          if ($audioInitSucceeded) {
+              Write-Host "  ✓ Audio capture initialized successfully"
+          } else {
+              # Check if process crashed (exit code != 0)
+              $EXIT_CODE = $process.ExitCode
+
+              # Check for segfault or crash before audio initialized
+              if ($EXIT_CODE -ne 0 -and $EXIT_CODE -ne $null) {
+                  Write-Host "  ✗ FAIL: Process exited with code $EXIT_CODE before audio initialized!"
+                  Write-Host "  Full output:"
+                  Write-Host $OUTPUT
+                  exit 1
+              } else {
+                  Write-Host "  ⚠ Process exited but no crash detected (may be no audio device in CI)"
+              }
           }
 
           Write-Host ""
