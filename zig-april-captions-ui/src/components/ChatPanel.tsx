@@ -3,6 +3,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { Send, Loader2, RefreshCw, MessageCircle, Languages, Globe } from 'lucide-react';
 import { ChatMessage, ChatCommandType, Settings } from '../types';
 import { Translations } from '../translations';
+import { generateSummaryWithContext } from '../services/geminiService';
 
 // Translate text using Gemini
 async function translateText(
@@ -440,8 +441,8 @@ export function ChatPanel({ settings, sessionId, fontSize, t, externalCommand, o
   };
 
   const parseCommand = (text: string): { command: ChatCommandType | undefined, args: string } => {
-    // Match longer commands first to avoid partial matches (ask-about-line before ask)
-    const match = text.match(/^\/(ask-about-line|talk-suggestions|translate|greeting|summary|questions|answer|talk|ask)(?:\s+(.*))?$/is);
+    // Match longer commands first to avoid partial matches (ask-about-line before ask, full-summary before summary)
+    const match = text.match(/^\/(ask-about-line|talk-suggestions|translate|greeting|full-summary|summary|questions|answer|talk|ask)(?:\s+(.*))?$/is);
     if (match) {
       return { command: `/${match[1].toLowerCase()}` as ChatCommandType, args: match[2] || '' };
     }
@@ -515,6 +516,34 @@ export function ChatPanel({ settings, sessionId, fontSize, t, externalCommand, o
             break;
           case '/summary':
             prompt = 'Summarize the current meeting discussion. Focus on key points and decisions.';
+            break;
+          case '/full-summary':
+            // Handle full-summary separately - uses generateSummaryWithContext like auto-summary
+            setIsLoading(true);
+            try {
+              const summaryText = await generateSummaryWithContext(apiKey, model);
+              // Display as summary message with [Manual] prefix
+              const summaryMessage: ChatMessage = {
+                id: `summary-${Date.now()}`,
+                role: 'assistant',
+                content: `📋 Summary\n\n${summaryText}`,
+                timestamp: Date.now(),
+              };
+              const newMessages = [...messages, userMessage, summaryMessage];
+              saveSession(newMessages, summary);
+            } catch (e) {
+              console.error('Full summary error:', e);
+              const errorMsg: ChatMessage = {
+                id: crypto.randomUUID(),
+                role: 'system',
+                content: `Error: ${e}`,
+                timestamp: Date.now(),
+              };
+              saveSession([...messages, userMessage, errorMsg], summary);
+            } finally {
+              setIsLoading(false);
+            }
+            return; // Skip the normal flow since we handled it
             break;
           case '/questions':
             prompt = 'Suggest 3-5 smart questions I could ask in this meeting. Format as:\n1. [question]\n2. [question]\n3. [question]\nStart directly with the numbered list, no intro text.';

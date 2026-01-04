@@ -63,6 +63,12 @@ export function ControlBar({
     }
   };
 
+  const handleFullSummary = () => {
+    if (onAddCommandToChat) {
+      onAddCommandToChat('/full-summary', '');
+    }
+  };
+
   const handleQuestions = () => {
     if (onAddCommandToChat) {
       onAddCommandToChat('/questions', '');
@@ -142,9 +148,18 @@ export function ControlBar({
           className="px-3 py-2 text-sm font-semibold bg-slate-200 dark:bg-[#21262D] text-slate-800 dark:text-[#E6EDF3] border border-slate-300 dark:border-[#30363D] rounded-md hover:bg-slate-300 dark:hover:bg-[#30363D] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           onClick={handleSummary}
           disabled={!canGenerateAI}
-          title="Generate meeting summary in chat"
+          title={t.summaryBtnTooltip}
         >
           {t.generateSummaryBtn}
+        </button>
+
+        <button
+          className="px-3 py-2 text-sm font-semibold bg-slate-200 dark:bg-[#21262D] text-slate-800 dark:text-[#E6EDF3] border border-slate-300 dark:border-[#30363D] rounded-md hover:bg-slate-300 dark:hover:bg-[#30363D] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          onClick={handleFullSummary}
+          disabled={!canGenerateAI}
+          title={t.fullSummaryBtnTooltip}
+        >
+          {t.fullSummaryBtn}
         </button>
 
         <button

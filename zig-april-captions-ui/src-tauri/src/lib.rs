@@ -137,10 +137,12 @@ mod macos_permissions {
 
 #[cfg(not(target_os = "macos"))]
 mod macos_permissions {
+    #[allow(dead_code)]
     pub fn request_microphone_permission() -> bool {
         true // No-op on non-macOS platforms
     }
 
+    #[allow(dead_code)]
     pub fn check_microphone_permission() -> bool {
         true
     }

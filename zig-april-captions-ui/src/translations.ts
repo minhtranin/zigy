@@ -109,7 +109,10 @@ export interface Translations {
   questionsTitle: string;
   ideaTitle: string;
   generateSummaryBtn: string;
+  fullSummaryBtn: string;
   generateQuestionsBtn: string;
+  summaryBtnTooltip: string;
+  fullSummaryBtnTooltip: string;
 
   // Chat Tab (replaces Ideas)
   chatTab: string;
@@ -270,7 +273,10 @@ export const translations: Record<AppLanguage, Translations> = {
     questionsTitle: 'Questions',
     ideaTitle: 'Idea',
     generateSummaryBtn: 'Summary',
+    fullSummaryBtn: 'Full Summary',
     generateQuestionsBtn: 'Questions',
+    summaryBtnTooltip: 'Quick summary from recent context',
+    fullSummaryBtnTooltip: 'Complete summary using all history and snapshots',
 
     // Chat Tab (replaces Ideas)
     chatTab: 'Chat',
@@ -457,7 +463,10 @@ export const translations: Record<AppLanguage, Translations> = {
     questionsTitle: 'Câu hỏi',
     ideaTitle: 'Ý tưởng',
     generateSummaryBtn: 'Tóm tắt',
+    fullSummaryBtn: 'Tóm tắt đầy đủ',
     generateQuestionsBtn: 'Câu hỏi',
+    summaryBtnTooltip: 'Tóm tắt nhanh từ ngữ cảnh gần đây',
+    fullSummaryBtnTooltip: 'Tóm tắt đầy đủ từ toàn bộ lịch sử và snapshot',
 
     // Chat Tab (replaces Ideas)
     chatTab: 'Chat',
