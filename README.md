@@ -896,7 +896,6 @@ Copyright (c) 2025 Minh Cong Tran
 ## 🙏 Acknowledgments
 
 - [April ASR](https://github.com/abb128/april-asr) - Speech recognition engine
-- [LiveCaptions](https://github.com/abb128/LiveCaptions) - Reference implementation
 - [Tauri](https://tauri.app/) - Desktop app framework
 - [Google Gemini API](https://ai.google.dev/) - AI features
 
@@ -905,7 +904,5 @@ Copyright (c) 2025 Minh Cong Tran
 <div align="center">
 
 **[Download](https://github.com/minhtranin/zigy/releases/latest)** • **[Report Bug](https://github.com/minhtranin/zigy/issues)** • **[Documentation](zig-april-captions-ui/README.md)**
-
-Made with ❤️ by Minh Cong Tran
 
 </div>
