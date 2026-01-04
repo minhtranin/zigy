@@ -750,6 +750,20 @@ jobs:
             Write-Error "onnxruntime.dll not found in $env:USERPROFILE\onnxruntime\lib"
             exit 1
           }
+
+          # Download April ASR model for testing
+          Write-Host "Downloading April ASR model..."
+          $MODEL_NAME = "april-english-dev-01110_en.april"
+          $MODEL_URL = "https://april.sapples.net/$MODEL_NAME"
+          $MODEL_PATH = "..\zig-april-captions-ui\src-tauri\resources\$MODEL_NAME"
+
+          if (-not (Test-Path $MODEL_PATH)) {
+            Invoke-WebRequest -Uri $MODEL_URL -OutFile $MODEL_PATH
+            Write-Host "✓ Downloaded model: $MODEL_NAME"
+          } else {
+            Write-Host "✓ Model already exists: $MODEL_NAME"
+          }
+
           cd ..
 
       - name: Test zig-april-captions binary (Windows)
@@ -762,10 +776,11 @@ jobs:
 
           $BINARY = "zig-april-captions-ui\src-tauri\resources\zig-april-captions.exe"
           $DLL = "zig-april-captions-ui\src-tauri\resources\onnxruntime.dll"
+          $MODEL = "zig-april-captions-ui\src-tauri\resources\april-english-dev-01110_en.april"
 
-          # Test 1: Verify binary and DLL exist
+          # Test 1: Verify binary, DLL, and model exist
           Write-Host ""
-          Write-Host "Test 1: Verify binary and DLL exist"
+          Write-Host "Test 1: Verify binary, DLL, and model exist"
           if (Test-Path $BINARY) {
               Write-Host "✓ zig-april-captions.exe found"
           } else {
@@ -780,13 +795,26 @@ jobs:
               exit 1
           }
 
+          if (Test-Path $MODEL) {
+              Write-Host "✓ Model file found"
+          } else {
+              Write-Error "ERROR: Model file not found"
+              exit 1
+          }
+
+          Write-Host "Binary: $BINARY"
+          Write-Host "DLL: $DLL"
+          Write-Host "Model: $MODEL"
+
           # Test 2: Check file sizes (sanity check for corruption)
           Write-Host ""
           Write-Host "Test 2: Verify file sizes"
           $exeSize = (Get-Item $BINARY).Length
           $dllSize = (Get-Item $DLL).Length
+          $modelSize = (Get-Item $MODEL).Length
           Write-Host "EXE size: $exeSize bytes"
           Write-Host "DLL size: $dllSize bytes"
+          Write-Host "Model size: $modelSize bytes"
 
           if ($exeSize -lt 100KB) {
               Write-Error "ERROR: EXE too small (corrupted?)"
@@ -796,6 +824,10 @@ jobs:
               Write-Error "ERROR: DLL too small (corrupted?)"
               exit 1
           }
+          if ($modelSize -lt 300MB) {
+              Write-Error "ERROR: Model too small (corrupted?)"
+              exit 1
+          }
           Write-Host "✓ File sizes look reasonable"
 
           # Test 3: Run binary to test audio initialization
@@ -803,7 +835,7 @@ jobs:
           Write-Host "Test 3: Audio initialization test"
           Write-Host "Note: Will fail with no audio device in CI, but checks for crashes"
 
-          $process = Start-Process -FilePath $BINARY -ArgumentList "--json","--verbose" -NoNewWindow -PassThru
+          $process = Start-Process -FilePath $BINARY -ArgumentList "--json","--verbose",$MODEL -NoNewWindow -PassThru -RedirectStandardOutput "$env:TEMP\zig_output.txt" -RedirectStandardError "$env:TEMP\zig_error.txt"
 
           # Wait up to 5 seconds for output
           $timeout = 5
@@ -820,6 +852,11 @@ jobs:
 
           if ($process.HasExited) {
               Write-Host "Process exited (may not have audio device in CI - this is OK)"
+              # Show output for debugging
+              if (Test-Path "$env:TEMP\zig_output.txt") {
+                  Write-Host "Output:"
+                  Get-Content "$env:TEMP\zig_output.txt" -Head 5
+              }
           } else {
               Write-Host "✓ Process is running (no crash)"
               $process.Kill()
