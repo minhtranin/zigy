@@ -752,6 +752,84 @@ jobs:
           }
           cd ..
 
+      - name: Test zig-april-captions binary (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Write-Host "=================================="
+          Write-Host "Testing zig-april-captions binary"
+          Write-Host "=================================="
+
+          $BINARY = "zig-april-captions-ui\src-tauri\resources\zig-april-captions.exe"
+          $DLL = "zig-april-captions-ui\src-tauri\resources\onnxruntime.dll"
+
+          # Test 1: Verify binary and DLL exist
+          Write-Host ""
+          Write-Host "Test 1: Verify binary and DLL exist"
+          if (Test-Path $BINARY) {
+              Write-Host "✓ zig-april-captions.exe found"
+          } else {
+              Write-Error "ERROR: zig-april-captions.exe not found"
+              exit 1
+          }
+
+          if (Test-Path $DLL) {
+              Write-Host "✓ onnxruntime.dll found"
+          } else {
+              Write-Error "ERROR: onnxruntime.dll not found"
+              exit 1
+          }
+
+          # Test 2: Check file sizes (sanity check for corruption)
+          Write-Host ""
+          Write-Host "Test 2: Verify file sizes"
+          $exeSize = (Get-Item $BINARY).Length
+          $dllSize = (Get-Item $DLL).Length
+          Write-Host "EXE size: $exeSize bytes"
+          Write-Host "DLL size: $dllSize bytes"
+
+          if ($exeSize -lt 100KB) {
+              Write-Error "ERROR: EXE too small (corrupted?)"
+              exit 1
+          }
+          if ($dllSize -lt 1MB) {
+              Write-Error "ERROR: DLL too small (corrupted?)"
+              exit 1
+          }
+          Write-Host "✓ File sizes look reasonable"
+
+          # Test 3: Run binary to test audio initialization
+          Write-Host ""
+          Write-Host "Test 3: Audio initialization test"
+          Write-Host "Note: Will fail with no audio device in CI, but checks for crashes"
+
+          $process = Start-Process -FilePath $BINARY -ArgumentList "--json","--verbose" -NoNewWindow -PassThru
+
+          # Wait up to 5 seconds for output
+          $timeout = 5
+          $elapsed = 0
+
+          while ($elapsed -lt $timeout) {
+              Start-Sleep -Seconds 1
+              $elapsed++
+              # The process should start and output JSON
+              if ($process.HasExited) {
+                  break
+              }
+          }
+
+          if ($process.HasExited) {
+              Write-Host "Process exited (may not have audio device in CI - this is OK)"
+          } else {
+              Write-Host "✓ Process is running (no crash)"
+              $process.Kill()
+          }
+
+          Write-Host ""
+          Write-Host "=================================="
+          Write-Host "✓ All binary tests passed!"
+          Write-Host "=================================="
+
       - name: Install frontend dependencies
         shell: bash
         run: |

@@ -2,6 +2,10 @@
 docs/node_modules/
 docs/.astro/
 docs/dist/
+node_modules/
+package.json
+pnpm-lock.yaml
+.pnpm-store/
 
 # Optional npm cache directory
 .npm
