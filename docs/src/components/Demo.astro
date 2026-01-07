@@ -3,6 +3,7 @@ import { getLangFromUrl, useTranslations } from '../i18n/utils';
 
 const lang = getLangFromUrl(Astro.url);
 const t = useTranslations(lang);
+const baseUrl = import.meta.env.BASE_URL;
 ---
 
 <section id="demo" class="demo-section">
@@ -15,10 +16,9 @@ const t = useTranslations(lang);
         <video
           controls
           preload="metadata"
-          poster="/demo-poster.png"
           class="demo-video"
         >
-          <source src="/demo.webm" type="video/webm">
+          <source src={`${baseUrl}demo.webm`} type="video/webm">
           Your browser does not support the video tag.
         </video>
       </div>
