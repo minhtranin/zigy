@@ -1,6 +1,7 @@
 export default {
   // Navigation
   'nav.download': 'Tải Xuống',
+  'nav.demo': 'Video Demo',
   'nav.features': 'Tính Năng',
   'nav.installation': 'Cài Đặt',
   'nav.troubleshooting': 'Hỗ Trợ',

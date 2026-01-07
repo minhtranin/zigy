@@ -1,6 +1,7 @@
 export default {
   // Navigation
   'nav.download': 'Download',
+  'nav.demo': 'Demo',
   'nav.features': 'Features',
   'nav.installation': 'Installation',
   'nav.troubleshooting': 'Help',
