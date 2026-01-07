@@ -1,0 +1,129 @@
+---
+import { getLangFromUrl, useTranslations } from '../i18n/utils';
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+---
+
+<section id="demo" class="demo-section">
+  <div class="container">
+    <div class="demo-content">
+      <h2 class="demo-title">{t('demo.title')}</h2>
+      <p class="demo-description">{t('demo.description')}</p>
+
+      <div class="video-container">
+        <video
+          controls
+          preload="metadata"
+          poster="/demo-poster.png"
+          class="demo-video"
+        >
+          <source src="/demo.webm" type="video/webm">
+          Your browser does not support the video tag.
+        </video>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .demo-section {
+    padding: 4rem 0;
+    background: linear-gradient(180deg, #111827 0%, #1F2937 100%);
+    position: relative;
+  }
+
+  .demo-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.3), transparent);
+  }
+
+  .demo-content {
+    text-align: center;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  .demo-title {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    background: linear-gradient(135deg, #ffffff 0%, #A5B4FC 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -0.02em;
+  }
+
+  .demo-description {
+    font-size: 1rem;
+    color: #C7D2FE;
+    margin-bottom: 2.5rem;
+    opacity: 0.9;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+    line-height: 1.6;
+  }
+
+  .video-container {
+    position: relative;
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(139, 92, 246, 0.2);
+  }
+
+  .demo-video {
+    width: 100%;
+    height: auto;
+    display: block;
+    background: #000;
+  }
+
+  .video-container::after {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(108, 92, 231, 0.2));
+    border-radius: 16px;
+    z-index: -1;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .video-container:hover::after {
+    opacity: 1;
+  }
+
+  @media (max-width: 768px) {
+    .demo-section {
+      padding: 3rem 0;
+    }
+
+    .demo-title {
+      font-size: 1.5rem;
+    }
+
+    .demo-description {
+      font-size: 0.9rem;
+      margin-bottom: 2rem;
+    }
+
+    .video-container {
+      border-radius: 12px;
+    }
+  }
+</style>

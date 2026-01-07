@@ -26,6 +26,10 @@ export default {
   'hero.feature.ai': '💬 AI-Powered Assistance',
   'hero.feature.multilang': '🌐 Multi-language Support',
 
+  // Demo section
+  'demo.title': 'See Zigy in Action',
+  'demo.description': 'Watch how easy it is to use Zigy for real-time speech-to-text transcription',
+
   // Features section
   'features.title': 'Features',
   'features.subtitle': 'Everything you need for real-time speech-to-text',

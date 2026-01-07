@@ -26,6 +26,10 @@ export default {
   'hero.feature.ai': '💬 Hỗ Trợ AI Thông Minh',
   'hero.feature.multilang': '🌐 Hỗ Trợ Đa Ngôn Ngữ',
 
+  // Demo section
+  'demo.title': 'Xem Zigy Hoạt Động',
+  'demo.description': 'Xem cách sử dụng Zigy để chuyển đổi giọng nói thành văn bản thời gian thực dễ dàng như thế nào',
+
   // Features section
   'features.title': 'Tính Năng',
   'features.subtitle': 'Mọi thứ bạn cần cho chuyển đổi giọng nói thành văn bản thời gian thực',
