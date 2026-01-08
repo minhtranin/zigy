@@ -5,6 +5,10 @@
 
 This repository contains the complete Zipy project - a real-time speech-to-text captions desktop application built with Tauri, React, TypeScript, and Zig.
 
+
+## 🎥 Demo
+[demo_1.5x.webm](https://github.com/user-attachments/assets/09daca06-6377-47a3-9cb6-dea7c098cb7e)
+
 ## 📦 Repository Structure
 
 This is a monorepo containing two main components:
@@ -20,7 +24,6 @@ zigy/
 └── .github/workflows/        # CI/CD automation
     └── release.yml           # Multi-platform release builds
 ```
-
 ## 🎯 What is Zipy?
 
 Zipy is a desktop application that provides:
@@ -30,8 +33,6 @@ Zipy is a desktop application that provides:
 - 🎨 **Simple mode** for presentations
 - 📋 **Timeline view** of conversation history
 
-## 🎥 Demo
-[demo_1.5x.webm](https://github.com/user-attachments/assets/09daca06-6377-47a3-9cb6-dea7c098cb7e)
 
 See Zigy in action with real-time speech-to-text transcription.
 
