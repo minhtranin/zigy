@@ -67,7 +67,7 @@ const basePath = lang === 'vi' ? '/zigy/vi' : '/zigy';
 </header>
 
 <script>
-  // Smooth scroll to sections
+  // Smooth scroll to sections with URL hash update
   document.querySelectorAll('.nav-link[data-section]').forEach(function(link) {
     link.addEventListener('click', function(e) {
       var el = e.currentTarget;
@@ -78,6 +78,9 @@ const basePath = lang === 'vi' ? '/zigy/vi' : '/zigy';
         e.preventDefault();
         var headerHeight = 60;
         var targetPosition = target.getBoundingClientRect().top + window.scrollY - headerHeight;
+
+        // Update URL hash without jumping
+        history.pushState(null, null, '#' + section);
 
         window.scrollTo({
           top: targetPosition,
@@ -91,6 +94,7 @@ const basePath = lang === 'vi' ? '/zigy/vi' : '/zigy';
 
   // Highlight active section on scroll
   var sections = ['download', 'demo', 'features', 'installation', 'help'];
+  var isScrolling = false;
 
   function updateActiveNav() {
     var scrollPosition = window.scrollY + 120; // Offset for header
@@ -127,16 +131,50 @@ const basePath = lang === 'vi' ? '/zigy/vi' : '/zigy';
           link.classList.add('active');
         }
       });
+
+      // Update URL hash when scrolling (but not during programmatic scroll)
+      if (!isScrolling && currentSection !== 'download') {
+        var currentHash = window.location.hash.slice(1);
+        if (currentHash !== currentSection) {
+          history.replaceState(null, null, '#' + currentSection);
+        }
+      }
     }
   }
 
   var scrollTimeout;
   window.addEventListener('scroll', function() {
+    isScrolling = true;
     clearTimeout(scrollTimeout);
-    scrollTimeout = setTimeout(updateActiveNav, 50);
+    scrollTimeout = setTimeout(function() {
+      updateActiveNav();
+      isScrolling = false;
+    }, 50);
   });
 
-  updateActiveNav();
+  // Handle initial page load with hash
+  function handleInitialHash() {
+    var hash = window.location.hash.slice(1);
+    if (hash) {
+      var target = document.getElementById(hash);
+      if (target) {
+        var headerHeight = 60;
+        var targetPosition = target.getBoundingClientRect().top + window.scrollY - headerHeight;
+        window.scrollTo({
+          top: targetPosition,
+          behavior: 'smooth'
+        });
+      }
+    }
+    updateActiveNav();
+  }
+
+  // Run on page load
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', handleInitialHash);
+  } else {
+    handleInitialHash();
+  }
 
   // Language switcher
   var langSelector = document.getElementById('lang-selector');
