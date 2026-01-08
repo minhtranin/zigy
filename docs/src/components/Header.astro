@@ -93,26 +93,28 @@ const basePath = lang === 'vi' ? '/zigy/vi' : '/zigy';
   var sections = ['download', 'demo', 'features', 'installation', 'help'];
 
   function updateActiveNav() {
-    var scrollPosition = window.scrollY + 100; // Offset for header
+    var scrollPosition = window.scrollY + 120; // Offset for header
     var currentSection = null;
+    var closestDistance = Infinity;
 
-    // Check sections in REVERSE order so nested sections (like help inside installation) take priority
-    for (var i = sections.length - 1; i >= 0; i--) {
+    // Find the section closest to current scroll position
+    for (var i = 0; i < sections.length; i++) {
       var sectionId = sections[i];
       var section = document.getElementById(sectionId);
 
       if (section) {
-        var sectionTop = section.offsetTop - 100; // Add some tolerance
+        var sectionTop = section.offsetTop - 120;
+        var distance = Math.abs(scrollPosition - sectionTop);
 
-        // If we've scrolled past this section's top, it's the active one
-        if (scrollPosition >= sectionTop) {
+        // If we've scrolled past this section and it's closer than previous matches
+        if (scrollPosition >= sectionTop && distance < closestDistance) {
+          closestDistance = distance;
           currentSection = sectionId;
-          break;
         }
       }
     }
 
-    // If no section detected but we're at the top, highlight first section
+    // If no section detected, highlight first section
     if (!currentSection) {
       currentSection = 'download';
     }
