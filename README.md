@@ -33,7 +33,7 @@ Zipy is a desktop application that provides:
 ## 🎥 Demo
 
 <p align="center">
-https://github.com/user-attachments/assets/fdc8d191-c5aa-4782-95ba-6ef387df77b2
+(https://github.com/user-attachments/assets/fdc8d191-c5aa-4782-95ba-6ef387df77b2)()
 </p>
 
 See Zigy in action with real-time speech-to-text transcription.
