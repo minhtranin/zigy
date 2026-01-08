@@ -33,18 +33,17 @@ Zipy is a desktop application that provides:
 ## 🎥 Demo
 
 <p align="center">
-  <a href="https://github.com/minhtranin/zigy/releases/download/v1.0.0/demo_1.5x.webm">
-    <img src="https://img.shields.io/badge/🎥-Watch_Demo-blue" alt="Watch Demo" width="200"/>
-  </a>
+https://github.com/user-attachments/assets/fdc8d191-c5aa-4782-95ba-6ef387df77b2
 </p>
 
 See Zigy in action with real-time speech-to-text transcription.
 
-[▶ Watch Demo Video](https://github.com/minhtranin/zigy/releases/download/v1.0.0/demo_1.5x.webm) • [📱 Documentation](https://minhtranin.github.io/zigy/)
+[📱 Documentation](https://minhtranin.github.io/zigy/)
 
 ## 📥 Download
 
 Get the latest release from [GitHub Releases](https://github.com/minhtranin/zigy/releases/latest)
+
 
 **Available platforms:**
 - 🐧 Linux: `.deb` and `AppImage`
@@ -917,7 +916,5 @@ Copyright (c) 2025 Minh Cong Tran
 <div align="center">
 
 **[Download](https://github.com/minhtranin/zigy/releases/latest)** • **[Report Bug](https://github.com/minhtranin/zigy/issues)** • **[Documentation](zig-april-captions-ui/README.md)**
-
-Made with ❤️ by Minh Cong Tran
 
 </div>
