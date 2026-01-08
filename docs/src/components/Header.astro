@@ -84,9 +84,7 @@ const basePath = lang === 'vi' ? '/zigy/vi' : '/zigy';
           behavior: 'smooth'
         });
 
-        // Update active state
-        document.querySelectorAll('.nav-link').forEach(function(l) { l.classList.remove('active'); });
-        el.classList.add('active');
+        // Don't set active here - let scroll handler manage it
       }
     });
   });
@@ -95,7 +93,7 @@ const basePath = lang === 'vi' ? '/zigy/vi' : '/zigy';
   var sections = ['download', 'demo', 'features', 'installation', 'help'];
 
   function updateActiveNav() {
-    var scrollPosition = window.scrollY + 150;
+    var scrollPosition = window.scrollY + 80; // Offset for header
     var currentSection = null;
 
     // Find which section we're currently in
@@ -104,7 +102,7 @@ const basePath = lang === 'vi' ? '/zigy/vi' : '/zigy';
       var section = document.getElementById(sectionId);
 
       if (section) {
-        var sectionTop = section.offsetTop;
+        var sectionTop = section.offsetTop - 100; // Add some tolerance
         var sectionBottom = sectionTop + section.offsetHeight;
 
         // Check if scroll position is within this section
@@ -112,12 +110,12 @@ const basePath = lang === 'vi' ? '/zigy/vi' : '/zigy';
           currentSection = sectionId;
           break;
         }
-
-        // Special case: if we're past the last section, highlight it
-        if (i === sections.length - 1 && scrollPosition >= sectionTop) {
-          currentSection = sectionId;
-        }
       }
+    }
+
+    // If no section detected but we're at the top, highlight first section
+    if (!currentSection && scrollPosition < 200) {
+      currentSection = 'download';
     }
 
     // Update active state
@@ -131,7 +129,12 @@ const basePath = lang === 'vi' ? '/zigy/vi' : '/zigy';
     }
   }
 
-  window.addEventListener('scroll', updateActiveNav);
+  var scrollTimeout;
+  window.addEventListener('scroll', function() {
+    clearTimeout(scrollTimeout);
+    scrollTimeout = setTimeout(updateActiveNav, 50);
+  });
+
   updateActiveNav();
 
   // Language switcher
