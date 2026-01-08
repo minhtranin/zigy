@@ -95,21 +95,39 @@ const basePath = lang === 'vi' ? '/zigy/vi' : '/zigy';
   var sections = ['download', 'demo', 'features', 'installation', 'help'];
 
   function updateActiveNav() {
-    var scrollPosition = window.scrollY + 100;
-    var sectionsReversed = sections.slice().reverse();
+    var scrollPosition = window.scrollY + 150;
+    var currentSection = null;
 
-    for (var i = 0; i < sectionsReversed.length; i++) {
-      var sectionId = sectionsReversed[i];
+    // Find which section we're currently in
+    for (var i = 0; i < sections.length; i++) {
+      var sectionId = sections[i];
       var section = document.getElementById(sectionId);
-      if (section && section.offsetTop <= scrollPosition) {
-        document.querySelectorAll('.nav-link[data-section]').forEach(function(link) {
-          link.classList.remove('active');
-          if (link.dataset.section === sectionId) {
-            link.classList.add('active');
-          }
-        });
-        break;
+
+      if (section) {
+        var sectionTop = section.offsetTop;
+        var sectionBottom = sectionTop + section.offsetHeight;
+
+        // Check if scroll position is within this section
+        if (scrollPosition >= sectionTop && scrollPosition < sectionBottom) {
+          currentSection = sectionId;
+          break;
+        }
+
+        // Special case: if we're past the last section, highlight it
+        if (i === sections.length - 1 && scrollPosition >= sectionTop) {
+          currentSection = sectionId;
+        }
       }
+    }
+
+    // Update active state
+    if (currentSection) {
+      document.querySelectorAll('.nav-link[data-section]').forEach(function(link) {
+        link.classList.remove('active');
+        if (link.dataset.section === currentSection) {
+          link.classList.add('active');
+        }
+      });
     }
   }
 
