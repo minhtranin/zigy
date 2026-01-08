@@ -41,9 +41,9 @@ const basePath = lang === 'vi' ? '/zigy/vi' : '/zigy';
         <span class="nav-icon">📖</span>
         <span class="nav-text">{t('nav.installation')}</span>
       </a>
-      <a href="#help" class="nav-link" data-section="help">
-        <span class="nav-icon">🔧</span>
-        <span class="nav-text">{t('nav.troubleshooting')}</span>
+      <a href="#team" class="nav-link" data-section="team">
+        <span class="nav-icon">🤖</span>
+        <span class="nav-text">{t('nav.team')}</span>
       </a>
     </nav>
 
@@ -93,7 +93,7 @@ const basePath = lang === 'vi' ? '/zigy/vi' : '/zigy';
   });
 
   // Highlight active section on scroll
-  var sections = ['download', 'demo', 'features', 'installation', 'help'];
+  var sections = ['download', 'demo', 'features', 'installation', 'team'];
   var isScrolling = false;
 
   function updateActiveNav() {

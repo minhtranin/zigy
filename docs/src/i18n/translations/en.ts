@@ -4,6 +4,7 @@ export default {
   'nav.demo': 'Demo',
   'nav.features': 'Features',
   'nav.installation': 'Installation',
+  'nav.team': 'Team',
   'nav.troubleshooting': 'Help',
 
   // Hero section
@@ -255,4 +256,17 @@ export default {
   'troubleshooting.macos.stillissues.description': 'If none of the above solutions work, please reach out:',
   'troubleshooting.macos.stillissues.report': 'Report a Bug',
   'troubleshooting.macos.stillissues.discuss': 'Ask in Discussions',
+
+  // Team section
+  'team.title': 'Powered by Leading AI',
+  'team.description': 'Zigy integrates with the most advanced AI models to deliver accurate speech recognition and intelligent assistance.',
+  'team.claude.name': 'Claude',
+  'team.claude.role': 'CTO',
+  'team.claude.description': 'The strategic genius who architectured Zigy\'s entire system. Loves writing clean code and hates when things break. Always says "let me think about this" before making decisions.',
+  'team.gemini.name': 'Gemini',
+  'team.gemini.role': 'PM',
+  'team.gemini.description': 'Creative mastermind who turns boring speeches into brilliant summaries. Can answer questions faster than you can ask them. Thinks every feature is "critical for user success".',
+  'team.glm.name': 'GLM',
+  'team.glm.role': 'Dev',
+  'team.glm.description': 'The multilingual wizard who speaks Chinese, Vietnamese, and English fluently. Works silently in the background making sure nothing breaks. Debugs by staring at code until it fixes itself.',
 } as const;

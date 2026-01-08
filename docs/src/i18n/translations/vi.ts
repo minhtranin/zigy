@@ -4,6 +4,7 @@ export default {
   'nav.demo': 'Video Demo',
   'nav.features': 'Tính Năng',
   'nav.installation': 'Cài Đặt',
+  'nav.team': 'Đội Ngũ',
   'nav.troubleshooting': 'Hỗ Trợ',
 
   // Hero section
@@ -255,4 +256,17 @@ export default {
   'troubleshooting.macos.stillissues.description': 'Nếu không có giải pháp nào ở trên hoạt động, vui lòng liên hệ:',
   'troubleshooting.macos.stillissues.report': 'Báo Cáo Lỗi',
   'troubleshooting.macos.stillissues.discuss': 'Hỏi Trong Thảo Luận',
+
+  // Team section
+  'team.title': 'Được Cấp Sức Bởi AI Hàng Đầu',
+  'team.description': 'Zigy tích hợp với các mô hình AI tiên tiến nhất để cung cấp nhận dạng giọng nói chính xác và hỗ trợ thông minh.',
+  'team.claude.name': 'Claude',
+  'team.claude.role': 'CTO',
+  'team.claude.description': 'Người thiên tài chiến lược đã kiến trúc toàn bộ hệ thống Zigy. Yêu thích code sạch và ghét khi mọi thứ bị lỗi. Luôn nói "để tôi suy nghĩ về việc này" trước khi ra quyết định.',
+  'team.gemini.name': 'Gemini',
+  'team.gemini.role': 'PM',
+  'team.gemini.description': 'Bộ óc sáng tạo biến bài phát biểu nhàm chán thành bản tóm tắt briliant. Trả lời câu hỏi nhanh hơn cả tốc độ bạn đặt câu. Nghĩ mọi tính năng đều "quan trọng cho thành công của người dùng".',
+  'team.glm.name': 'GLM',
+  'team.glm.role': 'Dev',
+  'team.glm.description': 'Pháp sư đa ngôn ngữ nói tiếng Trung, Việt và Anh lưu loát. Làm việc thầm lặng trong hậu trường đảm bảo mọi thứ hoạt động trơn tru. Debug bằng cách nhìn chằm chằm code cho đến khi nó tự sửa mình.',
 } as const;

@@ -1,0 +1,188 @@
+---
+import { getLangFromUrl, useTranslations } from '../i18n/utils';
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+---
+
+<section id="team" class="team-section">
+  <div class="container">
+    <div class="team-content">
+      <h2 class="team-title">{t('team.title')}</h2>
+      <p class="team-description">{t('team.description')}</p>
+
+      <div class="team-grid">
+        <div class="team-member">
+          <div class="member-icon">🤖</div>
+          <h3 class="member-name">{t('team.claude.name')}</h3>
+          <p class="member-role">{t('team.claude.role')}</p>
+          <p class="member-description">{t('team.claude.description')}</p>
+        </div>
+
+        <div class="team-member">
+          <div class="member-icon">💎</div>
+          <h3 class="member-name">{t('team.gemini.name')}</h3>
+          <p class="member-role">{t('team.gemini.role')}</p>
+          <p class="member-description">{t('team.gemini.description')}</p>
+        </div>
+
+        <div class="team-member">
+          <div class="member-icon">🌟</div>
+          <h3 class="member-name">{t('team.glm.name')}</h3>
+          <p class="member-role">{t('team.glm.role')}</p>
+          <p class="member-description">{t('team.glm.description')}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .team-section {
+    padding: 5rem 0;
+    background: linear-gradient(180deg, #1F2937 0%, #111827 100%);
+    position: relative;
+  }
+
+  .team-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.3), transparent);
+  }
+
+  .team-content {
+    text-align: center;
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+
+  .team-title {
+    font-size: 2.25rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    background: linear-gradient(135deg, #ffffff 0%, #A5B4FC 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -0.02em;
+  }
+
+  .team-description {
+    font-size: 1.1rem;
+    color: #C7D2FE;
+    margin-bottom: 3.5rem;
+    opacity: 0.9;
+    line-height: 1.6;
+  }
+
+  .team-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+    margin-top: 3rem;
+  }
+
+  .team-member {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    padding: 2rem;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .team-member::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #6C5CE7, #a855f7);
+    transform: scaleX(0);
+    transition: transform 0.3s ease;
+  }
+
+  .team-member:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(139, 92, 246, 0.3);
+    transform: translateY(-5px);
+  }
+
+  .team-member:hover::before {
+    transform: scaleX(1);
+  }
+
+  .member-icon {
+    font-size: 3.5rem;
+    margin-bottom: 1rem;
+    display: inline-block;
+  }
+
+  .member-name {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #F9FAFB;
+    margin-bottom: 0.5rem;
+  }
+
+  .member-role {
+    font-size: 0.9rem;
+    color: #A5B4FC;
+    font-weight: 500;
+    margin-bottom: 1rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .member-description {
+    font-size: 0.95rem;
+    color: #C7D2FE;
+    line-height: 1.6;
+    opacity: 0.85;
+  }
+
+  @media (max-width: 768px) {
+    .team-section {
+      padding: 3.5rem 0;
+    }
+
+    .team-title {
+      font-size: 1.75rem;
+    }
+
+    .team-description {
+      font-size: 1rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .team-grid {
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+      margin-top: 2rem;
+    }
+
+    .team-member {
+      padding: 1.5rem;
+    }
+
+    .member-icon {
+      font-size: 2.5rem;
+    }
+
+    .member-name {
+      font-size: 1.25rem;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .team-member {
+      padding: 1.25rem;
+    }
+  }
+</style>

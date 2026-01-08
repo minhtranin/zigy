@@ -129,66 +129,6 @@ const t = useTranslations(lang);
       <h3>{t('installation.help.title')}</h3>
       <p>{t('installation.help.description')} <a href="https://github.com/minhtranin/zigy#-installation-guide-for-everyone" target="_blank">{t('installation.help.github')}</a> {t('installation.help.or')} <a href="https://github.com/minhtranin/zigy/issues" target="_blank">{t('installation.help.report')}</a>.</p>
     </div>
-
-    <div id="help" class="troubleshooting-section">
-      <h3>{t('installation.troubleshooting.title')}</h3>
-
-      <div class="troubleshooting-item">
-        <h4>{t('installation.troubleshooting.dll.title')}</h4>
-        <p>{t('installation.troubleshooting.dll.description')} <a href="https://aka.ms/vs/17/release/vc_redist.x64.exe" target="_blank">{t('installation.troubleshooting.dll.link')}</a> {t('installation.troubleshooting.dll.note')}</p>
-      </div>
-
-      <div class="troubleshooting-item">
-        <h4>{t('installation.troubleshooting.gio.title')}</h4>
-        <p>{t('installation.troubleshooting.gio.description')}</p>
-      </div>
-
-      <div class="troubleshooting-item">
-        <h4>{t('installation.troubleshooting.speech.title')}</h4>
-        <ul>
-          <li>{t('installation.troubleshooting.speech.step1')}</li>
-          <li>{t('installation.troubleshooting.speech.step2')}</li>
-          <li>{t('installation.troubleshooting.speech.step3')}</li>
-        </ul>
-      </div>
-
-      <div class="troubleshooting-item">
-        <h4>{t('installation.troubleshooting.crash.title')}</h4>
-        <ul>
-          <li>{t('installation.troubleshooting.crash.step1')}</li>
-          <li>{t('installation.troubleshooting.crash.step2')}</li>
-          <li>{t('installation.troubleshooting.crash.step3')}</li>
-        </ul>
-      </div>
-
-      <div class="troubleshooting-item">
-        <h4>{t('installation.troubleshooting.windows.mic.title')}</h4>
-        <p>{t('installation.troubleshooting.windows.mic.description')}</p>
-        <ol>
-          <li>{t('installation.troubleshooting.windows.mic.step1')}</li>
-          <li>{t('installation.troubleshooting.windows.mic.step2')}</li>
-          <li>{t('installation.troubleshooting.windows.mic.step3')}</li>
-          <li>{t('installation.troubleshooting.windows.mic.step4')}</li>
-        </ol>
-      </div>
-
-      <div class="troubleshooting-item">
-        <h4>{t('installation.troubleshooting.windows.audio.title')}</h4>
-        <ol>
-          <li>{t('installation.troubleshooting.windows.audio.step1')}</li>
-          <li>{t('installation.troubleshooting.windows.audio.step2')}</li>
-          <li>{t('installation.troubleshooting.windows.audio.step3')}</li>
-        </ol>
-      </div>
-
-      <div class="troubleshooting-item macos-guide">
-        <h4>{t('installation.troubleshooting.macos.mic.title')}</h4>
-        <p>{t('installation.troubleshooting.macos.mic.description')}</p>
-        <a href={lang === 'vi' ? '/zigy/vi/troubleshooting/macos' : '/zigy/troubleshooting/macos'} class="guide-link">
-          {t('installation.troubleshooting.macos.mic.link')} →
-        </a>
-      </div>
-    </div>
   </div>
 </section>
 
