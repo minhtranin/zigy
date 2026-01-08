@@ -259,7 +259,7 @@ export default {
 
   // Team section
   'team.title': 'Đội Ngũ Của Chúng Tôi',
-  'team.description': 'Những trợ lý AI tuyệt vời làm việc backstage để Zigy thông minh, nhanh và đáng tin cậy.',
+  'team.description': 'Đội ngũ tận tâm mang lại trải nghiệm chuyển đổi giọng nói thành văn bản dành cho tất cả mọi người.',
   'team.claude.name': 'Claude',
   'team.claude.role': 'CTO',
   'team.claude.description': 'Người thiên tài chiến lược đã kiến trúc toàn bộ hệ thống Zigy. Yêu thích code sạch và ghét khi mọi thứ bị lỗi. Luôn nói "để tôi suy nghĩ về việc này" trước khi ra quyết định.',
