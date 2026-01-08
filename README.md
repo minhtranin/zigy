@@ -32,9 +32,15 @@ Zipy is a desktop application that provides:
 
 ## 🎥 Demo
 
-See Zigy in action:
+<p align="center">
+  <a href="https://github.com/minhtranin/zigy/releases/download/v1.0.0/demo_1.5x.webm">
+    <img src="https://img.shields.io/badge/🎥-Watch_Demo-blue" alt="Watch Demo" width="200"/>
+  </a>
+</p>
 
-https://github.com/minhtranin/zigy/releases/download/v1.0.0/demo_1.5x.webm
+See Zigy in action with real-time speech-to-text transcription.
+
+[▶ Watch Demo Video](https://github.com/minhtranin/zigy/releases/download/v1.0.0/demo_1.5x.webm) • [📱 Documentation](https://minhtranin.github.io/zigy/)
 
 ## 📥 Download
 
