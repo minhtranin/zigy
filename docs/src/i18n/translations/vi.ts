@@ -258,8 +258,8 @@ export default {
   'troubleshooting.macos.stillissues.discuss': 'Hỏi Trong Thảo Luận',
 
   // Team section
-  'team.title': 'Được Cấp Sức Bởi AI Hàng Đầu',
-  'team.description': 'Zigy tích hợp với các mô hình AI tiên tiến nhất để cung cấp nhận dạng giọng nói chính xác và hỗ trợ thông minh.',
+  'team.title': 'Đội Ngũ Của Chúng Tôi',
+  'team.description': 'Những trợ lý AI tuyệt vời làm việc backstage để Zigy thông minh, nhanh và đáng tin cậy.',
   'team.claude.name': 'Claude',
   'team.claude.role': 'CTO',
   'team.claude.description': 'Người thiên tài chiến lược đã kiến trúc toàn bộ hệ thống Zigy. Yêu thích code sạch và ghét khi mọi thứ bị lỗi. Luôn nói "để tôi suy nghĩ về việc này" trước khi ra quyết định.',

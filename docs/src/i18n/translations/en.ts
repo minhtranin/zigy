@@ -258,8 +258,8 @@ export default {
   'troubleshooting.macos.stillissues.discuss': 'Ask in Discussions',
 
   // Team section
-  'team.title': 'Powered by Leading AI',
-  'team.description': 'Zigy integrates with the most advanced AI models to deliver accurate speech recognition and intelligent assistance.',
+  'team.title': 'Meet Our Team',
+  'team.description': 'The amazing AI assistants working behind the scenes to make Zigy intelligent, fast, and reliable.',
   'team.claude.name': 'Claude',
   'team.claude.role': 'CTO',
   'team.claude.description': 'The strategic genius who architectured Zigy\'s entire system. Loves writing clean code and hates when things break. Always says "let me think about this" before making decisions.',
