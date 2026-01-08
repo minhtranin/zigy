@@ -31,10 +31,7 @@ Zipy is a desktop application that provides:
 - 📋 **Timeline view** of conversation history
 
 ## 🎥 Demo
-
-<p align="center">
-(https://github.com/user-attachments/assets/fdc8d191-c5aa-4782-95ba-6ef387df77b2)()
-</p>
+[demo_1.5x.webm](https://github.com/user-attachments/assets/09daca06-6377-47a3-9cb6-dea7c098cb7e)
 
 See Zigy in action with real-time speech-to-text transcription.
 
