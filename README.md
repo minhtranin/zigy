@@ -30,6 +30,12 @@ Zipy is a desktop application that provides:
 - 🎨 **Simple mode** for presentations
 - 📋 **Timeline view** of conversation history
 
+## 🎥 Demo
+
+See Zigy in action:
+
+https://github.com/minhtranin/zigy/releases/download/v1.0.0/demo_1.5x.webm
+
 ## 📥 Download
 
 Get the latest release from [GitHub Releases](https://github.com/minhtranin/zigy/releases/latest)
