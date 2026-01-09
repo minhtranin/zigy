@@ -911,9 +911,10 @@ Copyright (c) 2025 Minh Cong Tran
 
 ---
 
-## Future roadmap:
+## Future roadmap
  - Add SSE protocol in chat panel
-
+ - Add Vietnamese Speech to chat input
+ - Add model switch in chat panel
 <div align="center">
 
 **[Download](https://github.com/minhtranin/zigy/releases/latest)** • **[Report Bug](https://github.com/minhtranin/zigy/issues)** • **[Documentation](zig-april-captions-ui/README.md)**
