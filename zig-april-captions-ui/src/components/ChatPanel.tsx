@@ -106,19 +106,49 @@ async function generateDynamicSuggestions(
   const needsTranslation = appLanguage !== 'en';
 
   const prompt = needsTranslation
-    ? `Based on this meeting transcript, suggest 3 SHORT phrases (max 5 words each) the user might want to say next.
-Return a JSON array of objects with "label" (Vietnamese translation for display) and "prompt" (English original).
+    ? `Based on this meeting transcript, suggest 3 SHORT context-aware prompts (max 7 words each) that would help the user respond meaningfully to what was just discussed.
+
+Return a JSON array of objects with:
+- "label": Vietnamese translation for display (what the button shows)
+- "prompt": English action request (what gets sent to AI)
+
+These prompts should be ACTION REQUESTS that work with the full conversation context, not literal phrases to say.
+
+Good prompt examples:
+- "Tell me more about the previous topic"
+- "Help me respond to the last point"
+- "I want to agree and add my perspective"
+
+Good label examples (Vietnamese):
+- "Nói thêm về chủ đề"
+- "Phản hồi điểm cuối"
+- "Đồng ý và thêm ý kiến"
 
 Transcript:
 ${transcript.slice(-1000)}
 
-Example output: [{"label": "Tôi đồng ý", "prompt": "I agree with that"}, {"label": "Giải thích thêm?", "prompt": "Can you explain more?"}, {"label": "Ý kiến của tôi", "prompt": "Let me share my thoughts"}]`
-    : `Based on this meeting transcript, suggest 3 SHORT prompts (max 5 words each) the user might want to say next. Return ONLY a JSON array of strings, nothing else.
+Example output: [{"label": "Hỏi thêm chi tiết", "prompt": "Ask for more details about that topic"}, {"label": "Chia sẻ kinh nghiệm", "prompt": "Share my experience with this"}, {"label": "Đề xuất giải pháp", "prompt": "Suggest a solution for this issue"}]`
+    : `Based on this meeting transcript, suggest 3 SHORT context-aware prompts (max 7 words each) that would help the user respond meaningfully to what was just discussed.
+
+These should be ACTION REQUESTS, not phrases to say. They will be sent to an AI that has access to the full conversation context.
+
+Good examples:
+- "Tell me more about the previous topic"
+- "Help me respond to the last point"
+- "I want to agree and add my perspective"
+- "Ask a clarifying question about that"
+- "Share my thoughts on this"
+
+Bad examples (don't generate these):
+- "I agree with that" (too literal)
+- "That's interesting" (doesn't request action)
+
+Return ONLY a JSON array of strings.
 
 Transcript:
 ${transcript.slice(-1000)}
 
-Example output: ["I agree with that point", "Can you clarify that?", "Let me share my experience"]`;
+Example output: ["Elaborate on the testing approach", "Ask about the timeline", "Share my experience with similar projects"]`;
 
   const response = await fetch(url, {
     method: 'POST',
@@ -144,14 +174,14 @@ Example output: ["I agree with that point", "Can you clarify that?", "Let me sha
         // Expecting array of {label, prompt} objects
         return parsed.slice(0, 3).map((item: { label: string; prompt: string }, i: number) => ({
           label: item.label || item.prompt,
-          prompt: `Help me say: "${item.prompt}"`,
+          prompt: item.prompt,
           icon: ['💡', '🎯', '✨'][i] || '💬'
         }));
       } else {
         // English: simple string array
         return parsed.slice(0, 3).map((s: string, i: number) => ({
           label: s,
-          prompt: `Help me say: "${s}"`,
+          prompt: s,
           icon: ['💡', '🎯', '✨'][i] || '💬'
         }));
       }
