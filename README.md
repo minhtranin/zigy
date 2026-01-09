@@ -923,4 +923,4 @@ Copyright (c) 2025 Minh Cong Tran
 **[Download](https://github.com/minhtranin/zigy/releases/latest)** • **[Report Bug](https://github.com/minhtranin/zigy/issues)** • **[Documentation](zig-april-captions-ui/README.md)**
 
 </div>
----
+
