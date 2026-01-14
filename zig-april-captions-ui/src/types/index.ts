@@ -21,6 +21,7 @@ export interface AISettings {
   translation_language?: TranslationLanguage;
   meeting_context?: string; // Legacy: User's meeting purpose/agenda (for backward compatibility)
   structured_meeting_context?: MeetingContext; // New: Structured meeting context
+  use_external_knowledge?: boolean; // Allow AI to use general knowledge beyond context (default: false)
 }
 
 export type GeminiModel =
@@ -239,7 +240,7 @@ export interface ChatMessage {
 }
 
 // Chat commands for action buttons
-export type ChatCommandType = '/ask' | '/answer' | '/talk' | '/translate' | '/greeting' | '/summary' | '/full-summary' | '/questions' | '/talk-suggestions' | '/ask-about-line';
+export type ChatCommandType = '/info' | '/ask' | '/answer' | '/talk' | '/translate' | '/greeting' | '/summary' | '/full-summary' | '/questions' | '/talk-suggestions' | '/ask-about-line';
 
 // Chat session
 export interface ChatSession {

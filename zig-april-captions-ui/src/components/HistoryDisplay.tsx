@@ -21,6 +21,7 @@ interface Props {
   translationLanguage?: TranslationLanguage;
   t: Translations;
   onAddCommandToChat?: (command: string, text: string) => void;
+  onFinalizeLiveText?: () => void;
 }
 
 // Translate text using Gemini
@@ -61,6 +62,7 @@ export function HistoryDisplay({
   translationLanguage = 'vi',
   t,
   onAddCommandToChat,
+  onFinalizeLiveText,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [translations, setTranslations] = useState<Record<number, string>>({});
@@ -75,11 +77,13 @@ export function HistoryDisplay({
   }, [text]);
 
   const handleAnswerClick = (index: number) => {
+    onFinalizeLiveText?.(); // Finalize live text first (no-hang)
     const lineText = lines[index];
     onAddCommandToChat?.('/answer', lineText);
   };
 
   const handleAskClick = (index: number) => {
+    onFinalizeLiveText?.(); // Finalize live text first (no-hang)
     const lineText = lines[index];
 
     // Get surrounding context (previous and next lines if they exist)
@@ -94,12 +98,15 @@ export function HistoryDisplay({
   };
 
   const handleTalkClick = (index: number) => {
+    onFinalizeLiveText?.(); // Finalize live text first (no-hang)
     const lineText = lines[index];
     onAddCommandToChat?.('/talk', lineText);
   };
 
   const handleTranslateClick = async (index: number) => {
     if (!apiKey || translatingIndex !== null) return;
+    
+    onFinalizeLiveText?.(); // Finalize live text first (no-hang)
 
     // If already translated, toggle off
     if (translations[index]) {
@@ -126,9 +133,9 @@ export function HistoryDisplay({
   };
 
   return (
-    <div className="bg-white dark:bg-[#0D1117] rounded-lg shadow-md p-4 flex flex-col h-full border border-gray-200 dark:border-[#30363D]">
-      <div className="flex-shrink-0 pb-2 mb-2 border-b border-gray-200 dark:border-[#30363D] flex items-center justify-between">
-        <span className="text-xs font-semibold text-gray-500 dark:text-[#7D8590] uppercase tracking-wider">
+    <div className="bg-white dark:bg-[#0D1117] rounded-lg shadow-md p-3 flex flex-col h-full border border-gray-200 dark:border-[#30363D]">
+      <div className="flex-shrink-0 pb-1 mb-1 border-b border-gray-200 dark:border-[#30363D] flex items-center justify-between">
+        <span className="text-[10px] font-medium text-gray-400 dark:text-[#7D8590] uppercase tracking-wider">
           {t.history} {wordCount > 0 && `(${wordCount} ${t.words})`}
         </span>
       </div>
@@ -136,7 +143,6 @@ export function HistoryDisplay({
         {lines.length > 0 ? (
           <div className="text-gray-800 dark:text-[#E6EDF3]" style={{ fontSize: `${fontSize}px` }}>
             {lines.map((line, i) => {
-              const alwaysShowActions = i >= lines.length - 3;
               return (
                 <div key={i} className="group py-2 border-b border-gray-200 dark:border-[#30363D] last:border-b-0">
                   <div className="flex flex-col gap-2">
@@ -150,7 +156,7 @@ export function HistoryDisplay({
                       </div>
                     )}
                     {onAddCommandToChat && (
-                      <div className={`flex items-center gap-2 flex-wrap transition-opacity duration-200 ${alwaysShowActions ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                      <div className="flex items-center gap-2 flex-wrap transition-opacity duration-200 opacity-0 group-hover:opacity-100">
                         <button
                           className="flex items-center gap-1 text-gray-600 hover:text-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
                           title={t.clarify}

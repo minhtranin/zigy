@@ -11,9 +11,61 @@ let lastText = '';                 // Last text shown (to detect replacement)
 let listenerRegistered = false;
 let silenceTimer: ReturnType<typeof setTimeout> | null = null;  // Timer for auto-move to history
 let autoSummaryInProgress = false;  // Prevent multiple auto-summary triggers
+let lastLineAddedTime = 0;         // Timestamp of last line added (for smart merging)
 
 // Auto-summary threshold (in words)
 const AUTO_SUMMARY_WORD_THRESHOLD = 1000;
+
+// Smart merge settings
+const MERGE_MAX_WORDS = 14;        // Merge if previous line has fewer than this many words
+const MERGE_MAX_GAP_MS = 3000;     // Merge if time gap is less than 3 seconds
+
+/**
+ * Smart merge: Combines short consecutive lines into longer sentences
+ * Returns the new history array, text to persist, and whether it was a merge
+ */
+function addLineWithSmartMerge(newLine: string): { history: string[], persistText: string, wasMerged: boolean } {
+  const now = Date.now();
+  const timeSinceLastLine = now - lastLineAddedTime;
+  lastLineAddedTime = now;
+
+  // If history is empty, just add the line
+  if (globalHistory.length === 0) {
+    globalHistory = [newLine];
+    return { history: globalHistory, persistText: newLine, wasMerged: false };
+  }
+
+  const lastLine = globalHistory[globalHistory.length - 1];
+  
+  // Check for duplicate: if last line already ends with this text, skip it
+  // This prevents duplication when silence timer fires and then final caption arrives
+  if (lastLine.endsWith(newLine) || lastLine === newLine) {
+    // Already have this text, don't add again
+    return { history: globalHistory, persistText: lastLine, wasMerged: false };
+  }
+  
+  const lastLineWordCount = lastLine.split(/\s+/).filter(w => w).length;
+
+  // Check if we should merge with the previous line
+  const shouldMerge = 
+    lastLineWordCount < MERGE_MAX_WORDS &&    // Previous line is short
+    timeSinceLastLine < MERGE_MAX_GAP_MS;     // Lines are close in time
+
+  if (shouldMerge) {
+    // Merge: combine last line with new line
+    const mergedLine = `${lastLine} ${newLine}`;
+    globalHistory = [...globalHistory.slice(0, -1), mergedLine];
+    return { 
+      history: globalHistory, 
+      persistText: mergedLine, 
+      wasMerged: true  // Signal to update last line instead of adding new
+    };
+  } else {
+    // Don't merge: add as new line
+    globalHistory = [...globalHistory, newLine];
+    return { history: globalHistory, persistText: newLine, wasMerged: false };
+  }
+}
 
 export function useCaptions() {
   // Current live transcription (replaceable, accurate)
@@ -187,18 +239,19 @@ export function useCaptions() {
                 // Check if this is a replacement (new text doesn't start with old text)
                 // This means ASR started a new sentence
                 if (lastText && newText && !newText.startsWith(lastText.substring(0, Math.min(10, lastText.length)))) {
-                  // Old text is being replaced - save it to history
+                  // Old text is being replaced - save it to history with smart merge
                   const oldText = lastText.trim();
                   if (oldText) {
-                    globalHistory = [...globalHistory, oldText];
-                    setHistoryRef.current([...globalHistory]);
+                    const result = addLineWithSmartMerge(oldText);
+                    setHistoryRef.current([...result.history]);
 
-                    // Persist to backend (both transcript and chat history)
-                    invoke('add_transcript_line', { line: oldText }).catch(e => {
+                    // Persist to backend - use update if merged, add if new
+                    const command = result.wasMerged ? 'update_last_transcript_line' : 'add_transcript_line';
+                    invoke(command, { line: result.persistText }).catch(e => {
                       console.error('Failed to persist:', e);
                     });
                     // Also save to chat history for context management
-                    addChatEntry('transcript', oldText).catch(e => {
+                    addChatEntry('transcript', result.persistText).catch(e => {
                       console.error('Failed to save to chat history:', e);
                     });
                   }
@@ -213,14 +266,15 @@ export function useCaptions() {
                   silenceTimer = setTimeout(() => {
                     if (lastText && lastText.trim()) {
                       const textToMove = lastText.trim();
-                      globalHistory = [...globalHistory, textToMove];
-                      setHistoryRef.current([...globalHistory]);
+                      const result = addLineWithSmartMerge(textToMove);
+                      setHistoryRef.current([...result.history]);
 
-                      // Persist to backend
-                      invoke('add_transcript_line', { line: textToMove }).catch(e => {
+                      // Persist to backend - use update if merged, add if new
+                      const command = result.wasMerged ? 'update_last_transcript_line' : 'add_transcript_line';
+                      invoke(command, { line: result.persistText }).catch(e => {
                         console.error('Failed to persist:', e);
                       });
-                      addChatEntry('transcript', textToMove).catch(e => {
+                      addChatEntry('transcript', result.persistText).catch(e => {
                         console.error('Failed to save to chat history:', e);
                       });
 
@@ -233,15 +287,16 @@ export function useCaptions() {
               } else {
                 // Final - add to history and clear current
                 if (newText) {
-                  globalHistory = [...globalHistory, newText];
-                  setHistoryRef.current([...globalHistory]);
+                  const result = addLineWithSmartMerge(newText);
+                  setHistoryRef.current([...result.history]);
 
-                  // Persist to backend (both transcript and chat history)
-                  invoke('add_transcript_line', { line: newText }).catch(e => {
+                  // Persist to backend - use update if merged, add if new
+                  const command = result.wasMerged ? 'update_last_transcript_line' : 'add_transcript_line';
+                  invoke(command, { line: result.persistText }).catch(e => {
                     console.error('Failed to persist:', e);
                   });
                   // Also save to chat history for context management
-                  addChatEntry('transcript', newText).catch(e => {
+                  addChatEntry('transcript', result.persistText).catch(e => {
                     console.error('Failed to save to chat history:', e);
                   });
                 }
@@ -376,6 +431,35 @@ export function useCaptions() {
       console.error('Failed to clear transcript:', e);
     }
   }, [settings.ai]);
+
+  // Finalize live text immediately (no-hang guarantee)
+  // Call this before any action that needs the latest transcript
+  const finalizeLiveText = useCallback(() => {
+    // Clear any pending silence timer
+    if (silenceTimer) {
+      clearTimeout(silenceTimer);
+      silenceTimer = null;
+    }
+
+    // Move current live text to history immediately with smart merge
+    if (lastText && lastText.trim()) {
+      const textToMove = lastText.trim();
+      const result = addLineWithSmartMerge(textToMove);
+      setHistory([...result.history]);
+
+      // Persist to backend - use update if merged, add if new
+      const command = result.wasMerged ? 'update_last_transcript_line' : 'add_transcript_line';
+      invoke(command, { line: result.persistText }).catch(e => {
+        console.error('Failed to persist:', e);
+      });
+      addChatEntry('transcript', result.persistText).catch(e => {
+        console.error('Failed to save to chat history:', e);
+      });
+
+      lastText = '';
+      setCurrentText('');
+    }
+  }, []);
 
   const exportCaptions = useCallback(async (filePath: string) => {
     try {
@@ -807,6 +891,7 @@ export function useCaptions() {
     startCaptions,
     stopCaptions,
     clearCaptions,
+    finalizeLiveText,
     exportCaptions,
     saveSettings,
     setError,

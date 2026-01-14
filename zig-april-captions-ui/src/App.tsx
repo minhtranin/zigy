@@ -46,6 +46,7 @@ function App() {
     startCaptions,
     stopCaptions,
     clearCaptions,
+    finalizeLiveText,
     exportCaptions,
     saveSettings,
   } = useCaptions();
@@ -223,6 +224,7 @@ function App() {
           onAddCommandToChat={(command, text) => {
             setExternalCommand({ command, text });
           }}
+          onFinalizeLiveText={finalizeLiveText}
         />
       </div>
 

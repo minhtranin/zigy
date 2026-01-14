@@ -13,8 +13,8 @@
     "windows": [
       {
         "title": "Zigy",
-        "width": 1450,
-        "height": 700,
+        "width": 2048,
+        "height": 1080,
         "minWidth": 600,
         "minHeight": 400,
         "center": true,

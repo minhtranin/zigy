@@ -31,3 +31,4 @@ zig-april-captions/zig-cache/
 
 # Tauri build artifacts
 zig-april-captions-ui/src-tauri/target/
+AGENTS.md

@@ -42,3 +42,4 @@ Thumbs.db
 # Pre-built binaries in resources (generated during build)
 src-tauri/resources/zig-april-captions
 src-tauri/resources/zig-april-captions.exe
+AGENTS.md

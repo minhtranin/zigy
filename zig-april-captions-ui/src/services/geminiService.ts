@@ -1290,3 +1290,145 @@ SCRIPT:
 
   return { title, script };
 }
+
+// ============================================
+// Smart Chat Intelligence System
+// ============================================
+
+export type ChatIntent = 'info' | 'script';
+
+/**
+ * Detect if user wants INFO about conversation vs SCRIPT to speak
+ */
+export function detectChatIntent(input: string): ChatIntent {
+  const trimmed = input.trim().toLowerCase();
+  
+  // Commands: /info = info, everything else = script
+  if (trimmed.startsWith('/')) {
+    return trimmed.startsWith('/info') ? 'info' : 'script';
+  }
+  
+  // Script patterns (check first - higher priority)
+  const scriptPatterns = [
+    /^(help me|give me|write|generate|i want to|i need to)/i,
+    /^(respond|reply|say something)/i,
+    /(what should i say|how should i respond|how do i answer)/i,
+    /^(introduce|explain how|tell them)/i,
+  ];
+  
+  if (scriptPatterns.some(p => p.test(trimmed))) {
+    return 'script';
+  }
+  
+  // INFO patterns - questions about the conversation
+  const infoPatterns = [
+    /^(what|who|when|where|which) (is|was|did|does|are|were)/i,
+    /^(did they|what did|who said|when did)/i,
+    /^(what).*(song|topic|point|idea|mention|said|talked)/i,
+    /^(tell me about|explain what|clarify what)/i,
+  ];
+  
+  // Only INFO if matches pattern AND ends with ?
+  if (infoPatterns.some(p => p.test(trimmed)) && trimmed.endsWith('?')) {
+    return 'info';
+  }
+  
+  // Default: SCRIPT (safer for meeting assistant)
+  return 'script';
+}
+
+/**
+ * Extract keywords for semantic search
+ */
+export function extractSearchKeywords(question: string): string {
+  const stopWords = new Set([
+    'what', 'who', 'when', 'where', 'which', 'why', 'how', 
+    'did', 'was', 'were', 'is', 'are', 'does', 'do',
+    'that', 'the', 'they', 'them', 'he', 'she', 'it',
+    'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of',
+    'can', 'could', 'should', 'would', 'just', 'about', 'say', 'said',
+    'mention', 'mentioned', 'tell', 'me', 'please'
+  ]);
+  
+  return question.toLowerCase()
+    .replace(/[?.,!'"]/g, '')
+    .split(/\s+/)
+    .filter(w => w.length > 2 && !stopWords.has(w))
+    .join(' ');
+}
+
+/**
+ * Smart context window sizing based on query type
+ */
+export function getAdaptiveContextLimit(input: string, intent: ChatIntent): number {
+  const lower = input.toLowerCase();
+  
+  // Very recent context
+  if (/\b(just|last|recent|now|right now)\b/.test(lower)) return 5;
+  
+  // Full conversation context
+  if (/\b(overall|summary|entire|whole|all)\b/.test(lower)) return 50;
+  
+  // Historical context
+  if (/\b(beginning|start|first|earlier|before)\b/.test(lower)) return 30;
+  
+  // Default based on intent
+  return intent === 'info' ? 15 : 10;
+}
+
+/**
+ * INFO mode system prompt - factual answers about the conversation
+ */
+export const INFO_SYSTEM_PROMPT = `You are a helpful assistant that answers questions about conversations and helps identify things.
+
+RULES:
+1. Be concise (1-3 sentences unless more detail is needed)
+2. If info is explicitly in the transcript, quote or reference it
+3. Do NOT generate speaking scripts - give direct informational answers
+4. Follow the knowledge instruction below for whether to use external knowledge
+
+Examples:
+User: "what song did they mention?"
+Assistant: They mentioned "Bohemian Rhapsody" by Queen.
+
+User: "what was the deadline?"
+Assistant: The deadline mentioned was next Friday.
+
+User: "what does GC mean?"
+Assistant: Based on context, GC refers to "Garbage Collection".`;
+
+/**
+ * External knowledge instruction builder
+ */
+export function getKnowledgeInstruction(allowExternal: boolean): string {
+  if (allowExternal) {
+    return `IMPORTANT: You have FULL permission to use your general knowledge. You MUST attempt to help.
+
+**FOR SPEAKING SCRIPTS** - When generating scripts about ANY topic:
+- USE your full knowledge to create natural, confident speaking scripts
+- If user asks about "RabbitMQ", "microservices", "React", etc. - explain it naturally as if the user knows about it
+- Generate first-person scripts like: "RabbitMQ is a message broker that helps services communicate asynchronously. It's really useful for decoupling components and handling high-throughput scenarios."
+- DO NOT say "I don't see X in my knowledge" or "I'm not familiar with X" - you KNOW these topics
+- Reference user's personal context ONLY when it's directly relevant to their question
+
+**FOR IDENTIFICATION TASKS** - When user asks to identify something (song, movie, quote, tech, concept):
+- ALWAYS attempt to identify, even from imperfect/fragmented text
+- Speech-to-text transcripts are often messy - work with partial matches
+- If you recognize ANY familiar phrases, patterns, or keywords, make your best guess
+- Say "This might be..." or "This sounds like..." if uncertain
+- NEVER say "I cannot identify" - always give your best attempt
+
+Examples of good responses:
+- "Based on 'take it to the ground' and '63', this sounds like 'Low' by Flo Rida"
+- "These lyrics remind me of [song] by [artist], though the transcription is fragmented"
+- "I'm not 100% certain, but this could be [song] - the phrases match"
+
+**OTHER TASKS**:
+- Technical explanations: Define terms, concepts, acronyms
+- Context enrichment: Provide relevant background
+- Research: Act as if you can look things up
+
+NEVER refuse by saying "I can only use context" or "I cannot identify". You ARE allowed and EXPECTED to use your knowledge when this is enabled.`;
+  }
+  return `Use ONLY information explicitly stated in the provided context. If information is not directly mentioned, say you don't see it in the context. Do not use external knowledge to identify or infer things not explicitly stated.`;
+}

@@ -922,6 +922,19 @@ async fn add_transcript_line(state: tauri::State<'_, Arc<AppState>>, line: Strin
 }
 
 #[tauri::command]
+async fn update_last_transcript_line(state: tauri::State<'_, Arc<AppState>>, line: String) -> Result<Vec<String>, String> {
+    let mut lines = state.transcript_lines.lock().map_err(|e| e.to_string())?;
+    if lines.is_empty() {
+        lines.push(line);
+    } else {
+        // Replace the last line (used for smart merging)
+        let last_idx = lines.len() - 1;
+        lines[last_idx] = line;
+    }
+    Ok(lines.clone())
+}
+
+#[tauri::command]
 async fn clear_transcript(state: tauri::State<'_, Arc<AppState>>) -> Result<(), String> {
     let mut lines = state.transcript_lines.lock().map_err(|e| e.to_string())?;
     lines.clear();
@@ -2003,6 +2016,7 @@ pub fn run() {
             get_binary_debug_info,
             get_transcript,
             add_transcript_line,
+            update_last_transcript_line,
             clear_transcript,
             update_transcript,
             get_knowledge,

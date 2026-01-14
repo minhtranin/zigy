@@ -1,9 +1,17 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { Send, Loader2, RefreshCw, MessageCircle, Languages, Globe } from 'lucide-react';
-import { ChatMessage, ChatCommandType, Settings } from '../types';
+import { ChatMessage, ChatCommandType, Settings, GeminiModel } from '../types';
 import { Translations } from '../translations';
-import { generateSummaryWithContext } from '../services/geminiService';
+import { 
+  generateSummaryWithContext,
+  detectChatIntent,
+  extractSearchKeywords,
+  getAdaptiveContextLimit,
+  getKnowledgeInstruction,
+  INFO_SYSTEM_PROMPT,
+  ChatIntent
+} from '../services/geminiService';
 
 // Translate text using Gemini
 async function translateText(
@@ -14,6 +22,10 @@ async function translateText(
 ): Promise<string> {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
+  // Pro models need more tokens due to thinking overhead
+  const isPro = model.includes('pro');
+  const maxTokens = isPro ? 2048 : 512;
+
   const response = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -23,13 +35,19 @@ async function translateText(
           text: `Translate this text to ${targetLanguage}. Return ONLY the translation, no explanations:\n\n${text}`
         }]
       }],
-      generationConfig: { maxOutputTokens: 500, temperature: 0.3 }
+      generationConfig: { maxOutputTokens: maxTokens, temperature: 0.3 }
     })
   });
 
   if (!response.ok) throw new Error('Translation failed');
   const data = await response.json();
-  return data.candidates?.[0]?.content?.parts?.[0]?.text || text;
+  
+  // Handle empty response (common with Pro model when tokens exhausted)
+  const result = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!result && data.candidates?.[0]?.finishReason === 'MAX_TOKENS') {
+    throw new Error('Translation too long, try shorter text');
+  }
+  return result || text;
 }
 
 interface ChatPanelProps {
@@ -91,12 +109,13 @@ async function summarizeMessages(
   return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
 }
 
-// Generate dynamic suggestions based on transcript context
+// Generate dynamic suggestions based on transcript context and chat history
 async function generateDynamicSuggestions(
   transcript: string,
   apiKey: string,
   model: string,
-  appLanguage: 'en' | 'vi' = 'en'
+  appLanguage: 'en' | 'vi' = 'en',
+  recentMessages: ChatMessage[] = []
 ): Promise<PromptSuggestion[]> {
   if (!transcript || !apiKey) return [];
 
@@ -105,50 +124,55 @@ async function generateDynamicSuggestions(
   // For non-English, we need both display label (in app language) and English prompt
   const needsTranslation = appLanguage !== 'en';
 
+  // Build context including recent chat to avoid redundant suggestions
+  const recentChat = recentMessages.slice(-4).map(m => 
+    `${m.role}: ${m.content.substring(0, 80)}`
+  ).join('\n');
+
+  const contextText = `Recent Transcript (what's being discussed):
+${transcript.slice(-800)}
+
+${recentChat ? `Recent Chat (what user already discussed - AVOID suggesting similar topics):
+${recentChat}` : ''}`;
+
   const prompt = needsTranslation
-    ? `Based on this meeting transcript, suggest 3 SHORT context-aware prompts (max 7 words each) that would help the user respond meaningfully to what was just discussed.
+    ? `Based on the context below, suggest 3 NEW conversation directions (max 6 words each).
 
-Return a JSON array of objects with:
-- "label": Vietnamese translation for display (what the button shows)
-- "prompt": English action request (what gets sent to AI)
+IMPORTANT RULES:
+- Suggest things user HASN'T already discussed in recent chat
+- Focus on unexplored aspects, follow-up angles, or different perspectives
+- Make them ACTION REQUESTS, not literal phrases to say
+- Be specific to the actual content being discussed
 
-These prompts should be ACTION REQUESTS that work with the full conversation context, not literal phrases to say.
+Return JSON array with:
+- "label": Vietnamese for display (short, 3-5 words)
+- "prompt": English action request
 
-Good prompt examples:
-- "Tell me more about the previous topic"
-- "Help me respond to the last point"
-- "I want to agree and add my perspective"
+${contextText}
 
-Good label examples (Vietnamese):
-- "Nói thêm về chủ đề"
-- "Phản hồi điểm cuối"
-- "Đồng ý và thêm ý kiến"
+Example: [{"label": "Hỏi về rủi ro", "prompt": "Ask about potential risks"}, {"label": "Đề xuất thay thế", "prompt": "Suggest an alternative approach"}]`
+    : `Based on the context below, suggest 3 NEW conversation directions (max 6 words each).
 
-Transcript:
-${transcript.slice(-1000)}
-
-Example output: [{"label": "Hỏi thêm chi tiết", "prompt": "Ask for more details about that topic"}, {"label": "Chia sẻ kinh nghiệm", "prompt": "Share my experience with this"}, {"label": "Đề xuất giải pháp", "prompt": "Suggest a solution for this issue"}]`
-    : `Based on this meeting transcript, suggest 3 SHORT context-aware prompts (max 7 words each) that would help the user respond meaningfully to what was just discussed.
-
-These should be ACTION REQUESTS, not phrases to say. They will be sent to an AI that has access to the full conversation context.
+IMPORTANT RULES:
+- Suggest things user HASN'T already discussed in recent chat
+- Focus on unexplored aspects, follow-up angles, or contrarian views
+- Make them ACTION REQUESTS that work with full context
+- Be specific to the actual topic being discussed
 
 Good examples:
-- "Tell me more about the previous topic"
-- "Help me respond to the last point"
-- "I want to agree and add my perspective"
-- "Ask a clarifying question about that"
-- "Share my thoughts on this"
+- "Challenge that assumption"
+- "Ask about edge cases"
+- "Explore the downsides"
+- "Request a concrete example"
+- "Clarify the timeline"
 
-Bad examples (don't generate these):
-- "I agree with that" (too literal)
-- "That's interesting" (doesn't request action)
+Bad examples:
+- Generic phrases like "Tell me more" (too vague)
+- Things already covered in recent chat
 
-Return ONLY a JSON array of strings.
+${contextText}
 
-Transcript:
-${transcript.slice(-1000)}
-
-Example output: ["Elaborate on the testing approach", "Ask about the timeline", "Share my experience with similar projects"]`;
+Return ONLY a JSON array of strings. Example: ["Challenge the proposed approach", "Ask about budget constraints", "Suggest a phased rollout"]`;
 
   const response = await fetch(url, {
     method: 'POST',
@@ -198,9 +222,16 @@ async function callGeminiAPI(
   session: ChatSession,
   apiKey: string,
   model: string,
-  talkMode: boolean = false
+  talkMode: boolean = false,
+  intent: ChatIntent = 'script',
+  useExternalKnowledge: boolean = false
 ): Promise<string> {
+  // Build knowledge instruction based on toggle
+  const knowledgeInstruction = getKnowledgeInstruction(useExternalKnowledge);
+  
   const baseInstruction = `You are a highly intelligent personal meeting/interview assistant. Your role is to help the user speak confidently and professionally in real-time conversations.
+
+${knowledgeInstruction}
 
 CRITICAL RULES - MUST FOLLOW:
 1. ALWAYS generate responses in FIRST PERSON that the user can READ ALOUD directly
@@ -217,7 +248,12 @@ CRITICAL RULES - MUST FOLLOW:
 
 4. When user corrects you, just incorporate it naturally - no acknowledgment needed
 
-5. Reference specific details from user's knowledge base when relevant
+5. When using external knowledge, generate speaking scripts that explain topics naturally, as if the user is knowledgeable about it
+   - For technical topics: provide clear, concise explanations in first person
+   - Don't say "I don't see X in my knowledge" - if external knowledge is enabled, USE IT to generate the script
+   - Reference the user's knowledge base ONLY when directly relevant
+
+6. When external knowledge is DISABLED, reference only the user's knowledge base and meeting context
 
 Remember: You ARE the user speaking. Give them words they can say directly.`;
 
@@ -234,13 +270,22 @@ The user is writing in their native language or broken English. Your job is to:
 Example input: "tôi nghĩ GC thật sự quan trọng cho việc kết nối với client"
 Example output: "I believe garbage collection is really important for maintaining connections with clients, especially when dealing with large datasets."`;
 
-  const systemInstruction = talkMode ? talkModeInstruction : baseInstruction;
+  // Select system instruction based on intent
+  let systemInstruction: string;
+  if (intent === 'info') {
+    // INFO mode: factual answers, add knowledge instruction
+    systemInstruction = `${INFO_SYSTEM_PROMPT}\n\n${knowledgeInstruction}`;
+  } else if (talkMode) {
+    systemInstruction = talkModeInstruction;
+  } else {
+    systemInstruction = baseInstruction;
+  }
 
   const contents: Array<{ role: string; parts: Array<{ text: string }> }> = [];
 
   if (context) {
     contents.push({ role: 'user', parts: [{ text: `MY BACKGROUND & CURRENT MEETING:\n${context}` }] });
-    contents.push({ role: 'model', parts: [{ text: 'Ready to help you speak confidently.' }] });
+    contents.push({ role: 'model', parts: [{ text: intent === 'info' ? 'Ready to answer your questions.' : 'Ready to help you speak confidently.' }] });
   }
 
   if (session.summary) {
@@ -261,13 +306,23 @@ Example output: "I believe garbage collection is really important for maintainin
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
+  // Adjust generation config based on intent
+  // Note: Gemini 2.5 Pro uses "thinking tokens" internally, so needs higher maxOutputTokens
+  const isPro = model.includes('pro');
+  const baseTokens = isPro ? 2048 : 512;  // Pro needs more for thinking
+  const scriptTokens = isPro ? 4096 : 1024;
+  
+  const generationConfig = intent === 'info'
+    ? { maxOutputTokens: baseTokens, temperature: 0.3, topP: 0.8 }
+    : { maxOutputTokens: scriptTokens, temperature: 0.7 };
+
   const response = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       system_instruction: { parts: [{ text: systemInstruction }] },
       contents,
-      generationConfig: { maxOutputTokens: 1024, temperature: 0.7 }
+      generationConfig
     })
   });
 
@@ -277,6 +332,27 @@ Example output: "I believe garbage collection is really important for maintainin
   }
 
   const data = await response.json();
+  
+  // Debug: log full response for troubleshooting
+  if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
+    console.warn('Gemini API response structure:', JSON.stringify(data, null, 2));
+    
+    // Check for blocked response
+    if (data.candidates?.[0]?.finishReason === 'SAFETY') {
+      throw new Error('Response blocked by safety filters. Try rephrasing your question.');
+    }
+    if (data.candidates?.[0]?.finishReason === 'RECITATION') {
+      throw new Error('Response blocked due to recitation policy. Try a different question.');
+    }
+    if (data.promptFeedback?.blockReason) {
+      throw new Error(`Prompt blocked: ${data.promptFeedback.blockReason}`);
+    }
+    // Check if response is empty due to other reasons
+    if (data.candidates?.length === 0) {
+      throw new Error('No response generated. The model may be overloaded, try again.');
+    }
+  }
+  
   return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
 }
 
@@ -289,17 +365,13 @@ const DEFAULT_SUGGESTIONS: PromptSuggestion[] = [
   { label: 'Ask for clarity', prompt: 'Help me politely ask for clarification', icon: '🤔' },
 ];
 
-// Response-based suggestions
+// Response-based suggestions (shown after AI responds - for follow-up actions)
 const RESPONSE_SUGGESTIONS: PromptSuggestion[] = [
   { label: 'Another way', prompt: 'Give me another way to say that', icon: '🔄' },
-  { label: 'Shorter', prompt: 'Make that shorter and more concise', icon: '✂️' },
-  { label: 'More casual', prompt: 'Make that more casual and friendly', icon: '😊' },
   { label: '1 vs 1', prompt: 'Make that more direct and personal, addressing one person casually (use "you", "bro", "mate" - like talking 1-on-1 instead of to a group)', icon: '👥' },
-  { label: 'More formal', prompt: 'Make that more formal and professional', icon: '👔' },
-  { label: 'Add details', prompt: 'Add more details to that response', icon: '➕' },
 ];
 
-export function ChatPanel({ settings, sessionId, fontSize, t, externalCommand, onExternalCommandProcessed, autoSummaryForChat, onAutoSummaryProcessed }: ChatPanelProps) {
+export function ChatPanel({ settings, onSettingsChange, sessionId, fontSize, t, externalCommand, onExternalCommandProcessed, autoSummaryForChat, onAutoSummaryProcessed }: ChatPanelProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [summary, setSummary] = useState<string>('');
   const [inputText, setInputText] = useState('');
@@ -311,12 +383,20 @@ export function ChatPanel({ settings, sessionId, fontSize, t, externalCommand, o
   const [transcriptText, setTranscriptText] = useState('');
   const [translatingId, setTranslatingId] = useState<string | null>(null);
   const [currentTips, setCurrentTips] = useState<string[]>([]);
+  const [useExternalKnowledge, setUseExternalKnowledge] = useState(
+    settings.ai?.use_external_knowledge || false
+  );
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const apiKey = settings.ai?.api_key || '';
   const model = settings.ai?.model || 'gemini-2.5-flash';
   const translateLanguage = settings.ai?.translation_language || 'Vietnamese';
   const appLanguage = settings.language || 'en';
+
+  // Sync useExternalKnowledge with settings when settings change
+  useEffect(() => {
+    setUseExternalKnowledge(settings.ai?.use_external_knowledge || false);
+  }, [settings.ai?.use_external_knowledge]);
 
   const TOKEN_THRESHOLD = 12000;  // Snapshot at 12K tokens (~6 min conversation) - maximum speed
   const COMPACT_KEEP_RECENT = 6;  // Keep last 6 messages when compacting
@@ -348,19 +428,22 @@ export function ChatPanel({ settings, sessionId, fontSize, t, externalCommand, o
 
     setIsLoadingDynamic(true);
     try {
-      const suggestions = await generateDynamicSuggestions(transcriptText, apiKey, model, appLanguage);
+      const suggestions = await generateDynamicSuggestions(transcriptText, apiKey, model, appLanguage, messages);
       setDynamicSuggestions(suggestions);
     } catch (e) {
       console.error('Failed to load dynamic suggestions:', e);
     } finally {
       setIsLoadingDynamic(false);
     }
-  }, [apiKey, model, transcriptText, appLanguage]);
+  }, [apiKey, model, transcriptText, appLanguage, messages]);
 
-  // Auto-load dynamic suggestions when transcript changes
+  // Auto-load dynamic suggestions when transcript changes or after some messages
   useEffect(() => {
-    if (transcriptText && apiKey && messages.length === 0) {
-      loadDynamicSuggestions();
+    if (transcriptText && apiKey) {
+      // Load at start, or refresh every 3 messages to get new suggestions
+      if (messages.length === 0 || messages.length % 3 === 0) {
+        loadDynamicSuggestions();
+      }
     }
   }, [transcriptText, apiKey, messages.length, loadDynamicSuggestions]);
 
@@ -472,19 +555,30 @@ export function ChatPanel({ settings, sessionId, fontSize, t, externalCommand, o
 
   const parseCommand = (text: string): { command: ChatCommandType | undefined, args: string } => {
     // Match longer commands first to avoid partial matches (ask-about-line before ask, full-summary before summary)
-    const match = text.match(/^\/(ask-about-line|talk-suggestions|translate|greeting|full-summary|summary|questions|answer|talk|ask)(?:\s+(.*))?$/is);
+    const match = text.match(/^\/(info|ask-about-line|talk-suggestions|translate|greeting|full-summary|summary|questions|answer|talk|ask)(?:\s+(.*))?$/is);
     if (match) {
       return { command: `/${match[1].toLowerCase()}` as ChatCommandType, args: match[2] || '' };
     }
     return { command: undefined, args: text };
   };
 
-  const getContext = async (query?: string): Promise<string> => {
+  const getContext = async (userInput?: string, intent?: ChatIntent): Promise<string> => {
     try {
+      // Smart context switching - adapt window size based on query
+      const limit = userInput 
+        ? getAdaptiveContextLimit(userInput, intent || 'script')
+        : 10;
+      
+      // Semantic search for INFO mode
+      let searchQuery: string | null = null;
+      if (intent === 'info' && userInput) {
+        searchQuery = extractSearchKeywords(userInput);
+      }
+      
       const result = await invoke<{ context: string }>('get_chat_context', {
-        limit: 10,
-        query: query || null,
-        apiKey: apiKey || null,
+        limit,
+        query: searchQuery,
+        apiKey: searchQuery ? apiKey : null,
       });
       return result.context;
     } catch {
@@ -497,6 +591,12 @@ export function ChatPanel({ settings, sessionId, fontSize, t, externalCommand, o
     if (!textToSend.trim() || isLoading) return;
 
     const { command, args } = parseCommand(textToSend.trim());
+
+    // Detect intent: explicit /info command, summary/questions commands, or auto-detect from natural language
+    const infoCommands = ['/info', '/summary', '/questions'];
+    const detectedIntent: ChatIntent = infoCommands.includes(command || '')
+      ? 'info'
+      : (command ? 'script' : detectChatIntent(textToSend));
 
     const userMessage: ChatMessage = {
       id: crypto.randomUUID(),
@@ -524,11 +624,15 @@ export function ChatPanel({ settings, sessionId, fontSize, t, externalCommand, o
     setIsLoading(true);
 
     try {
-      const context = await getContext(args);
+      const context = await getContext(args || textToSend, detectedIntent);
 
       let prompt = args || textToSend;
       if (command) {
         switch (command) {
+          case '/info':
+            // INFO mode: factual answers about the conversation
+            prompt = args || textToSend;
+            break;
           case '/ask':
             prompt = `Answer this question based on my knowledge/meeting context: "${args}"`;
             break;
@@ -545,7 +649,12 @@ export function ChatPanel({ settings, sessionId, fontSize, t, externalCommand, o
             prompt = 'Generate 4-5 simple ice-breaker questions or conversation starters. Topics: weekend plans, work projects, weather, travel, hobbies, family, local events. Keep it simple and warm. Can be questions or short statements. Not too casual, not too formal.\n\nFormat:\n1. [simple question or statement]\n2. [simple question or statement]\n3. [simple question or statement]\n4. [simple question or statement]\n5. [simple question or statement]\n\nStart directly with numbered list.';
             break;
           case '/summary':
-            prompt = 'Summarize the current meeting discussion. Focus on key points and decisions.';
+            prompt = `Summarize what's happening in the current conversation/meeting. Include:
+- Main topics being discussed
+- Any key points, decisions, or action items (if any)
+- The general context or purpose
+
+If the transcript is short or introductory, just describe what's being talked about so far. Don't say "no key points" - summarize whatever content exists.`;
             break;
           case '/full-summary':
             // Handle full-summary separately - uses generateSummaryWithContext like auto-summary
@@ -604,7 +713,7 @@ Generate questions I can ASK them:`;
       }
 
       const session: ChatSession = { messages, summary, lastCompactedAt: Date.now() };
-      const response = await callGeminiAPI(prompt, context, session, apiKey, model, talkMode && !command);
+      const response = await callGeminiAPI(prompt, context, session, apiKey, model, talkMode && !command, detectedIntent, useExternalKnowledge);
 
       const assistantMsg: ChatMessage = {
         id: crypto.randomUUID(),
@@ -672,21 +781,63 @@ Generate questions I can ASK them:`;
     }
   };
 
+  // Handle model change from chat header
+  const handleModelChange = (newModel: GeminiModel) => {
+    onSettingsChange({
+      ...settings,
+      ai: {
+        ...settings.ai,
+        api_key: settings.ai?.api_key || '',
+        model: newModel,
+        translation_language: settings.ai?.translation_language,
+      },
+    });
+  };
+
+  // Handle external knowledge toggle change and persist
+  const handleExternalKnowledgeChange = (checked: boolean) => {
+    setUseExternalKnowledge(checked);
+    onSettingsChange({
+      ...settings,
+      ai: {
+        ...settings.ai,
+        api_key: settings.ai?.api_key || '',
+        model: settings.ai?.model || 'gemini-2.5-flash',
+        translation_language: settings.ai?.translation_language,
+        use_external_knowledge: checked,
+      },
+    });
+  };
+
   // Get current suggestions based on state
   const currentSuggestions = hasLastResponse ? RESPONSE_SUGGESTIONS : DEFAULT_SUGGESTIONS;
 
   return (
     <div className="flex flex-col h-full bg-white dark:bg-[#010409]">
-      {/* Header */}
-      {messages.length > 0 && (
-        <div className="flex items-center justify-between px-3 py-1 border-b border-gray-200 dark:border-[#30363D]">
-          {currentTips.length > 0 && <span className="text-xs text-amber-700 dark:text-yellow-500 italic">Tips: {currentTips.join(' • ')}</span>}
-          <div className="flex items-center">
-            {isCompacting && <span className="text-xs text-yellow-500 mr-2">compacting...</span>}
-            <button onClick={clearHistory} className="text-xs text-red-500 hover:text-red-600">{t.clear}</button>
-          </div>
+      {/* Header with model selector */}
+      <div className="flex items-center justify-between px-3 py-1.5 border-b border-gray-200 dark:border-[#30363D]">
+        <div className="flex items-center gap-2">
+          <select
+            value={model}
+            onChange={(e) => handleModelChange(e.target.value as GeminiModel)}
+            className="text-xs px-2 py-1 border rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer bg-gray-100 text-gray-700 border-gray-300 dark:bg-[#21262D] dark:text-[#E6EDF3] dark:border-[#30363D]"
+            style={{ colorScheme: settings.theme === 'light' ? 'light' : 'dark' }}
+          >
+            <option value="gemini-2.5-flash" className="dark:bg-[#21262D] dark:text-[#E6EDF3]">Flash 2.5</option>
+            <option value="gemini-2.5-pro" className="dark:bg-[#21262D] dark:text-[#E6EDF3]">Pro 2.5</option>
+            <option value="gemini-2.0-flash" className="dark:bg-[#21262D] dark:text-[#E6EDF3]">Flash 2.0</option>
+          </select>
+          {currentTips.length > 0 && messages.length > 0 && (
+            <span className="text-xs text-amber-700 dark:text-yellow-500 italic hidden sm:inline">Tips: {currentTips.join(' • ')}</span>
+          )}
         </div>
-      )}
+        <div className="flex items-center gap-2">
+          {isCompacting && <span className="text-xs text-yellow-500">compacting...</span>}
+          {messages.length > 0 && (
+            <button onClick={clearHistory} className="text-xs text-red-500 hover:text-red-600">{t.clear}</button>
+          )}
+        </div>
+      </div>
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
@@ -704,7 +855,7 @@ Generate questions I can ASK them:`;
         )}
 
         {messages.map((msg) => (
-          <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+          <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} ${msg.role === 'assistant' ? 'group' : ''}`}>
             <div
               className={`max-w-[85%] rounded-lg px-3 py-2 ${
                 msg.role === 'user'
@@ -734,6 +885,44 @@ Generate questions I can ASK them:`;
                   </button>
                 )}
               </div>
+              
+              {/* Quick Actions - show on hover for assistant messages */}
+              {msg.role === 'assistant' && !msg.content.startsWith('📋') && !msg.content.startsWith('📝') && (
+                <div className="flex flex-wrap gap-1 mt-2 pt-2 border-t border-gray-200 dark:border-[#30363D] opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button
+                    onClick={() => handleSend(`Make this shorter and more concise: "${msg.content}"`)}
+                    disabled={isLoading || !apiKey}
+                    className="px-1.5 py-0.5 text-xs bg-slate-200 dark:bg-[#21262D] text-slate-600 dark:text-[#7D8590] rounded hover:bg-slate-300 dark:hover:bg-[#30363D] disabled:opacity-30"
+                    title="Make shorter"
+                  >
+                    ✂️ Shorter
+                  </button>
+                  <button
+                    onClick={() => handleSend(`Rewrite this in a more casual, friendly tone: "${msg.content}"`)}
+                    disabled={isLoading || !apiKey}
+                    className="px-1.5 py-0.5 text-xs bg-slate-200 dark:bg-[#21262D] text-slate-600 dark:text-[#7D8590] rounded hover:bg-slate-300 dark:hover:bg-[#30363D] disabled:opacity-30"
+                    title="Make casual"
+                  >
+                    😊 Casual
+                  </button>
+                  <button
+                    onClick={() => handleSend(`Rewrite this in a more formal, professional tone: "${msg.content}"`)}
+                    disabled={isLoading || !apiKey}
+                    className="px-1.5 py-0.5 text-xs bg-slate-200 dark:bg-[#21262D] text-slate-600 dark:text-[#7D8590] rounded hover:bg-slate-300 dark:hover:bg-[#30363D] disabled:opacity-30"
+                    title="Make formal"
+                  >
+                    👔 Formal
+                  </button>
+                  <button
+                    onClick={() => handleSend(`Expand on this with more details: "${msg.content}"`)}
+                    disabled={isLoading || !apiKey}
+                    className="px-1.5 py-0.5 text-xs bg-slate-200 dark:bg-[#21262D] text-slate-600 dark:text-[#7D8590] rounded hover:bg-slate-300 dark:hover:bg-[#30363D] disabled:opacity-30"
+                    title="Add more details"
+                  >
+                    ➕ Details
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         ))}
@@ -866,6 +1055,27 @@ Generate questions I can ASK them:`;
             {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
           </button>
         </div>
+        
+        {/* External Knowledge Toggle */}
+        <div className="mt-2 flex items-center gap-2">
+          <label className="flex items-center gap-1.5 cursor-pointer text-xs text-slate-600 dark:text-[#7D8590] hover:text-slate-800 dark:hover:text-[#E6EDF3]">
+            <input
+              type="checkbox"
+              checked={useExternalKnowledge}
+              onChange={(e) => handleExternalKnowledgeChange(e.target.checked)}
+              className="w-3.5 h-3.5 rounded border-slate-300 dark:border-[#30363D] text-indigo-600 focus:ring-indigo-500 focus:ring-offset-0 cursor-pointer"
+            />
+            <Globe className="w-3.5 h-3.5" />
+            <span>Allow general knowledge</span>
+          </label>
+          <span 
+            className="text-slate-400 dark:text-[#484F58] cursor-help" 
+            title="When enabled, AI can use knowledge beyond the conversation context to provide more complete answers"
+          >
+            ⓘ
+          </span>
+        </div>
+
         {talkMode && (
           <div className="mt-1 text-xs text-green-600 dark:text-green-400">
             {t.talkModeHint}

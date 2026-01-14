@@ -82,12 +82,12 @@ export function ControlBar({
   };
 
   return (
-    <div className="flex flex-col gap-1.5 p-3 bg-white dark:bg-[#0D1117] rounded-lg border border-gray-200 dark:border-[#30363D]">
+    <div className="flex flex-col gap-1.5 p-2 bg-white dark:bg-[#0D1117] rounded-lg border border-gray-200 dark:border-[#30363D]">
       <div className="flex gap-1.5 flex-wrap items-center">
         {/* Primary Controls - Start/Stop first */}
         {!isRunning ? (
           <button
-            className="px-4 py-2 text-sm font-semibold text-white bg-green-400 dark:bg-green-500 rounded-md hover:bg-green-500 dark:hover:bg-green-400 disabled:bg-gray-300 dark:disabled:bg-gray-800 disabled:cursor-not-allowed transition-colors shadow-sm"
+            className="px-2.5 py-1 text-xs text-white bg-green-500 dark:bg-green-600 rounded-full hover:bg-green-600 dark:hover:bg-green-500 disabled:bg-gray-300 dark:disabled:bg-gray-800 disabled:cursor-not-allowed transition-colors"
             onClick={onStart}
             disabled={!canStart}
           >
@@ -95,7 +95,7 @@ export function ControlBar({
           </button>
         ) : (
           <button
-            className="px-4 py-2 text-sm font-semibold text-white bg-red-400 dark:bg-red-500 rounded-md hover:bg-red-500 dark:hover:bg-red-400 transition-colors shadow-sm"
+            className="px-2.5 py-1 text-xs text-white bg-red-500 dark:bg-red-600 rounded-full hover:bg-red-600 dark:hover:bg-red-500 transition-colors"
             onClick={onStop}
           >
             {t.stop}
@@ -103,7 +103,7 @@ export function ControlBar({
         )}
 
         <button
-          className="px-3 py-2 text-sm font-semibold bg-slate-200 dark:bg-[#21262D] text-slate-800 dark:text-[#E6EDF3] border border-slate-300 dark:border-[#30363D] rounded-md hover:bg-slate-300 dark:hover:bg-[#30363D] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="px-2.5 py-1 text-xs bg-slate-200 dark:bg-[#21262D] text-slate-700 dark:text-[#E6EDF3] rounded-full hover:bg-slate-300 dark:hover:bg-[#30363D] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           onClick={onClear}
           disabled={isLoading}
         >
@@ -111,14 +111,14 @@ export function ControlBar({
         </button>
 
         {/* Divider */}
-        <div className="h-6 w-px bg-slate-300 dark:bg-[#30363D]"></div>
+        <div className="h-4 w-px bg-slate-300 dark:bg-[#30363D]"></div>
 
         {/* AI Features - consistent slate color for all buttons except Start/Stop */}
         <button
-          className={`px-3 py-2 text-sm font-semibold rounded-md transition-colors ${
+          className={`px-2.5 py-1 text-xs rounded-full transition-colors ${
             hasMeetingContext
-              ? 'bg-emerald-200 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-200 border border-emerald-400 dark:border-emerald-700 hover:bg-emerald-300 dark:hover:bg-emerald-900/60'
-              : 'bg-slate-200 dark:bg-[#21262D] text-slate-800 dark:text-[#E6EDF3] border border-slate-300 dark:border-[#30363D] hover:bg-slate-300 dark:hover:bg-[#30363D]'
+              ? 'bg-emerald-200 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-200 hover:bg-emerald-300 dark:hover:bg-emerald-900/60'
+              : 'bg-slate-200 dark:bg-[#21262D] text-slate-700 dark:text-[#E6EDF3] hover:bg-slate-300 dark:hover:bg-[#30363D]'
           }`}
           onClick={onInitMeeting}
           title={hasMeetingContext ? 'Meeting context set - click to update' : 'Set meeting context'}
@@ -127,7 +127,7 @@ export function ControlBar({
         </button>
 
         <button
-          className="px-3 py-2 text-sm font-semibold bg-slate-200 dark:bg-[#21262D] text-slate-800 dark:text-[#E6EDF3] border border-slate-300 dark:border-[#30363D] rounded-md hover:bg-slate-300 dark:hover:bg-[#30363D] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="px-2.5 py-1 text-xs bg-slate-200 dark:bg-[#21262D] text-slate-700 dark:text-[#E6EDF3] rounded-full hover:bg-slate-300 dark:hover:bg-[#30363D] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           onClick={handleGreeting}
           disabled={!canGenerateGreeting}
           title="Generate ice-breaker questions in chat"
@@ -136,7 +136,7 @@ export function ControlBar({
         </button>
 
         <button
-          className="px-3 py-2 text-sm font-semibold bg-slate-200 dark:bg-[#21262D] text-slate-800 dark:text-[#E6EDF3] border border-slate-300 dark:border-[#30363D] rounded-md hover:bg-slate-300 dark:hover:bg-[#30363D] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="px-2.5 py-1 text-xs bg-slate-200 dark:bg-[#21262D] text-slate-700 dark:text-[#E6EDF3] rounded-full hover:bg-slate-300 dark:hover:bg-[#30363D] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           onClick={handleTalkSuggestions}
           disabled={!canGenerateAI}
           title="Get short talking points about recent discussion"
@@ -145,7 +145,7 @@ export function ControlBar({
         </button>
 
         <button
-          className="px-3 py-2 text-sm font-semibold bg-slate-200 dark:bg-[#21262D] text-slate-800 dark:text-[#E6EDF3] border border-slate-300 dark:border-[#30363D] rounded-md hover:bg-slate-300 dark:hover:bg-[#30363D] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="px-2.5 py-1 text-xs bg-slate-200 dark:bg-[#21262D] text-slate-700 dark:text-[#E6EDF3] rounded-full hover:bg-slate-300 dark:hover:bg-[#30363D] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           onClick={handleSummary}
           disabled={!canGenerateAI}
           title={t.summaryBtnTooltip}
@@ -154,7 +154,7 @@ export function ControlBar({
         </button>
 
         <button
-          className="px-3 py-2 text-sm font-semibold bg-slate-200 dark:bg-[#21262D] text-slate-800 dark:text-[#E6EDF3] border border-slate-300 dark:border-[#30363D] rounded-md hover:bg-slate-300 dark:hover:bg-[#30363D] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="px-2.5 py-1 text-xs bg-slate-200 dark:bg-[#21262D] text-slate-700 dark:text-[#E6EDF3] rounded-full hover:bg-slate-300 dark:hover:bg-[#30363D] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           onClick={handleFullSummary}
           disabled={!canGenerateAI}
           title={t.fullSummaryBtnTooltip}
@@ -163,7 +163,7 @@ export function ControlBar({
         </button>
 
         <button
-          className="px-3 py-2 text-sm font-semibold bg-slate-200 dark:bg-[#21262D] text-slate-800 dark:text-[#E6EDF3] border border-slate-300 dark:border-[#30363D] rounded-md hover:bg-slate-300 dark:hover:bg-[#30363D] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="px-2.5 py-1 text-xs bg-slate-200 dark:bg-[#21262D] text-slate-700 dark:text-[#E6EDF3] rounded-full hover:bg-slate-300 dark:hover:bg-[#30363D] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           onClick={handleQuestions}
           disabled={!canGenerateAI}
           title="Generate questions in chat"

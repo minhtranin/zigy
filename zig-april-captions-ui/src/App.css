@@ -1,2 +1,17 @@
 /* This file is now empty as all styles have been migrated to Tailwind CSS */
 /* Keeping it for potential future global styles not covered by Tailwind */
+
+/* Fix select dropdown options in dark mode - force override browser defaults */
+.dark select option {
+  background-color: #21262D !important;
+  color: #E6EDF3 !important;
+}
+
+.dark select {
+  color-scheme: dark;
+}
+
+select option {
+  background-color: white !important;
+  color: #1f2937 !important;
+}
