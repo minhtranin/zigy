@@ -1,6 +1,6 @@
 [package]
 name = "zig-april-captions-ui"
-version = "1.0.1"
+version = "1.0.3"
 description = "Real-time speech-to-text captions desktop app"
 authors = ["Minh Cong Tran"]
 edition = "2021"
