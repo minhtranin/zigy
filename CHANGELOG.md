@@ -5,6 +5,22 @@ All notable changes to Zigy will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.4] - 2026-01-22
+
+### Added
+- **Quick chat focus**: Press "s" key anywhere in the app to instantly focus the chat input
+- **Three chat modes**: Tab key now cycles through Script → Info → Talk modes
+- **Manual mode control**: Removed auto-detect intent - users manually switch modes for better control
+
+### Changed
+- Chat modes are now manually controlled via Tab key or mode button instead of automatic detection
+- Dynamic suggestions now generate action requests rather than literal phrases
+- Pressing "s" provides quick access to chat input from anywhere in the app
+
+### Fixed
+- Fixed TypeScript error related to missing translation key
+- Improved user experience with intentional mode selection instead of auto-detection
+
 ## [1.0.1] - 2026-01-09
 
 ### Fixed

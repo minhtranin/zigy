@@ -5832,7 +5832,7 @@ dependencies = [
 
 [[package]]
 name = "zig-april-captions-ui"
-version = "1.0.3"
+version = "1.0.4"
 dependencies = [
  "block",
  "dirs 5.0.1",
