@@ -1023,7 +1023,7 @@ Generate questions I can ASK them:`;
                 ? 'bg-green-100 dark:bg-green-900/30 border-green-300 dark:border-green-700 text-green-700 dark:text-green-300'
                 : 'bg-slate-200 dark:bg-[#21262D] border-slate-300 dark:border-[#30363D] text-slate-600 dark:text-[#7D8590] hover:bg-slate-300 dark:hover:bg-[#30363D]'
             }`}
-            title={talkMode ? 'Talk Mode: ON - Input will be translated to English' : 'Talk Mode: OFF - Normal chat'}
+            title={talkMode ? 'Talk Mode: ON (Press Tab to toggle) - Input will be translated to English' : 'Talk Mode: OFF (Press Tab to toggle) - Normal chat'}
           >
             {talkMode ? <Languages className="w-4 h-4" /> : <MessageCircle className="w-4 h-4" />}
           </button>
@@ -1036,6 +1036,9 @@ Generate questions I can ASK them:`;
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 handleSend();
+              } else if (e.key === 'Tab') {
+                e.preventDefault();
+                setTalkMode(!talkMode);
               }
             }}
             placeholder={talkMode ? t.talkModePlaceholder : t.askMeAnything}
@@ -1077,8 +1080,9 @@ Generate questions I can ASK them:`;
         </div>
 
         {talkMode && (
-          <div className="mt-1 text-xs text-green-600 dark:text-green-400">
+          <div className="mt-1 text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
             {t.talkModeHint}
+            <span className="text-slate-400 dark:text-slate-500">• Press <kbd className="px-1.5 py-0.5 bg-slate-200 dark:bg-slate-700 rounded text-[10px] font-mono">Tab</kbd> to toggle</span>
           </div>
         )}
       </div>
