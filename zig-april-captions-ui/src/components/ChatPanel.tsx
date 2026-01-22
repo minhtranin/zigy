@@ -3,9 +3,8 @@ import { invoke } from '@tauri-apps/api/core';
 import { Send, Loader2, RefreshCw, MessageCircle, Languages, Globe, Info } from 'lucide-react';
 import { ChatMessage, ChatCommandType, Settings, GeminiModel } from '../types';
 import { Translations } from '../translations';
-import { 
+import {
   generateSummaryWithContext,
-  detectChatIntent,
   extractSearchKeywords,
   getAdaptiveContextLimit,
   getKnowledgeInstruction,
