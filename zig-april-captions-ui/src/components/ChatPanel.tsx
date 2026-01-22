@@ -387,6 +387,28 @@ export function ChatPanel({ settings, onSettingsChange, sessionId, fontSize, t, 
     settings.ai?.use_external_knowledge || false
   );
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Handle global key shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Focus input with "/" key (like YouTube search)
+      if (e.key === '/' && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
+        const activeElement = document.activeElement;
+        const isInputFocused = activeElement?.tagName === 'INPUT' ||
+                               activeElement?.tagName === 'TEXTAREA' ||
+                               (activeElement as HTMLElement)?.isContentEditable;
+
+        if (!isInputFocused && inputRef.current) {
+          e.preventDefault();
+          inputRef.current.focus();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const apiKey = settings.ai?.api_key || '';
   const model = settings.ai?.model || 'gemini-2.5-flash';
@@ -1029,6 +1051,7 @@ Generate questions I can ASK them:`;
           </button>
 
           <input
+            ref={inputRef}
             type="text"
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
