@@ -126,10 +126,14 @@ export interface Translations {
   addMyOpinion: string;
   talkModeHint: string;
   talkModePlaceholder: string;
+  infoModePlaceholder: string;
   askMeAnything: string;
   meetingAssistant: string;
   trySuggestion: string;
   translateToLanguage: string;
+  allowGeneralKnowledge: string;
+  infoModeHint: string;
+  pressTabToSwitchModes: string;
 
   // About Panel
   aboutTitle: string;
@@ -290,10 +294,14 @@ export const translations: Record<AppLanguage, Translations> = {
     addMyOpinion: 'Add my opinion',
     talkModeHint: 'Talk Mode: Type in any language → Natural English',
     talkModePlaceholder: 'Type in any language → English for speaking...',
+    infoModePlaceholder: 'Ask questions about the conversation...',
     askMeAnything: 'Ask me anything...',
     meetingAssistant: 'Meeting Assistant',
     trySuggestion: 'Try a suggestion or type your message',
     translateToLanguage: 'Translate',
+    allowGeneralKnowledge: 'Allow general knowledge',
+    infoModeHint: 'ℹ️ Info mode: Get answers about the conversation',
+    pressTabToSwitchModes: '• Press Tab to switch modes',
 
     // About Panel
     aboutTitle: 'About Zigy',
@@ -480,10 +488,14 @@ export const translations: Record<AppLanguage, Translations> = {
     addMyOpinion: 'Thêm ý kiến',
     talkModeHint: 'Chế độ nói: Nhập bằng bất kỳ ngôn ngữ nào → Tiếng Anh tự nhiên',
     talkModePlaceholder: 'Nhập bằng bất kỳ ngôn ngữ nào → Tiếng Anh để nói...',
+    infoModePlaceholder: 'Đặt câu hỏi về cuộc hội thoại...',
     askMeAnything: 'Hỏi tôi bất cứ điều gì...',
     meetingAssistant: 'Trợ lý cuộc họp',
     trySuggestion: 'Thử một gợi ý hoặc nhập tin nhắn',
     translateToLanguage: 'Dịch',
+    allowGeneralKnowledge: 'Cho phép sử dụng kiến thức ngoài',
+    infoModeHint: 'ℹ️ Chế độ thông tin: Trả lời câu hỏi về cuộc hội thoại',
+    pressTabToSwitchModes: '• Nhấn Tab để chuyển chế độ',
 
     // About Panel
     aboutTitle: 'Về Zigy',

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { invoke } from '@tauri-apps/api/core';
-import { Send, Loader2, RefreshCw, MessageCircle, Languages, Globe } from 'lucide-react';
+import { Send, Loader2, RefreshCw, MessageCircle, Languages, Globe, Info } from 'lucide-react';
 import { ChatMessage, ChatCommandType, Settings, GeminiModel } from '../types';
 import { Translations } from '../translations';
 import { 
@@ -222,13 +222,12 @@ async function callGeminiAPI(
   session: ChatSession,
   apiKey: string,
   model: string,
-  talkMode: boolean = false,
-  intent: ChatIntent = 'script',
+  chatMode: 'script' | 'info' | 'talk' = 'script',
   useExternalKnowledge: boolean = false
 ): Promise<string> {
   // Build knowledge instruction based on toggle
   const knowledgeInstruction = getKnowledgeInstruction(useExternalKnowledge);
-  
+
   const baseInstruction = `You are a highly intelligent personal meeting/interview assistant. Your role is to help the user speak confidently and professionally in real-time conversations.
 
 ${knowledgeInstruction}
@@ -270,12 +269,12 @@ The user is writing in their native language or broken English. Your job is to:
 Example input: "tôi nghĩ GC thật sự quan trọng cho việc kết nối với client"
 Example output: "I believe garbage collection is really important for maintaining connections with clients, especially when dealing with large datasets."`;
 
-  // Select system instruction based on intent
+  // Select system instruction based on chat mode
   let systemInstruction: string;
-  if (intent === 'info') {
+  if (chatMode === 'info') {
     // INFO mode: factual answers, add knowledge instruction
     systemInstruction = `${INFO_SYSTEM_PROMPT}\n\n${knowledgeInstruction}`;
-  } else if (talkMode) {
+  } else if (chatMode === 'talk') {
     systemInstruction = talkModeInstruction;
   } else {
     systemInstruction = baseInstruction;
@@ -285,7 +284,7 @@ Example output: "I believe garbage collection is really important for maintainin
 
   if (context) {
     contents.push({ role: 'user', parts: [{ text: `MY BACKGROUND & CURRENT MEETING:\n${context}` }] });
-    contents.push({ role: 'model', parts: [{ text: intent === 'info' ? 'Ready to answer your questions.' : 'Ready to help you speak confidently.' }] });
+    contents.push({ role: 'model', parts: [{ text: chatMode === 'info' ? 'Ready to answer your questions.' : 'Ready to help you speak confidently.' }] });
   }
 
   if (session.summary) {
@@ -306,13 +305,13 @@ Example output: "I believe garbage collection is really important for maintainin
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
-  // Adjust generation config based on intent
+  // Adjust generation config based on chat mode
   // Note: Gemini 2.5 Pro uses "thinking tokens" internally, so needs higher maxOutputTokens
   const isPro = model.includes('pro');
   const baseTokens = isPro ? 2048 : 512;  // Pro needs more for thinking
   const scriptTokens = isPro ? 4096 : 1024;
-  
-  const generationConfig = intent === 'info'
+
+  const generationConfig = chatMode === 'info'
     ? { maxOutputTokens: baseTokens, temperature: 0.3, topP: 0.8 }
     : { maxOutputTokens: scriptTokens, temperature: 0.7 };
 
@@ -377,7 +376,7 @@ export function ChatPanel({ settings, onSettingsChange, sessionId, fontSize, t, 
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isCompacting, setIsCompacting] = useState(false);
-  const [talkMode, setTalkMode] = useState(false);
+  const [chatMode, setChatMode] = useState<'script' | 'info' | 'talk'>('script');
   const [dynamicSuggestions, setDynamicSuggestions] = useState<PromptSuggestion[]>([]);
   const [isLoadingDynamic, setIsLoadingDynamic] = useState(false);
   const [transcriptText, setTranscriptText] = useState('');
@@ -392,8 +391,8 @@ export function ChatPanel({ settings, onSettingsChange, sessionId, fontSize, t, 
   // Handle global key shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Focus input with "/" key (like YouTube search)
-      if (e.key === '/' && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
+      // Focus input with "s" key
+      if (e.key === 's' && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
         const activeElement = document.activeElement;
         const isInputFocused = activeElement?.tagName === 'INPUT' ||
                                activeElement?.tagName === 'TEXTAREA' ||
@@ -614,11 +613,8 @@ export function ChatPanel({ settings, onSettingsChange, sessionId, fontSize, t, 
 
     const { command, args } = parseCommand(textToSend.trim());
 
-    // Detect intent: explicit /info command, summary/questions commands, or auto-detect from natural language
-    const infoCommands = ['/info', '/summary', '/questions'];
-    const detectedIntent: ChatIntent = infoCommands.includes(command || '')
-      ? 'info'
-      : (command ? 'script' : detectChatIntent(textToSend));
+    // Use current chat mode as intent (no auto-detect, no prefix needed)
+    const detectedIntent: ChatIntent = chatMode === 'talk' ? 'script' : chatMode;
 
     const userMessage: ChatMessage = {
       id: crypto.randomUUID(),
@@ -729,13 +725,13 @@ Format:
 Generate questions I can ASK them:`;
             break;
         }
-      } else if (talkMode) {
+      } else if (chatMode === 'talk') {
         // In talk mode, wrap the input for translation/correction
         prompt = `Translate and correct this to natural English for speaking: "${textToSend}"`;
       }
 
       const session: ChatSession = { messages, summary, lastCompactedAt: Date.now() };
-      const response = await callGeminiAPI(prompt, context, session, apiKey, model, talkMode && !command, detectedIntent, useExternalKnowledge);
+      const response = await callGeminiAPI(prompt, context, session, apiKey, model, chatMode, useExternalKnowledge);
 
       const assistantMsg: ChatMessage = {
         id: crypto.randomUUID(),
@@ -1037,17 +1033,22 @@ Generate questions I can ASK them:`;
       {/* Input with Talk Mode toggle */}
       <div className="border-t border-gray-200 dark:border-[#30363D] p-3">
         <div className="flex gap-2">
-          {/* Talk Mode Toggle */}
+          {/* Chat Mode Toggle - 3 modes: Script, Info, Talk */}
           <button
-            onClick={() => setTalkMode(!talkMode)}
-            className={`px-2 py-2 rounded-lg border transition-colors flex items-center gap-1 ${
-              talkMode
-                ? 'bg-green-100 dark:bg-green-900/30 border-green-300 dark:border-green-700 text-green-700 dark:text-green-300'
-                : 'bg-slate-200 dark:bg-[#21262D] border-slate-300 dark:border-[#30363D] text-slate-600 dark:text-[#7D8590] hover:bg-slate-300 dark:hover:bg-[#30363D]'
+            onClick={() => setChatMode(prev => prev === 'script' ? 'info' : prev === 'info' ? 'talk' : 'script')}
+            className={`px-3 py-2 rounded-lg border transition-colors flex items-center gap-1.5 ${
+              chatMode === 'script'
+                ? 'bg-indigo-100 dark:bg-indigo-900/30 border-indigo-300 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300'
+                : chatMode === 'info'
+                  ? 'bg-amber-100 dark:bg-amber-900/30 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300'
+                  : 'bg-green-100 dark:bg-green-900/30 border-green-300 dark:border-green-700 text-green-700 dark:text-green-300'
             }`}
-            title={talkMode ? 'Talk Mode: ON (Press Tab to toggle) - Input will be translated to English' : 'Talk Mode: OFF (Press Tab to toggle) - Normal chat'}
+            title={`Mode: ${chatMode.toUpperCase()} (${t.pressTabToSwitchModes || 'Press Tab to switch'}: Script → Info → Talk)`}
           >
-            {talkMode ? <Languages className="w-4 h-4" /> : <MessageCircle className="w-4 h-4" />}
+            {chatMode === 'script' && <MessageCircle className="w-4 h-4" />}
+            {chatMode === 'info' && <Info className="w-4 h-4" />}
+            {chatMode === 'talk' && <Languages className="w-4 h-4" />}
+            <span className="text-xs font-medium capitalize">{chatMode}</span>
           </button>
 
           <input
@@ -1061,15 +1062,23 @@ Generate questions I can ASK them:`;
                 handleSend();
               } else if (e.key === 'Tab') {
                 e.preventDefault();
-                setTalkMode(!talkMode);
+                setChatMode(prev => prev === 'script' ? 'info' : prev === 'info' ? 'talk' : 'script');
               }
             }}
-            placeholder={talkMode ? t.talkModePlaceholder : t.askMeAnything}
+            placeholder={
+              chatMode === 'script'
+                ? t.askMeAnything
+                : chatMode === 'info'
+                  ? t.infoModePlaceholder
+                  : t.talkModePlaceholder
+            }
             disabled={isLoading}
             className={`flex-1 px-3 py-2 border rounded-lg bg-white dark:bg-[#0D1117] text-gray-900 dark:text-[#E6EDF3] focus:outline-none focus:ring-2 disabled:opacity-50 text-sm ${
-              talkMode
-                ? 'border-green-300 dark:border-green-700 focus:ring-green-500'
-                : 'border-gray-300 dark:border-[#30363D] focus:ring-indigo-500'
+              chatMode === 'script'
+                ? 'border-indigo-300 dark:border-indigo-700 focus:ring-indigo-500'
+                : chatMode === 'info'
+                  ? 'border-amber-300 dark:border-amber-700 focus:ring-amber-500'
+                  : 'border-green-300 dark:border-green-700 focus:ring-green-500'
             }`}
           />
           <button
@@ -1092,7 +1101,7 @@ Generate questions I can ASK them:`;
               className="w-3.5 h-3.5 rounded border-slate-300 dark:border-[#30363D] text-indigo-600 focus:ring-indigo-500 focus:ring-offset-0 cursor-pointer"
             />
             <Globe className="w-3.5 h-3.5" />
-            <span>Allow general knowledge</span>
+            <span>{t.allowGeneralKnowledge || 'Allow general knowledge'}</span>
           </label>
           <span 
             className="text-slate-400 dark:text-[#484F58] cursor-help" 
@@ -1102,10 +1111,14 @@ Generate questions I can ASK them:`;
           </span>
         </div>
 
-        {talkMode && (
-          <div className="mt-1 text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
-            {t.talkModeHint}
-            <span className="text-slate-400 dark:text-slate-500">• Press <kbd className="px-1.5 py-0.5 bg-slate-200 dark:bg-slate-700 rounded text-[10px] font-mono">Tab</kbd> to toggle</span>
+        {chatMode !== 'script' && (
+          <div className={`mt-1 text-xs flex items-center gap-1 ${
+            chatMode === 'info'
+              ? 'text-amber-600 dark:text-amber-400'
+              : 'text-green-600 dark:text-green-400'
+          }`}>
+            {chatMode === 'info' ? (t.infoModeHint || 'ℹ️ Info mode: Get answers about the conversation') : t.talkModeHint}
+            <span className="text-slate-400 dark:text-slate-500">{t.pressTabToSwitchModes || '• Press Tab to switch modes'}</span>
           </div>
         )}
       </div>
