@@ -751,6 +751,21 @@ jobs:
             exit 1
           }
 
+          # Copy VCRUNTIME140.dll to resources
+          # onnxruntime.dll is compiled with MSVC and requires this DLL at runtime.
+          # Bundling it ensures the app works on machines without VC++ Redistributable installed.
+          Write-Host "Copying VCRUNTIME140.dll (required by onnxruntime.dll)..."
+          $vcDlls = @("VCRUNTIME140.dll", "VCRUNTIME140_1.dll")
+          foreach ($dll in $vcDlls) {
+            $src = "C:\Windows\System32\$dll"
+            if (Test-Path $src) {
+              Copy-Item -Path $src -Destination "..\zig-april-captions-ui\src-tauri\resources\"
+              Write-Host "✓ Copied $dll"
+            } else {
+              Write-Host "⚠ $dll not found in System32 (may not be needed)"
+            }
+          }
+
           # Download April ASR model for testing
           Write-Host "Downloading April ASR model..."
           $MODEL_NAME = "april-english-dev-01110_en.april"
