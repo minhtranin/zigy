@@ -770,20 +770,13 @@ jobs:
             exit 1
           }
 
-          # Copy VCRUNTIME140.dll to resources
-          # onnxruntime.dll is compiled with MSVC and requires this DLL at runtime.
-          # Bundling it ensures the app works on machines without VC++ Redistributable installed.
-          Write-Host "Copying VCRUNTIME140.dll (required by onnxruntime.dll)..."
-          $vcDlls = @("VCRUNTIME140.dll", "VCRUNTIME140_1.dll")
-          foreach ($dll in $vcDlls) {
-            $src = "C:\Windows\System32\$dll"
-            if (Test-Path $src) {
-              Copy-Item -Path $src -Destination "..\zig-april-captions-ui\src-tauri\resources\"
-              Write-Host "✓ Copied $dll"
-            } else {
-              Write-Host "⚠ $dll not found in System32 (may not be needed)"
-            }
-          }
+          # Download VC++ Redistributable installer
+          # onnxruntime.dll uses assembly manifest loading - simply copying VCRUNTIME140.dll
+          # doesn't work. The VC++ Redist must be properly installed into the system (WinSxS).
+          # We bundle the installer and run it silently via NSIS postinstall hook.
+          Write-Host "Downloading VC++ Redistributable x64..."
+          Invoke-WebRequest -Uri "https://aka.ms/vs/17/release/vc_redist.x64.exe" -OutFile "..\zig-april-captions-ui\src-tauri\resources\vc_redist.x64.exe"
+          Write-Host "✓ Downloaded vc_redist.x64.exe" 
 
           # Download April ASR model for testing
           Write-Host "Downloading April ASR model..."
@@ -1060,17 +1053,8 @@ jobs:
             console.log('- resources:', JSON.stringify(config.bundle.resources, null, 2));
             "
           elif [ "$RUNNER_OS" = "Windows" ]; then
-            # Windows: use resources
-            node -e "
-            const fs = require('fs');
-            const config = JSON.parse(fs.readFileSync('tauri.conf.json', 'utf8'));
-            config.bundle.resources = [
-              'resources/zig-april-captions.exe',
-              'resources/onnxruntime.dll'
-            ];
-            fs.writeFileSync('tauri.conf.json', JSON.stringify(config, null, 2));
-            console.log('Updated tauri.conf.json with Windows resources');
-            "
+            # Windows: run Python script to update config + add NSIS VC++ Redist hook
+            cd src-tauri && python3 update_windows_config.py && cd ..
           else
             # macOS: use resources with dylib
             node -e "
