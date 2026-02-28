@@ -33,17 +33,36 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
+            const tagName = `v${{ steps.tag_name.outputs.current_version }}`;
+            // Try to get existing release for this tag (handles force-push reruns)
+            try {
+              const { data: existing } = await github.rest.repos.getReleaseByTag({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                tag: tagName
+              });
+              console.log(`Found existing release ${existing.id}, resetting to draft`);
+              await github.rest.repos.updateRelease({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                release_id: existing.id,
+                draft: true
+              });
+              return existing.id;
+            } catch (e) {
+              if (e.status !== 404) throw e;
+            }
+            // No existing release, create a new one
             const { data } = await github.rest.repos.createRelease({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              tag_name: `v${{ steps.tag_name.outputs.current_version }}`,
-              name: `Zipy v${{ steps.tag_name.outputs.current_version }}`,
+              tag_name: tagName,
+              name: `Zigy v${{ steps.tag_name.outputs.current_version }}`,
               body: '🎉 Download the installer for your platform below!',
               draft: true,
               prerelease: false
             })
             return data.id
-
   build-tauri:
     needs: create-release
     strategy:
