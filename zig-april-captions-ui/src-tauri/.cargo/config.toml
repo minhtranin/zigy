@@ -10,6 +10,9 @@ rustflags = [
     "-C", "link-arg=-Wl,-rpath,@executable_path/../Resources/resources",
 ]
 
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]
+
 [env]
 # Set macOS deployment target to support older macOS versions
 MACOSX_DEPLOYMENT_TARGET = "10.13"

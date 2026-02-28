@@ -614,7 +614,6 @@ async fn start_captions(
                     if json_line.is_empty() {
                         continue;
                     }
-                    println!("stdout: {}", json_line);
                     // Parse JSON and emit to frontend
                     match serde_json::from_str::<CaptionEvent>(&json_line) {
                         Ok(event) => {
@@ -652,9 +651,7 @@ async fn start_captions(
         for line in reader.lines() {
             match line {
                 Ok(stderr_line) => {
-                    if !stderr_line.is_empty() {
-                        eprintln!("stderr: {}", stderr_line);
-                    }
+                    // Drain stderr to prevent subprocess from blocking (not logged)
                 }
                 Err(e) => {
                     eprintln!("Error reading stderr: {}", e);
