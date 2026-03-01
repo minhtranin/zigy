@@ -1054,7 +1054,8 @@ jobs:
             "
           elif [ "$RUNNER_OS" = "Windows" ]; then
             # Windows: run Python script to update config + add NSIS VC++ Redist hook
-            cd src-tauri && python3 update_windows_config.py && cd ..
+            # Note: already cd'd into zig-april-captions-ui/src-tauri at the top of this step
+            python3 update_windows_config.py
           else
             # macOS: use resources with dylib
             node -e "
