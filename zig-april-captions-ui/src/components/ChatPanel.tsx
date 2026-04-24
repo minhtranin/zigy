@@ -409,7 +409,7 @@ export function ChatPanel({ settings, onSettingsChange, sessionId, fontSize, t, 
   }, []);
 
   const apiKey = settings.ai?.api_key || '';
-  const model = settings.ai?.model || 'gemini-2.5-flash';
+  const model = settings.ai?.model || 'gemini-3.1-flash-lite-preview';
   const translateLanguage = settings.ai?.translation_language || 'Vietnamese';
   const appLanguage = settings.language || 'en';
 
@@ -819,7 +819,7 @@ Generate questions I can ASK them:`;
       ai: {
         ...settings.ai,
         api_key: settings.ai?.api_key || '',
-        model: settings.ai?.model || 'gemini-2.5-flash',
+        model: settings.ai?.model || 'gemini-3.1-flash-lite-preview',
         translation_language: settings.ai?.translation_language,
         use_external_knowledge: checked,
       },
@@ -841,6 +841,8 @@ Generate questions I can ASK them:`;
             style={{ colorScheme: settings.theme === 'light' ? 'light' : 'dark' }}
           >
             <option value="gemini-2.5-flash" className="dark:bg-[#21262D] dark:text-[#E6EDF3]">Flash 2.5</option>
+            <option value="gemini-2.5-flash-lite" className="dark:bg-[#21262D] dark:text-[#E6EDF3]">Flash 2.5 Lite</option>
+            <option value="gemini-3.1-flash-lite-preview" className="dark:bg-[#21262D] dark:text-[#E6EDF3]">Flash 3.1 Lite</option>
             <option value="gemini-2.5-pro" className="dark:bg-[#21262D] dark:text-[#E6EDF3]">Pro 2.5</option>
             <option value="gemini-2.0-flash" className="dark:bg-[#21262D] dark:text-[#E6EDF3]">Flash 2.0</option>
           </select>

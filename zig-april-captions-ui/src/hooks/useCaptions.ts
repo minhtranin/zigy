@@ -4,9 +4,11 @@ import { listen } from '@tauri-apps/api/event';
 import { CaptionEvent, Settings, SummaryState, QuestionsState, TimelineItem, IdeaEntry, ChatHistoryStats, ChatHistoryEntry } from '../types';
 import { generateSummary, generateQuestions, generateSummaryWithContext, generateQuestionsWithContext } from '../services/geminiService';
 import { addChatEntry, getChatHistoryStats, createSessionSnapshot } from '../services/contextService';
+import { startLiveTranslation, stopLiveTranslation, translateText } from '../services/geminiLiveTranslation';
 
 // Global state outside React
 let globalHistory: string[] = [];  // All finalized sentences
+let globalTranslations = new Map<string, string>();  // lowercase original -> translated text
 let lastText = '';                 // Last text shown (to detect replacement)
 let listenerRegistered = false;
 let silenceTimer: ReturnType<typeof setTimeout> | null = null;  // Timer for auto-move to history
@@ -99,6 +101,10 @@ export function useCaptions() {
   // Auto-summary message to be shown in chat
   const [autoSummaryForChat, setAutoSummaryForChat] = useState<string | null>(null);
 
+  // Live translation state (Gemini WebSocket)
+  const [translations, setTranslations] = useState<Map<string, string>>(new Map());
+  const [translationStatus, setTranslationStatus] = useState<'disconnected' | 'connecting' | 'connected' | 'error'>('disconnected');
+
   const [isRunning, setIsRunning] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -118,6 +124,8 @@ export function useCaptions() {
   const setIsLoadingRef = useRef(setIsLoading);
   const setErrorRef = useRef(setError);
   const setStatusRef = useRef(setStatus);
+  const setTranslationsRef = useRef(setTranslations);
+  const setTranslationStatusRef = useRef(setTranslationStatus);
 
   useEffect(() => {
     setCurrentTextRef.current = setCurrentText;
@@ -126,6 +134,8 @@ export function useCaptions() {
     setIsLoadingRef.current = setIsLoading;
     setErrorRef.current = setError;
     setStatusRef.current = setStatus;
+    setTranslationsRef.current = setTranslations;
+    setTranslationStatusRef.current = setTranslationStatus;
   });
 
   // Load settings and timeline on mount
@@ -254,6 +264,8 @@ export function useCaptions() {
                     addChatEntry('transcript', result.persistText).catch(e => {
                       console.error('Failed to save to chat history:', e);
                     });
+                    // Auto-translate via Gemini Live WebSocket
+                    translateText(result.persistText);
                   }
                 }
 
@@ -277,6 +289,8 @@ export function useCaptions() {
                       addChatEntry('transcript', result.persistText).catch(e => {
                         console.error('Failed to save to chat history:', e);
                       });
+                      // Auto-translate via Gemini Live WebSocket
+                      translateText(result.persistText);
 
                       lastText = '';
                       setCurrentTextRef.current('');
@@ -299,6 +313,8 @@ export function useCaptions() {
                   addChatEntry('transcript', result.persistText).catch(e => {
                     console.error('Failed to save to chat history:', e);
                   });
+                  // Auto-translate via Gemini Live WebSocket
+                  translateText(result.persistText);
                 }
                 lastText = '';
                 setCurrentTextRef.current('');
@@ -325,6 +341,7 @@ export function useCaptions() {
               globalHistory = [...globalHistory, finalText];
               setHistoryRef.current([...globalHistory]);
               invoke('add_transcript_line', { line: finalText }).catch(() => {});
+              translateText(finalText);
             }
             lastText = '';
             setCurrentTextRef.current('');
@@ -365,6 +382,25 @@ export function useCaptions() {
     setError(null);
     setCurrentText('');
 
+    // Start live translation if API key and translation language are configured
+    if (settings.ai?.api_key && settings.ai?.translation_language && settings.ai.translation_language !== 'none') {
+      const meetingCtx = settings.ai?.structured_meeting_context
+        ? `${settings.ai.structured_meeting_context.userRole || ''} in a ${settings.ai.structured_meeting_context.meetingType || ''} meeting`
+        : (settings.ai?.meeting_context || undefined);
+      startLiveTranslation(
+        settings.ai.api_key,
+        settings.ai.translation_language,
+        meetingCtx,
+        (originalText, translatedText) => {
+          globalTranslations.set(originalText.toLowerCase(), translatedText);
+          setTranslationsRef.current(new Map(globalTranslations));
+        },
+        (status) => {
+          setTranslationStatusRef.current(status);
+        },
+      );
+    }
+
     try {
       await invoke('start_captions', {
         modelPath: settings.model_path,
@@ -380,6 +416,7 @@ export function useCaptions() {
     try {
       await invoke('stop_captions');
       setIsRunning(false);
+      stopLiveTranslation();
     } catch (e) {
       console.error('Failed to stop:', e);
     }
@@ -391,7 +428,7 @@ export function useCaptions() {
       if (globalHistory.length > 0 && settings.ai?.api_key) {
         createSessionSnapshot(
           settings.ai.api_key,
-          settings.ai.model || 'gemini-2.5-flash'
+          settings.ai.model || 'gemini-3.1-flash-lite-preview'
         ).then(() => {
           console.log('Created session snapshot');
         }).catch((e) => {
@@ -401,9 +438,12 @@ export function useCaptions() {
 
       // Clear UI immediately
       globalHistory = [];
+      globalTranslations.clear();
       lastText = '';
       setHistory([]);
+      setTranslations(new Map());
       setCurrentText('');
+      stopLiveTranslation();
 
       // Clear backend (must await to prevent old data from reappearing)
       await Promise.all([
@@ -498,7 +538,7 @@ export function useCaptions() {
       const content = await generateSummary(
         historyText,
         settings.ai.api_key,
-        settings.ai.model || 'gemini-2.5-flash'
+        settings.ai.model || 'gemini-3.1-flash-lite-preview'
       );
       setSummary({
         content,
@@ -543,7 +583,7 @@ export function useCaptions() {
       const suggestedQuestions = await generateQuestions(
         historyText,
         settings.ai.api_key,
-        settings.ai.model || 'gemini-2.5-flash'
+        settings.ai.model || 'gemini-3.1-flash-lite-preview'
       );
       setQuestions({
         questions: suggestedQuestions,
@@ -644,7 +684,7 @@ export function useCaptions() {
       // Always use context-aware version (includes old summaries via snapshot)
       const content = await generateSummaryWithContext(
         settings.ai.api_key,
-        settings.ai.model || 'gemini-2.5-flash',
+        settings.ai.model || 'gemini-3.1-flash-lite-preview',
         settings.ai.meeting_context
       );
 
@@ -695,7 +735,7 @@ export function useCaptions() {
         // Use context-aware version (token optimized)
         suggestedQuestions = await generateQuestionsWithContext(
           settings.ai.api_key,
-          settings.ai.model || 'gemini-2.5-flash',
+          settings.ai.model || 'gemini-3.1-flash-lite-preview',
           settings.ai.meeting_context
         );
       } else {
@@ -703,7 +743,7 @@ export function useCaptions() {
         suggestedQuestions = await generateQuestions(
           historyText,
           settings.ai.api_key,
-          settings.ai.model || 'gemini-2.5-flash'
+          settings.ai.model || 'gemini-3.1-flash-lite-preview'
         );
         // Save to chat history manually since original doesn't do it
         await addChatEntry('question', suggestedQuestions.join('\n'), { source: 'generated' });
@@ -802,7 +842,7 @@ export function useCaptions() {
           // Generate summary to timeline
           const content = await generateSummaryWithContext(
             settings.ai.api_key,
-            settings.ai.model || 'gemini-2.5-flash',
+            settings.ai.model || 'gemini-3.1-flash-lite-preview',
             settings.ai.meeting_context
           );
 
@@ -824,7 +864,7 @@ export function useCaptions() {
           // Create snapshot and clear (reuse clearCaptions logic but without the snapshot call since we just created one)
           await createSessionSnapshot(
             settings.ai.api_key,
-            settings.ai.model || 'gemini-2.5-flash'
+            settings.ai.model || 'gemini-3.1-flash-lite-preview'
           );
 
           // Clear UI and backend
@@ -855,6 +895,8 @@ export function useCaptions() {
     currentText,
     // Full history text
     historyText,
+    translations,
+    translationStatus,
     // History as array
     history,
     captionsCount: wordCount,

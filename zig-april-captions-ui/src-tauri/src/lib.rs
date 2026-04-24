@@ -3,8 +3,10 @@ use std::io::{BufRead, BufReader};
 use std::path::Path;
 use std::process::{Child, Command, Stdio};
 use std::sync::{Arc, Mutex};
-use tauri::{AppHandle, Emitter, Manager};
+use tauri::{AppHandle, Emitter, Manager, State};
 use rusqlite::params;
+use futures_util::{SinkExt, StreamExt};
+use tokio_tungstenite::{connect_async, tungstenite::Message};
 
 // ============================================================================
 // macOS Microphone Permission Request
@@ -152,9 +154,15 @@ mod macos_permissions {
 mod database;
 use database::{init_db, migrate_from_json, ChatHistoryEntry};
 
+struct TranslationState {
+    tx: Option<tokio::sync::mpsc::Sender<String>>,
+    current_original: Arc<tokio::sync::Mutex<Option<String>>>,
+}
+
 // Global state to manage the child process and transcript history
 struct AppState {
     process: Mutex<Option<Child>>,
+    translation: Mutex<TranslationState>,
     settings: Mutex<Settings>,
     transcript_lines: Mutex<Vec<String>>,
 }
@@ -658,7 +666,7 @@ async fn start_captions(
         let reader = BufReader::new(stderr);
         for line in reader.lines() {
             match line {
-                Ok(stderr_line) => {
+                Ok(_) => {
                     // Drain stderr to prevent subprocess from blocking (not logged)
                 }
                 Err(e) => {
@@ -1977,6 +1985,234 @@ async fn generate_embedding(text: &str, api_key: &str) -> Result<Vec<f32>, Strin
     Ok(embedding)
 }
 
+#[tauri::command]
+async fn translate_start(
+    app_handle: AppHandle,
+    state: State<'_, Arc<AppState>>,
+    api_key: String,
+    language: String,
+    meeting_context: Option<String>,
+) -> Result<String, String> {
+    use std::collections::HashMap;
+    let lang_names: HashMap<&str, &str> = [
+        ("zh-CN", "Chinese (Simplified)"),
+        ("ja", "Japanese"),
+        ("es", "Spanish"),
+        ("fr", "French"),
+        ("de", "German"),
+        ("ko", "Korean"),
+        ("tr", "Turkish"),
+        ("ar", "Arabic"),
+        ("ru", "Russian"),
+        ("pt", "Portuguese"),
+        ("vi", "Vietnamese"),
+    ].iter().cloned().collect();
+
+    let lang_name = lang_names.get(language.as_str()).unwrap_or(&"Vietnamese");
+
+    let mut system_prompt = format!(
+        "You are a real-time translator for a live meeting. The user will send English text from live captions. Translate each message to {} immediately. Rules:\n- Return ONLY the {} translation\n- No explanations, no quotes, no labels\n- Keep the translation natural and conversational\n- Preserve the original meaning accurately\n- Adapt terminology to the meeting context when relevant",
+        lang_name, lang_name
+    );
+
+    if let Some(ctx) = meeting_context {
+        if !ctx.trim().is_empty() {
+            system_prompt.push_str(&format!("\n\nMeeting context (use this to improve translation accuracy for domain-specific terms):\n{}", ctx.trim()));
+        }
+    }
+
+    let url = format!(
+        "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key={}",
+        api_key
+    );
+
+    {
+        let old_tx = {
+            let mut trans_state = state.translation.lock().unwrap();
+            trans_state.tx.take()
+        };
+        if let Some(tx) = old_tx {
+            let _ = tx.send(r#"{"disconnect":true}"#.to_string()).await;
+        }
+    }
+
+    match connect_async(&url).await {
+        Ok((ws, _)) => {
+            let (sink, stream) = ws.split();
+
+            let mut sink = sink;
+            let setup = serde_json::json!({
+                "setup": {
+                    "model": "models/gemini-2.0-flash",
+                    "generationConfig": {
+                        "responseModalities": ["TEXT"],
+                        "temperature": 0.3,
+                        "maxOutputTokens": 256
+                    },
+                    "systemInstruction": {
+                        "parts": [{"text": system_prompt}]
+                    }
+                }
+            });
+            if sink.send(Message::Text(setup.to_string().into())).await.is_err() {
+                return Err("Failed to send setup message".to_string());
+            }
+
+            let (tx, mut rx) = tokio::sync::mpsc::channel::<String>(32);
+
+            let current_original = {
+                let trans_state = state.translation.lock().unwrap();
+                Arc::clone(&trans_state.current_original)
+            };
+
+            {
+                let mut trans_state = state.translation.lock().unwrap();
+                trans_state.tx = Some(tx);
+            }
+
+            let handle = app_handle.clone();
+            let current_original_reader = Arc::clone(&current_original);
+            tokio::spawn(async move {
+                let mut stream = stream;
+                let mut accumulated = String::new();
+
+                while let Some(msg) = stream.next().await {
+                    match msg {
+                        Ok(Message::Text(text)) => {
+                            if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&text) {
+                                if parsed.get("setupComplete").is_some() {
+                                    let _ = handle.emit("translation-status", "connected");
+                                    continue;
+                                }
+
+                                if let Some(server_content) = parsed.get("serverContent") {
+                                    if let Some(model_turn) = server_content.get("modelTurn") {
+                                        if let Some(parts) = model_turn.get("parts") {
+                                            if let Some(parts_arr) = parts.as_array() {
+                                                for part in parts_arr {
+                                                    if let Some(t) = part.get("text").and_then(|v| v.as_str()) {
+                                                        accumulated.push_str(t);
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    if server_content.get("turnComplete").and_then(|v| v.as_bool()).unwrap_or(false) {
+                                        let translated = accumulated.trim().to_string();
+                                        accumulated.clear();
+
+                                        if !translated.is_empty() {
+                                            let orig = {
+                                                let mut guard = current_original_reader.lock().await;
+                                                guard.take()
+                                            };
+                                            if let Some(orig) = orig {
+                                                let _ = handle.emit("translation-result", serde_json::json!({
+                                                    "originalText": orig,
+                                                    "translatedText": translated
+                                                }));
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        Ok(_) => {}
+                        Err(e) => {
+                            eprintln!("[Translation] WebSocket error: {}", e);
+                            let _ = handle.emit("translation-status", "error");
+                            break;
+                        }
+                    }
+                }
+
+                let _ = handle.emit("translation-status", "disconnected");
+            });
+
+            tokio::spawn(async move {
+                while let Some(text) = rx.recv().await {
+                    if text == r#"{"disconnect":true}"# {
+                        break;
+                    }
+                    let msg = serde_json::json!({
+                        "clientContent": {
+                            "turns": [{
+                                "role": "user",
+                                "parts": [{"text": text}]
+                            }],
+                            "turnComplete": true
+                        }
+                    });
+                    if sink.send(Message::Text(msg.to_string().into())).await.is_err() {
+                        break;
+                    }
+                }
+            });
+
+            Ok("connecting".to_string())
+        }
+        Err(e) => {
+            Err(format!("WebSocket connection failed: {}", e))
+        }
+    }
+}
+
+#[tauri::command]
+async fn translate_text(
+    state: State<'_, Arc<AppState>>,
+    text: String,
+) -> Result<(), String> {
+    let tx = {
+        let trans_state = state.translation.lock().unwrap();
+        trans_state.tx.clone()
+    };
+    if let Some(tx) = tx {
+        {
+            let trans_state = state.translation.lock().unwrap();
+            let current_original = &trans_state.current_original;
+            let mut guard = current_original.blocking_lock();
+            *guard = Some(text.clone());
+        }
+        tx.send(text).await.map_err(|e| e.to_string())
+    } else {
+        Err("Translation not started".to_string())
+    }
+}
+
+#[tauri::command]
+async fn translate_stop(
+    state: State<'_, Arc<AppState>>,
+) -> Result<(), String> {
+    let mut trans_state = state.translation.lock().unwrap();
+    trans_state.tx = None;
+    Ok(())
+}
+
+#[tauri::command]
+async fn download_and_open_update(url: String) -> Result<(), String> {
+    let response = reqwest::get(&url)
+        .await
+        .map_err(|e| format!("Download failed: {}", e))?;
+
+    let bytes = response.bytes()
+        .await
+        .map_err(|e| format!("Failed to read download: {}", e))?;
+
+    let temp_path = std::env::temp_dir().join("Zigy_update.dmg");
+    std::fs::write(&temp_path, &bytes)
+        .map_err(|e| format!("Failed to save file: {}", e))?;
+
+    // Open the DMG — macOS mounts it and shows the drag-to-Applications window
+    #[cfg(target_os = "macos")]
+    std::process::Command::new("open")
+        .arg(&temp_path)
+        .spawn()
+        .map_err(|e| format!("Failed to open DMG: {}", e))?;
+
+    Ok(())
+}
+
 fn load_settings() -> Settings {
     let path = get_settings_path();
     if path.exists() {
@@ -1995,6 +2231,10 @@ pub fn run() {
 
     let state = Arc::new(AppState {
         process: Mutex::new(None),
+        translation: Mutex::new(TranslationState {
+            tx: None,
+            current_original: Arc::new(tokio::sync::Mutex::new(None)),
+        }),
         settings: Mutex::new(settings),
         transcript_lines: Mutex::new(Vec::new()),
     });
@@ -2053,16 +2293,22 @@ pub fn run() {
             chat_get_history,
             create_session,
             get_chat_context,
+            translate_start,
+            translate_text,
+            translate_stop,
+            download_and_open_update,
         ])
         .on_window_event(move |_window, event| {
             if let tauri::WindowEvent::Destroyed = event {
-                // Kill the zig process when the window is closed
                 if let Ok(mut process_guard) = state_clone.process.lock() {
                     if let Some(mut child) = process_guard.take() {
                         println!("Cleaning up zig-april-captions process on exit...");
                         let _ = child.kill();
                         let _ = child.wait();
                     }
+                }
+                if let Ok(mut trans_guard) = state_clone.translation.lock() {
+                    trans_guard.tx = None;
                 }
             }
         })

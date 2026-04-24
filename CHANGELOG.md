@@ -5,6 +5,22 @@ All notable changes to Zigy will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.6] - 2026-04-24
+
+### Added
+- **Update checker**: Green badge in title bar when a new version is available — macOS auto-downloads the DMG, Linux/Windows opens the releases page
+- **New model**: Added `gemini-3.1-flash-lite-preview` as the recommended default model
+- **Linux install script**: `install.sh` for one-command AppImage installation on Linux
+
+### Changed
+- Linux packages: removed `.deb` installer, AppImage only
+- `gemini-3.1-flash-lite-preview` is now the default model (was `gemini-2.5-flash`)
+
+### Fixed
+- Fixed "No summary generated" error — switched to `v1beta` API endpoint required by all Gemini 2.x models
+- Fixed Gemini 2.5 thinking model responses — now correctly skips `thought` parts to extract the actual text
+- Fixed console window appearing when spawning the Zig audio binary on Windows
+
 ## [1.0.5] - 2026-03-01
 
 ### Fixed

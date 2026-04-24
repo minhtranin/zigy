@@ -20,6 +20,8 @@ function App() {
   const {
     currentText,
     historyText,
+    translations,
+    translationStatus,
     captionsCount,
     isRunning,
     isLoading,
@@ -161,7 +163,7 @@ function App() {
       ai: {
         ...settings.ai,
         api_key: settings.ai?.api_key || '',
-        model: settings.ai?.model || 'gemini-2.5-flash',
+        model: settings.ai?.model || 'gemini-3.1-flash-lite-preview',
         meeting_context: context,
         structured_meeting_context: structuredContext,
       }
@@ -225,6 +227,8 @@ function App() {
             setExternalCommand({ command, text });
           }}
           onFinalizeLiveText={finalizeLiveText}
+          offlineTranslations={translations}
+          translationStatus={translationStatus}
         />
       </div>
 
@@ -345,7 +349,7 @@ function App() {
               fontSize={settings.font_size}
               transcriptText={historyText}
               apiKey={settings.ai?.api_key || ''}
-              model={settings.ai?.model || 'gemini-2.5-flash'}
+              model={settings.ai?.model || 'gemini-3.1-flash-lite-preview'}
               t={t}
               translationLanguage={settings.ai?.translation_language}
               chatHistoryStats={chatHistoryStats}

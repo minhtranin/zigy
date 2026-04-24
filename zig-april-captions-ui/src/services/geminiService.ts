@@ -1,7 +1,14 @@
 import { GeminiModel, GeminiResponse } from '../types';
 import { buildCompressedContext, buildContextString, addChatEntry } from './contextService';
 
-const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1/models';
+const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
+
+// Gemini 2.5+ thinking models include thought parts before the actual response.
+// Skip thought parts (thought: true) to get the real output text.
+function extractText(data: GeminiResponse): string | undefined {
+  const parts = data.candidates?.[0]?.content?.parts ?? [];
+  return parts.find(p => !p.thought && p.text)?.text;
+}
 
 const QUESTIONS_SYSTEM_PROMPT = `You are a helpful meeting assistant. Based on the meeting transcript provided, suggest 3 smart, relevant questions that the user could ask to contribute meaningfully to the discussion.
 
@@ -171,7 +178,7 @@ export async function generateSummary(
 
   const data: GeminiResponse = await response.json();
 
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  const text = extractText(data);
   if (!text) {
     throw new Error('No summary generated');
   }
@@ -226,7 +233,7 @@ export async function generateQuestions(
 
   const data: GeminiResponse = await response.json();
 
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  const text = extractText(data);
   if (!text) {
     throw new Error('No questions generated');
   }
@@ -302,7 +309,7 @@ export async function generateAskResponse(
 
   const data: GeminiResponse = await response.json();
 
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  const text = extractText(data);
   if (!text) {
     throw new Error('No response generated');
   }
@@ -376,7 +383,7 @@ Generate a natural speaking script to answer this question. Use the meeting tran
 
   const data: GeminiResponse = await response.json();
 
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  const text = extractText(data);
   if (!text) {
     throw new Error('No response generated');
   }
@@ -473,7 +480,7 @@ SCRIPT: [your corrected speaking script here]`;
 
   const data: GeminiResponse = await response.json();
 
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  const text = extractText(data);
   if (!text) {
     throw new Error('No script generated');
   }
@@ -550,7 +557,7 @@ Generate a natural speaking script that relates to this line and contributes to 
 
   const data: GeminiResponse = await response.json();
 
-  const script = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  const script = extractText(data);
   if (!script) {
     throw new Error('No script generated');
   }
@@ -621,7 +628,7 @@ Generate 1-3 natural clarifying questions about this specific statement:`;
 
   const data: GeminiResponse = await response.json();
 
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  const text = extractText(data);
   if (!text) {
     throw new Error('No questions generated');
   }
@@ -704,7 +711,7 @@ Provide the translation:`;
 
   const data: GeminiResponse = await response.json();
 
-  const translation = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  const translation = extractText(data);
   if (!translation) {
     throw new Error('No translation generated');
   }
@@ -791,7 +798,7 @@ Generate a summary of the conversation above:`;
 
   const data: GeminiResponse = await response.json();
 
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  const text = extractText(data);
   if (!text) {
     throw new Error('No summary generated');
   }
@@ -858,7 +865,7 @@ Based on the conversation above, generate 3 smart questions:`;
 
   const data: GeminiResponse = await response.json();
 
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  const text = extractText(data);
   if (!text) {
     throw new Error('No questions generated');
   }
@@ -946,7 +953,7 @@ SCRIPT: [your corrected speaking script here]`;
 
   const data: GeminiResponse = await response.json();
 
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  const text = extractText(data);
   if (!text) {
     throw new Error('No script generated');
   }
@@ -1024,7 +1031,7 @@ Generate a natural speaking script to answer this question:`;
 
   const data: GeminiResponse = await response.json();
 
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  const text = extractText(data);
   if (!text) {
     throw new Error('No response generated');
   }
@@ -1095,7 +1102,7 @@ Generate a natural speaking script that relates to this line and contributes to 
 
   const data: GeminiResponse = await response.json();
 
-  const script = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  const script = extractText(data);
   if (!script) {
     throw new Error('No script generated');
   }
@@ -1171,7 +1178,7 @@ Generate 1-3 natural clarifying questions about this specific statement:`;
 
   const data: GeminiResponse = await response.json();
 
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  const text = extractText(data);
   if (!text) {
     throw new Error('No questions generated');
   }
@@ -1273,7 +1280,7 @@ SCRIPT:
 
   const data: GeminiResponse = await response.json();
 
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  const text = extractText(data);
   if (!text) {
     throw new Error('No conversation starters generated');
   }

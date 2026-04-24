@@ -36,14 +36,6 @@ const t = useTranslations(lang);
             </div>
           </a>
 
-          <a href="#" id="download-linux-deb" class="download-btn linux" style="display:none;">
-            <span class="icon">🐧</span>
-            <div class="btn-text">
-              <strong>{t('hero.linux.debian')}</strong>
-              <small>{t('hero.linux.debian.subtitle')}</small>
-            </div>
-          </a>
-
           <a href="#" id="download-linux-appimage" class="download-btn linux" style="display:none;">
             <span class="icon">🐧</span>
             <div class="btn-text">
@@ -85,7 +77,6 @@ const t = useTranslations(lang);
 
       const windowsAsset = assets.find(a => a.name.endsWith('.exe'));
       const macosAsset = assets.find(a => a.name.endsWith('.dmg'));
-      const debAsset = assets.find(a => a.name.endsWith('.deb'));
       const appimageAsset = assets.find(a => a.name.endsWith('.AppImage'));
 
       // Update download buttons
@@ -101,14 +92,6 @@ const t = useTranslations(lang);
         const btn = document.getElementById('download-macos');
         if (btn) {
           btn.href = macosAsset.browser_download_url;
-          btn.style.display = 'flex';
-        }
-      }
-
-      if (debAsset) {
-        const btn = document.getElementById('download-linux-deb');
-        if (btn) {
-          btn.href = debAsset.browser_download_url;
           btn.style.display = 'flex';
         }
       }

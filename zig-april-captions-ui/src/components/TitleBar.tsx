@@ -1,6 +1,10 @@
+import { useState } from 'react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
-import { Minus, Square, X, Maximize2 } from 'lucide-react';
+import { openUrl } from '@tauri-apps/plugin-opener';
+import { invoke } from '@tauri-apps/api/core';
+import { Minus, Square, X, Maximize2, Loader2 } from 'lucide-react';
 import { Translations } from '../translations';
+import { useUpdateCheck } from '../hooks/useUpdateCheck';
 
 interface Props {
   activeTab: string;
@@ -10,7 +14,32 @@ interface Props {
   onToggleSimpleMode: () => void;
 }
 
+const isMac = navigator.platform.toLowerCase().includes('mac');
+
 export function TitleBar({ activeTab, onTabChange, t, simpleMode, onToggleSimpleMode }: Props) {
+  const update = useUpdateCheck();
+  const [downloading, setDownloading] = useState(false);
+
+  const handleUpdate = async () => {
+    if (downloading) return;
+    if (isMac && update.dmgUrl) {
+      // macOS: download DMG and open it — shows drag-to-Applications window
+      setDownloading(true);
+      try {
+        await invoke('download_and_open_update', { url: update.dmgUrl });
+      } catch (e) {
+        console.error('Update failed:', e);
+        // fallback to releases page
+        openUrl(update.releasesUrl);
+      } finally {
+        setDownloading(false);
+      }
+    } else {
+      // Linux (AppImage) and Windows: open releases page
+      openUrl(update.releasesUrl);
+    }
+  };
+
   const handleMinimize = async () => {
     try {
       const window = getCurrentWindow();
@@ -104,6 +133,26 @@ export function TitleBar({ activeTab, onTabChange, t, simpleMode, onToggleSimple
           className="flex-1 h-full"
           data-tauri-drag-region
         />
+
+        {/* Update available badge */}
+        {update.available && (
+          <button
+            onClick={handleUpdate}
+            disabled={downloading}
+            className="h-full px-3 flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-70 transition-colors select-none"
+            title={
+              downloading
+                ? 'Downloading update...'
+                : `New version ${update.latestVersion} available — click to ${isMac ? 'download & install' : 'download'}`
+            }
+          >
+            {downloading ? (
+              <Loader2 size={11} className="text-white animate-spin" />
+            ) : (
+              <span className="text-[11px] font-semibold text-white">↑ {update.latestVersion}</span>
+            )}
+          </button>
+        )}
 
         {/* Simple Mode button */}
         <button

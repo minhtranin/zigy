@@ -44,7 +44,7 @@ Get the latest release from [GitHub Releases](https://github.com/minhtranin/zigy
 
 
 **Available platforms:**
-- 🐧 Linux: `.deb` and `AppImage`
+- 🐧 Linux: `AppImage` (all distros)
 - 🍎 macOS: Apple Silicon only (M1/M2/M3/M4)
 - 🪟 Windows: `.exe` installer (UI only, no speech recognition)
 
@@ -70,13 +70,12 @@ Get the latest release from [GitHub Releases](https://github.com/minhtranin/zigy
 |---------------|-----------------|------|
 | 🪟 Windows 10/11 | `Zipy_0.1.0_x64-setup.exe` | ~35 MB |
 | 🍎 Mac with Apple Silicon (M1/M2/M3/M4) | `Zipy_0.1.0_aarch64.dmg` | ~25 MB |
-| 🐧 Linux Ubuntu/Debian | `zipy_0.1.0_amd64.deb` | ~30 MB |
-| 🐧 Linux (Other distros) | `zipy_0.1.0_amd64.AppImage` | ~30 MB |
+| 🐧 Linux (all distros) | `zipy_0.1.0_amd64.AppImage` | ~30 MB |
 
 **Don't know which one?**
 - Windows: Look at your Start menu - if you have Windows 10 or 11, get the `.exe` file
 - Mac: Click the Apple logo → About This Mac → If it says "M1", "M2", "M3", or "M4", get the `.dmg` file
-- Linux: Get the `.deb` file if you use Ubuntu/Debian/Mint, or `.AppImage` for other distros
+- Linux: Get the `.AppImage` file — works on Ubuntu, Debian, Fedora, Arch, and all other distros
 
 ⚠️ **Important:** Windows version does NOT include speech recognition (Windows doesn't support the audio library we use). You'll get the UI and AI features only.
 
@@ -146,33 +145,6 @@ Before installing Zipy on Windows, you need to install the **Microsoft Visual C+
    - You can launch Zipy normally from Applications or Launchpad
 
 **Why the extra steps?** macOS blocks apps from unidentified developers. Right-clicking lets you bypass this safely.
-
----
-
-### Linux Installation (Ubuntu/Debian)
-
-1. **Open Terminal:**
-   - Press `Ctrl + Alt + T`
-   - Or search for "Terminal" in your applications
-
-2. **Go to Downloads:**
-   ```bash
-   cd ~/Downloads
-   ```
-
-3. **Install the package:**
-   ```bash
-   sudo dpkg -i zipy_0.1.0_amd64.deb
-   ```
-   - Enter your password when asked
-   - Wait for installation to complete
-
-4. **Launch Zipy:**
-   - Search for "Zipy" in your application menu
-   - Or run in terminal:
-   ```bash
-   zipy
-   ```
 
 ---
 
@@ -796,8 +768,7 @@ If you just want to use Zipy (not develop it), follow these simple steps:
 3. Download the file for your system:
    - **Windows**: `Zipy_x.x.x_x64-setup.exe`
    - **macOS** (M1/M2/M3/M4): `Zipy_x.x.x_aarch64.dmg`
-   - **Linux** (Ubuntu/Debian): `zipy_x.x.x_amd64.deb`
-   - **Linux** (Other): `zipy_x.x.x_amd64.AppImage`
+   - **Linux** (all distros): `zigy_x.x.x_amd64.AppImage`
 
 #### Step 2: Install Zipy
 
@@ -813,8 +784,7 @@ If you just want to use Zipy (not develop it), follow these simple steps:
 
 **Linux:**
 - Open Terminal in your Downloads folder
-- For .deb: `sudo dpkg -i zipy_0.1.0_amd64.deb`
-- For AppImage: `chmod +x zipy_0.1.0_amd64.AppImage && ./zipy_0.1.0_amd64.AppImage`
+- `chmod +x zigy_0.1.0_amd64.AppImage && ./zigy_0.1.0_amd64.AppImage`
 
 #### Step 3: Download Voice Model
 
@@ -889,9 +859,8 @@ Releases are fully automated via GitHub Actions:
 
 **Problem:** The app crashes immediately after launching.
 
-**Solution:** Check if you're using the correct installer:
-- Ubuntu/Debian/Mint: Use `.deb` package
-- Other distros: Use `.AppImage`
+**Solution:**
+- Use the `.AppImage` release — works on all distros
 - Make sure your system has PulseAudio installed
 
 ---

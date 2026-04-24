@@ -22,6 +22,8 @@ interface Props {
   t: Translations;
   onAddCommandToChat?: (command: string, text: string) => void;
   onFinalizeLiveText?: () => void;
+  offlineTranslations?: Map<string, string>;
+  translationStatus?: 'disconnected' | 'connecting' | 'connected' | 'error';
 }
 
 // Translate text using Gemini
@@ -63,6 +65,8 @@ export function HistoryDisplay({
   t,
   onAddCommandToChat,
   onFinalizeLiveText,
+  offlineTranslations,
+  translationStatus,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [translations, setTranslations] = useState<Record<number, string>>({});
@@ -138,6 +142,21 @@ export function HistoryDisplay({
         <span className="text-[10px] font-medium text-gray-400 dark:text-[#7D8590] uppercase tracking-wider">
           {t.history} {wordCount > 0 && `(${wordCount} ${t.words})`}
         </span>
+        {offlineTranslations && offlineTranslations.size > 0 && (
+          <span className="flex items-center gap-1 text-[10px] font-medium uppercase tracking-wider">
+            {translationStatus === 'connected' ? (
+              <>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                <span className="text-emerald-600 dark:text-emerald-400">VI</span>
+              </>
+            ) : (
+              <>
+                <Loader2 size={10} className="animate-spin text-amber-500" />
+                <span className="text-amber-600 dark:text-amber-400">VI</span>
+              </>
+            )}
+          </span>
+        )}
       </div>
       <div className="flex-1 overflow-y-auto min-h-0" ref={containerRef}>
         {lines.length > 0 ? (
@@ -149,10 +168,16 @@ export function HistoryDisplay({
                     <div className="leading-relaxed" style={{ wordWrap: 'break-word', overflowWrap: 'anywhere' }}>
                       {line}
                     </div>
-                    {/* Show translation inline */}
+                    {/* Auto-translation from Gemini Live WebSocket */}
+                    {offlineTranslations?.get(line.trim().toLowerCase()) && (
+                      <div className="text-xs text-emerald-600 dark:text-emerald-400 pl-2 border-l-2 border-emerald-300 dark:border-emerald-600 leading-snug">
+                        {offlineTranslations.get(line.trim().toLowerCase())}
+                      </div>
+                    )}
+                    {/* Manual per-click translation */}
                     {translations[i] && (
                       <div className="text-sm text-blue-600 dark:text-blue-400 italic pl-2 border-l-2 border-blue-300 dark:border-blue-500">
-                        📝 {translations[i]}
+                        {translations[i]}
                       </div>
                     )}
                     {onAddCommandToChat && (

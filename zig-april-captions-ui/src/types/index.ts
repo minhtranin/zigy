@@ -29,7 +29,8 @@ export type GeminiModel =
   | 'gemini-2.5-flash-lite'
   | 'gemini-2.0-flash'
   | 'gemini-2.5-pro'
-  | 'gemini-1.5-pro';
+  | 'gemini-1.5-pro'
+  | 'gemini-3.1-flash-lite-preview';
 
 export type AppLanguage = 'en' | 'vi';
 
@@ -171,10 +172,12 @@ export interface CaptionEvent {
 // Gemini API response types
 export interface GeminiResponse {
   candidates: Array<{
-    content: {
-      parts: Array<{ text: string }>;
+    content?: {
+      parts: Array<{ text?: string; thought?: boolean }>;
     };
+    finishReason?: string;
   }>;
+  promptFeedback?: { blockReason?: string };
 }
 
 // Chat history entry - unified record of all interactions

@@ -1,6 +1,6 @@
 [package]
 name = "zig-april-captions-ui"
-version = "1.0.5"
+version = "1.0.6"
 description = "Real-time speech-to-text captions desktop app"
 authors = ["Minh Cong Tran"]
 edition = "2021"
@@ -20,8 +20,8 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 tauri = { version = "2", features = [] }
 tauri-plugin-opener = "2"
-tauri-plugin-dialog = "2"
-tauri-plugin-fs = "2"
+tauri-plugin-dialog = "2.5.0"
+tauri-plugin-fs = "2.4.5"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tokio = { version = "1", features = ["full"] }
@@ -37,6 +37,9 @@ reqwest = { version = "0.12", features = ["json", "stream", "rustls-tls"], defau
 
 # Async stream utilities for SSE parsing
 futures-util = "0.3"
+
+# WebSocket client for Gemini Live API (real-time translation)
+tokio-tungstenite = { version = "0.26", features = ["native-tls"] }
 
 # macOS microphone permission
 [target.'cfg(target_os = "macos")'.dependencies]
