@@ -40,6 +40,10 @@ const t = useTranslations(lang);
 
             <details>
               <summary><strong>🍎 macOS (Apple Silicon)</strong></summary>
+              <p><strong>{t('installation.step2.cli.title')}</strong></p>
+              <pre><code>curl -fsSL https://raw.githubusercontent.com/minhtranin/zigy/main/install-macos.sh | bash</code></pre>
+              <p class="note">{t('installation.step2.cli.note')}</p>
+              <p style="margin-top:0.75rem"><strong>{t('installation.step2.manual.title')}</strong></p>
               <ol>
                 <li>{t('installation.step2.macos.step1')}</li>
                 <li>{t('installation.step2.macos.step2')}</li>
@@ -55,8 +59,12 @@ const t = useTranslations(lang);
 
             <details>
               <summary><strong>🐧 Linux (AppImage)</strong></summary>
-              <pre><code>chmod +x zigy_0.1.0_amd64.AppImage
-./zigy_0.1.0_amd64.AppImage</code></pre>
+              <p><strong>{t('installation.step2.cli.title')}</strong></p>
+              <pre><code>curl -fsSL https://raw.githubusercontent.com/minhtranin/zigy/main/install.sh | bash</code></pre>
+              <p class="note">{t('installation.step2.cli.note')}</p>
+              <p style="margin-top:0.75rem"><strong>{t('installation.step2.manual.title')}</strong></p>
+              <pre><code>chmod +x zigy_*.AppImage
+./zigy_*.AppImage</code></pre>
               <p class="note">{t('installation.step2.linux.appimage.note')}</p>
             </details>
 
