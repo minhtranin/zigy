@@ -27,6 +27,8 @@ interface Props {
   // Auto-summary for chat
   autoSummaryForChat?: string | null;
   onAutoSummaryProcessed?: () => void;
+  // Signal from parent to clear ChatPanel session
+  chatClearSignal?: number;
 }
 
 export function AIPanel({
@@ -49,6 +51,7 @@ export function AIPanel({
   onExternalCommandProcessed,
   autoSummaryForChat,
   onAutoSummaryProcessed,
+  chatClearSignal,
 }: Props) {
   // Use stable session ID from localStorage to persist across tab switches
   const [chatSessionId] = useState(() => {
@@ -410,6 +413,7 @@ export function AIPanel({
           onExternalCommandProcessed={onExternalCommandProcessed}
           autoSummaryForChat={autoSummaryForChat}
           onAutoSummaryProcessed={onAutoSummaryProcessed}
+          chatClearSignal={chatClearSignal}
         />
       </div>
     </div>

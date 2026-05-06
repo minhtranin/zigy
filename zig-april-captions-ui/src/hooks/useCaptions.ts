@@ -97,6 +97,7 @@ export function useCaptions() {
   // Chat history stats for context monitoring
   const [chatHistoryStats, setChatHistoryStats] = useState<ChatHistoryStats | null>(null);
   const [useContextOptimization, setUseContextOptimization] = useState(true);
+  const [chatClearSignal, setChatClearSignal] = useState(0);
 
   // Auto-summary message to be shown in chat
   const [autoSummaryForChat, setAutoSummaryForChat] = useState<string | null>(null);
@@ -449,7 +450,10 @@ export function useCaptions() {
       await Promise.all([
         invoke('clear_transcript'),
         invoke('clear_chat_history'),
+        invoke('clear_context_snapshots'),
       ]);
+      // Signal ChatPanel to wipe its localStorage session
+      setChatClearSignal(prev => prev + 1);
       // Also clear summary and questions
       setSummary({
         content: null,
@@ -876,7 +880,9 @@ export function useCaptions() {
           await Promise.all([
             invoke('clear_transcript'),
             invoke('clear_chat_history'),
+            invoke('clear_context_snapshots'),
           ]);
+          setChatClearSignal(prev => prev + 1);
 
           console.log('Auto-summary completed and transcript cleared');
         } catch (e) {
@@ -929,6 +935,8 @@ export function useCaptions() {
     // Auto-summary for chat
     autoSummaryForChat,
     clearAutoSummaryForChat: () => setAutoSummaryForChat(null),
+    // Chat clear signal — increments whenever captions/history are fully cleared
+    chatClearSignal,
     // Actions
     startCaptions,
     stopCaptions,

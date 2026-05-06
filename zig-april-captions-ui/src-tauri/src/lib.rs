@@ -343,6 +343,8 @@ fn get_zig_binary_path(app_handle: &AppHandle) -> Result<String, String> {
     println!("Executable path: {}", exe_path.display());
     println!("Executable parent: {}", exe_path.parent().unwrap_or_else(|| Path::new("")).display());
 
+    let exe_dir = exe_path.parent().unwrap_or_else(|| Path::new(""));
+
     // Check if we're in development mode (debug build)
     let is_dev_mode = exe_path.to_string_lossy().contains("/target/debug/") ||
                       exe_path.to_string_lossy().contains("\\target\\debug\\");
@@ -351,8 +353,15 @@ fn get_zig_binary_path(app_handle: &AppHandle) -> Result<String, String> {
     if is_dev_mode {
         println!("Running in development mode, checking dev builds first");
 
-        // In the same parent directory (dev mode)
+        // Exe is at <workspace>/zig-april-captions-ui/src-tauri/target/debug/<binary>
+        // Go up 4 levels to reach the workspace root, then into zig-april-captions
+        let exe_relative_candidate = exe_dir
+            .join("../../../../zig-april-captions/zig-out/bin")
+            .join(binary_name);
+
         let dev_candidates = vec![
+            exe_relative_candidate.to_string_lossy().to_string(),
+            // CWD-relative fallback (works when run from zig-april-captions-ui/)
             format!("../zig-april-captions/zig-out/bin/{}", binary_name),
             // Absolute path to user's build
             format!(
@@ -374,8 +383,6 @@ fn get_zig_binary_path(app_handle: &AppHandle) -> Result<String, String> {
     }
 
     // Try multiple locations relative to the executable
-    let exe_dir = exe_path.parent().unwrap_or_else(|| Path::new(""));
-
     let candidates = vec![
         // Same directory as executable (common for AppImage, Windows)
         exe_dir.join(binary_name),

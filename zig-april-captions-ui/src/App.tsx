@@ -44,6 +44,7 @@ function App() {
     // Auto-summary for chat
     autoSummaryForChat,
     clearAutoSummaryForChat,
+    chatClearSignal,
     // Actions
     startCaptions,
     stopCaptions,
@@ -361,6 +362,7 @@ function App() {
               onExternalCommandProcessed={() => setExternalCommand(null)}
               autoSummaryForChat={autoSummaryForChat}
               onAutoSummaryProcessed={clearAutoSummaryForChat}
+              chatClearSignal={chatClearSignal}
             />
           </div>
         )}

@@ -18,7 +18,7 @@ export function estimateTokens(text: string): number {
 
 export function estimateTokensForEntries(entries: ChatHistoryEntry[]): number {
   const totalChars = entries.reduce((sum, entry) => sum + entry.content.length, 0);
-  return estimateTokens(totalChars.toString());
+  return Math.ceil(totalChars / 4);
 }
 
 // Configuration

@@ -5,7 +5,7 @@ const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models
 
 // Gemini 2.5+ thinking models include thought parts before the actual response.
 // Skip thought parts (thought: true) to get the real output text.
-function extractText(data: GeminiResponse): string | undefined {
+export function extractText(data: GeminiResponse): string | undefined {
   const parts = data.candidates?.[0]?.content?.parts ?? [];
   return parts.find(p => !p.thought && p.text)?.text;
 }

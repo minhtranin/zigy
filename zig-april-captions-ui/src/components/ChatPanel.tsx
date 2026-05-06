@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { Send, Loader2, RefreshCw, MessageCircle, Languages, Globe, Info } from 'lucide-react';
-import { ChatMessage, ChatCommandType, Settings, GeminiModel } from '../types';
+import { ChatMessage, ChatCommandType, Settings, GeminiModel, GeminiResponse } from '../types';
 import { Translations } from '../translations';
 import {
   generateSummaryWithContext,
@@ -9,7 +9,8 @@ import {
   getAdaptiveContextLimit,
   getKnowledgeInstruction,
   INFO_SYSTEM_PROMPT,
-  ChatIntent
+  ChatIntent,
+  extractText,
 } from '../services/geminiService';
 
 // Translate text using Gemini
@@ -39,10 +40,10 @@ async function translateText(
   });
 
   if (!response.ok) throw new Error('Translation failed');
-  const data = await response.json();
-  
+  const data: GeminiResponse = await response.json();
+
   // Handle empty response (common with Pro model when tokens exhausted)
-  const result = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  const result = extractText(data);
   if (!result && data.candidates?.[0]?.finishReason === 'MAX_TOKENS') {
     throw new Error('Translation too long, try shorter text');
   }
@@ -59,6 +60,7 @@ interface ChatPanelProps {
   onExternalCommandProcessed?: () => void;
   autoSummaryForChat?: string | null;
   onAutoSummaryProcessed?: () => void;
+  chatClearSignal?: number;
 }
 
 interface ChatSession {
@@ -80,13 +82,18 @@ function estimateTokens(text: string): number {
 async function summarizeMessages(
   messages: ChatMessage[],
   apiKey: string,
-  model: string
+  model: string,
+  previousSummary?: string
 ): Promise<string> {
-  if (messages.length === 0) return '';
+  if (messages.length === 0 && !previousSummary) return '';
 
   const conversationText = messages
     .map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`)
     .join('\n');
+
+  const contextBlock = previousSummary
+    ? `Earlier context:\n${previousSummary}\n\nNew messages:\n${conversationText}`
+    : conversationText;
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
@@ -96,7 +103,7 @@ async function summarizeMessages(
     body: JSON.stringify({
       contents: [{
         parts: [{
-          text: `Summarize this conversation in 2-3 sentences, capturing the key points and any decisions made:\n\n${conversationText}`
+          text: `Summarize this conversation in 2-3 sentences, capturing the key points and any decisions made:\n\n${contextBlock}`
         }]
       }],
       generationConfig: { maxOutputTokens: 200, temperature: 0.3 }
@@ -104,8 +111,8 @@ async function summarizeMessages(
   });
 
   if (!response.ok) return '';
-  const data = await response.json();
-  return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  const data: GeminiResponse = await response.json();
+  return extractText(data) || '';
 }
 
 // Generate dynamic suggestions based on transcript context and chat history
@@ -187,8 +194,8 @@ Return ONLY a JSON array of strings. Example: ["Challenge the proposed approach"
   if (!response.ok) return [];
 
   try {
-    const data = await response.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '[]';
+    const data: GeminiResponse = await response.json();
+    const text = extractText(data) || '[]';
     const match = text.match(/\[[\s\S]*\]/);
     if (match) {
       const parsed = JSON.parse(match[0]);
@@ -329,13 +336,12 @@ Example output: "I believe garbage collection is really important for maintainin
     throw new Error(`API error: ${response.status} - ${error}`);
   }
 
-  const data = await response.json();
-  
-  // Debug: log full response for troubleshooting
-  if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
+  const data: GeminiResponse = await response.json();
+  const text = extractText(data);
+
+  if (!text) {
     console.warn('Gemini API response structure:', JSON.stringify(data, null, 2));
-    
-    // Check for blocked response
+
     if (data.candidates?.[0]?.finishReason === 'SAFETY') {
       throw new Error('Response blocked by safety filters. Try rephrasing your question.');
     }
@@ -345,13 +351,12 @@ Example output: "I believe garbage collection is really important for maintainin
     if (data.promptFeedback?.blockReason) {
       throw new Error(`Prompt blocked: ${data.promptFeedback.blockReason}`);
     }
-    // Check if response is empty due to other reasons
     if (data.candidates?.length === 0) {
       throw new Error('No response generated. The model may be overloaded, try again.');
     }
   }
-  
-  return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+  return text || '';
 }
 
 // Default suggestions - more options
@@ -369,7 +374,7 @@ const RESPONSE_SUGGESTIONS: PromptSuggestion[] = [
   { label: '1 vs 1', prompt: 'Make that more direct and personal, addressing one person casually (use "you", "bro", "mate" - like talking 1-on-1 instead of to a group)', icon: '👥' },
 ];
 
-export function ChatPanel({ settings, onSettingsChange, sessionId, fontSize, t, externalCommand, onExternalCommandProcessed, autoSummaryForChat, onAutoSummaryProcessed }: ChatPanelProps) {
+export function ChatPanel({ settings, onSettingsChange, sessionId, fontSize, t, externalCommand, onExternalCommandProcessed, autoSummaryForChat, onAutoSummaryProcessed, chatClearSignal }: ChatPanelProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [summary, setSummary] = useState<string>('');
   const [inputText, setInputText] = useState('');
@@ -428,6 +433,13 @@ export function ChatPanel({ settings, onSettingsChange, sessionId, fontSize, t, 
     loadSession();
     loadTranscript();
   }, [sessionId]);
+
+  // React to external clear signal (e.g. when user clicks main "Clear" button)
+  useEffect(() => {
+    if (chatClearSignal && chatClearSignal > 0) {
+      saveSession([], '');
+    }
+  }, [chatClearSignal]);
 
   const loadTranscript = async () => {
     try {
@@ -563,9 +575,9 @@ export function ChatPanel({ settings, onSettingsChange, sessionId, fontSize, t, 
       try {
         const toCompress = currentMessages.slice(0, -COMPACT_KEEP_RECENT);
         const toKeep = currentMessages.slice(-COMPACT_KEEP_RECENT);
-        const oldContext = currentSummary ? `Previous: ${currentSummary}\n` : '';
-        const newSummaryText = await summarizeMessages(toCompress, apiKey, model);
-        return { messages: toKeep, summary: oldContext + newSummaryText };
+        // Pass old summary into the summarizer so it merges — don't prepend it (causes growth)
+        const newSummaryText = await summarizeMessages(toCompress, apiKey, model, currentSummary || undefined);
+        return { messages: toKeep, summary: newSummaryText };
       } finally {
         setIsCompacting(false);
       }
@@ -767,6 +779,9 @@ Generate questions I can ASK them:`;
 
   const clearHistory = () => {
     saveSession([], '');
+    // Also clear backend history and snapshots so getContext returns clean state
+    invoke('clear_chat_history').catch(() => {});
+    invoke('clear_context_snapshots').catch(() => {});
   };
 
   // Translate a message

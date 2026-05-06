@@ -5,6 +5,16 @@ All notable changes to Zigy will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.7] - 2026-05-06
+
+### Fixed
+- **Context persistence after clear**: Clearing captions now fully resets AI chat context — old transcription context no longer bleeds into new sessions
+- **Thinking model responses**: Chat features now correctly extract the actual answer text from Gemini 2.5 thinking models (Flash 2.5, Pro 2.5), which prefix responses with internal reasoning parts
+- **Token estimation bug**: Context compression now correctly estimates token count for chat history entries — previously massively underestimated, causing context to never compress
+- **Summary compaction growth**: Repeated compaction no longer grows the summary linearly; old and new content are merged into a single fresh summary
+- **Chat clear button**: The in-chat clear button now also wipes backend history and context snapshots, not just the local session
+- **Dev binary lookup**: Fixed "Binary not found" error when starting captions from a working directory other than the project root — binary is now located relative to the executable, not the CWD
+
 ## [1.0.6] - 2026-04-24
 
 ### Added
