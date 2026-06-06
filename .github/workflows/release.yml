@@ -1046,7 +1046,8 @@ jobs:
           echo "New version in tauri.conf.json:"
           cat src-tauri/tauri.conf.json | grep -A 1 '"version"'
 
-      - name: Build Tauri App
+      - name: Build Tauri App (non-Linux)
+        if: runner.os != 'Linux'
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -1057,38 +1058,47 @@ jobs:
           args: --target ${{ matrix.target }} --bundles ${{ matrix.bundle }}
           projectPath: zig-april-captions-ui
 
-      - name: Patch AppImage AppRun for Wayland/Arch compatibility
+      - name: Build Tauri App (Linux)
         if: runner.os == 'Linux'
         shell: bash
+        env:
+          SKIP_ZIG_BUILD: "1"
         run: |
-          APPIMAGE=$(find zig-april-captions-ui/src-tauri/target -name "*.AppImage" -type f | head -1)
+          cd zig-april-captions-ui
+          bun run tauri build --target ${{ matrix.target }} --bundles ${{ matrix.bundle }}
+
+      - name: Patch AppImage AppRun and upload (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          APPIMAGE=$(find "$(pwd)/zig-april-captions-ui/src-tauri/target" -name "*.AppImage" -type f | head -1)
           if [ -z "$APPIMAGE" ]; then
-            echo "No AppImage found, skipping patch"
-            exit 0
+            echo "No AppImage found"
+            exit 1
           fi
           echo "Patching: $APPIMAGE"
 
-          # Download appimagetool for repacking
+          # Download appimagetool
           wget -q "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage" -O /tmp/appimagetool
           chmod +x /tmp/appimagetool
 
-          # Extract AppImage
+          # Extract, patch, repack in place
           WORK_DIR="/tmp/appimage-patch-$$"
           mkdir -p "$WORK_DIR"
           cd "$WORK_DIR"
           APPIMAGE_EXTRACT_AND_RUN=1 "$APPIMAGE" --appimage-extract
-
-          # Inject env vars into AppRun after the shebang line
           sed -i '1a export WEBKIT_DISABLE_DMABUF_RENDERER=1' squashfs-root/AppRun
+          ARCH=x86_64 APPIMAGE_EXTRACT_AND_RUN=1 /tmp/appimagetool squashfs-root/ "$APPIMAGE"
+          echo "✓ AppImage patched"
 
-          # Repack
-          ARCH=x86_64 APPIMAGE_EXTRACT_AND_RUN=1 /tmp/appimagetool squashfs-root/ patched.AppImage
-          chmod +x patched.AppImage
-
-          # Replace original
-          cp patched.AppImage "$APPIMAGE"
-          echo "✓ AppImage patched successfully"
-          cd -
+          # Upload to release (tag name from ref)
+          TAG="${GITHUB_REF#refs/tags/}"
+          gh release upload "$TAG" "$APPIMAGE" \
+            --repo "$GITHUB_REPOSITORY" \
+            --clobber
+          echo "✓ Uploaded to release"
 
       - name: Fix rpaths and re-sign binary in macOS DMG
         if: runner.os == 'macOS'
