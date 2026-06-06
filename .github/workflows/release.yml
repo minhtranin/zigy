@@ -1093,12 +1093,14 @@ jobs:
           ARCH=x86_64 APPIMAGE_EXTRACT_AND_RUN=1 /tmp/appimagetool squashfs-root/ "$APPIMAGE"
           echo "✓ AppImage patched"
 
-          # Upload to release (tag name from ref)
-          TAG="${GITHUB_REF#refs/tags/}"
-          gh release upload "$TAG" "$APPIMAGE" \
-            --repo "$GITHUB_REPOSITORY" \
-            --clobber
-          echo "✓ Uploaded to release"
+          # Upload to release via GitHub API (more reliable than gh CLI on draft releases)
+          ASSET_NAME=$(basename "$APPIMAGE")
+          curl -s -X POST \
+            -H "Authorization: token $GITHUB_TOKEN" \
+            -H "Content-Type: application/octet-stream" \
+            --data-binary @"$APPIMAGE" \
+            "https://uploads.github.com/repos/$GITHUB_REPOSITORY/releases/${{ needs.create-release.outputs.release_id }}/assets?name=${ASSET_NAME}" \
+            | python3 -c "import sys,json; r=json.load(sys.stdin); print('✓ Uploaded:', r.get('browser_download_url', r))"
 
       - name: Fix rpaths and re-sign binary in macOS DMG
         if: runner.os == 'macOS'
