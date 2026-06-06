@@ -458,7 +458,11 @@ int tss_set(tss_t key, void *val);
   } once_flag;
   #define ONCE_FLAG_INIT {0,}
 #else
-  #define once_flag pthread_once_t
+  #ifndef __once_flag_defined
+    #define once_flag pthread_once_t
+  #else
+    typedef pthread_once_t once_flag;
+  #endif
   #define ONCE_FLAG_INIT PTHREAD_ONCE_INIT
 #endif
 
@@ -469,7 +473,7 @@ int tss_set(tss_t key, void *val);
  */
 #if defined(_TTHREAD_WIN32_)
   void call_once(once_flag *flag, void (*func)(void));
-#else
+#elif !defined(__once_flag_defined)
   #define call_once(flag,func) pthread_once(flag,func)
 #endif
 
