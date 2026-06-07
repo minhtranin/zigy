@@ -1089,7 +1089,10 @@ jobs:
           mkdir -p "$WORK_DIR"
           cd "$WORK_DIR"
           APPIMAGE_EXTRACT_AND_RUN=1 "$APPIMAGE" --appimage-extract
+          # Inject WebKit env var
           sed -i '1a export WEBKIT_DISABLE_DMABUF_RENDERER=1' squashfs-root/AppRun
+          # Remove forced GDK_BACKEND=x11 from GTK hook — breaks Wayland (EGL crash)
+          sed -i '/export GDK_BACKEND=x11/d' squashfs-root/apprun-hooks/linuxdeploy-plugin-gtk.sh
           ARCH=x86_64 APPIMAGE_EXTRACT_AND_RUN=1 /tmp/appimagetool squashfs-root/ "$APPIMAGE"
           echo "✓ AppImage patched"
 
